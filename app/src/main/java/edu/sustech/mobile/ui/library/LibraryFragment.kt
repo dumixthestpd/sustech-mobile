@@ -13,6 +13,7 @@ import edu.sustech.mobile.ui.ListFragment
 import edu.sustech.mobile.ui.ServicePage
 import edu.sustech.mobile.ui.TabbedServiceFragment
 import edu.sustech.mobile.ui.hostShell
+import java.util.Locale
 
 /** The book whose "Where" tab is open, shared between the two fragments. */
 object LibrarySelection {
@@ -166,12 +167,27 @@ class LibraryWhereFragment : ListFragment<LibraryApi.Shelf>(R.layout.fragment_li
     override fun bindRow(view: View, item: LibraryApi.Shelf, position: Int) {
         val place = listOf(item.library, item.collection).filter { it.isNotEmpty() }.joinToString(" · ")
         view.findViewById<TextView>(R.id.library_shelf_place).text = place
-        view.findViewById<TextView>(R.id.library_shelf_status).text =
-            if (item.onShelf) getString(R.string.library_on_shelf) else item.status
+        view.findViewById<TextView>(R.id.library_shelf_status).text = when {
+            item.onShelf -> getString(R.string.library_on_shelf)
+            item.status.isBlank() -> getString(R.string.library_status_unknown)
+            item.status.trim().lowercase(Locale.ROOT) in UNAVAILABLE_STATUSES ->
+                getString(R.string.library_not_available)
+            else -> getString(R.string.library_status_unknown)
+        }
         view.findViewById<TextView>(R.id.library_shelf_call).text =
             if (item.callNumber.isEmpty()) "" else getString(R.string.library_call_number, item.callNumber)
     }
 
     override fun errorText(error: Throwable): String = context?.let { error.friendly(it) }
         ?: error.message.orEmpty()
+
+    private companion object {
+        val UNAVAILABLE_STATUSES = setOf(
+            "unavailable",
+            "not available",
+            "not_available",
+            "checked out",
+            "loaned",
+        )
+    }
 }

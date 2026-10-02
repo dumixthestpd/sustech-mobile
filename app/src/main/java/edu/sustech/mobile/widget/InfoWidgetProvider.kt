@@ -26,9 +26,8 @@ import java.util.concurrent.Executors
  * itself:
  *
  *   1. **on tap** — the case that matters, standing at the stop;
- *   2. **on a 60-second alarm** — and each card only reaches for the network
- *      when its own [WidgetKind.cadenceMillis] has elapsed (bus: 60s, the rest:
- *      15 min). The alarm deliberately does **not** skip refreshes while the
+ *   2. **on an alarm** — each card reaches for the network on its cadence
+ *      (bus: 60s, the rest: 15 min). The alarm deliberately does **not** skip refreshes while the
  *      screen is off: `ELAPSED_REALTIME` alarms are deferred by the platform
  *      while idle and fire promptly once the device is picked up, so gating on
  *      the screen only ever made the card look frozen;
@@ -59,6 +58,7 @@ class InfoWidgetProvider : AppWidgetProvider() {
         when (intent.action) {
             ACTION_REFRESH -> {
                 App.init(context.applicationContext)
+                scheduleTicks(context)
                 val id = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1)
                 // A tap is an explicit "show me now" — always hit the network.
                 if (id != -1) refresh(context, manager, listOf(id), force = true)
@@ -78,6 +78,7 @@ class InfoWidgetProvider : AppWidgetProvider() {
             WidgetPrefs.clear(context, it)
             WidgetStore.clear(context, it)
         }
+        scheduleTicks(context)
         super.onDeleted(context, appWidgetIds)
     }
 
@@ -124,7 +125,7 @@ class InfoWidgetProvider : AppWidgetProvider() {
         val fresh = if (due) runCatching { WidgetData.snapshot(context, kind, stopId) }
             .getOrElse { error ->
                 // Keep the reason for the footer this render is about to show.
-                WidgetPrefs.rememberReason(context, widgetId, WidgetData.shortReason(error))
+                WidgetPrefs.rememberReason(context, widgetId, WidgetData.shortReason(context, error))
                 null
             } else null
         if (fresh != null) WidgetStore.save(context, widgetId, fresh)
@@ -136,7 +137,7 @@ class InfoWidgetProvider : AppWidgetProvider() {
             stored != null -> "⚠ ${lastReason(context, widgetId) ?: "update failed"} · data ${age(stored.at)}"
             else -> "no data yet · tap to retry"
         }
-        val title = snapshot?.title ?: WidgetData.titleOf(kind)
+        val title = snapshot?.title ?: WidgetData.titleOf(context, kind)
         val lines = snapshot?.lines ?: emptyList()
         manager.updateAppWidget(
             widgetId,
@@ -184,6 +185,7 @@ class InfoWidgetProvider : AppWidgetProvider() {
             WidgetKind.BUS -> "transit"
             WidgetKind.DEADLINES -> "blackboard"
             WidgetKind.CLASSES -> "tis"
+            WidgetKind.CAMPUS_CARD_QR -> "ecard"
             // Weather is a Today-panel number, and Today is the app's front door.
             WidgetKind.WEATHER -> null
         }
@@ -204,14 +206,15 @@ class InfoWidgetProvider : AppWidgetProvider() {
     // -- Alarm ----------------------------------------------------------------
 
     /**
-     * A repeating 60-second alarm while any widget exists.
+     * A repeating heartbeat while any widget exists; QR cards shorten it to 30 seconds.
      *
      * It is a cheap heartbeat, not a fetch: each card decides from its own
-     * cadence whether this tick is worth a request, so the bus card updates
-     * every minute and a deadlines card wakes the radio four times an hour.
+     * cadence whether this tick is worth a request, so slow cards still update
+     * only once per 15 minutes.
      */
     private fun scheduleTicks(context: Context) {
-        if (ids(context).isEmpty()) {
+        val widgetIds = ids(context)
+        if (widgetIds.isEmpty()) {
             cancelTicks(context)
             return
         }

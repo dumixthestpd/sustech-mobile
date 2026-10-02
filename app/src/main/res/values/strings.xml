@@ -47,15 +47,18 @@
     <string name="network_label">Network</string>
     <string name="session_courses_label">Courses (CAS)</string>
     <string name="session_printing_label">Printing (campus only)</string>
-    <string name="network_campus">Campus network — all services reachable</string>
-    <string name="network_off_campus">Online, off campus — printing needs the campus network or VPN</string>
-    <string name="network_none">No network — nothing reachable</string>
+    <string name="network_campus">Printing service reachable</string>
+    <string name="network_off_campus">Online, printing unavailable — connect to the campus network or VPN</string>
+    <string name="network_none">University services unreachable — check your connection</string>
     <string name="error_network">Network error: %1$s</string>
 
     <!-- Services catalog -->
-    <string name="services_available">Available</string>
+    <string name="services_available">Implemented</string>
+    <string name="services_checking">Checking…</string>
+    <string name="services_reachable">Service reachable</string>
+    <string name="services_unavailable">Unavailable</string>
     <string name="services_not_implemented">Not implemented yet</string>
-    <string name="services_planned_note">These SUSTech services are not in the app yet. The service list is the shared roadmap with sustech_survival (Python) and sustech-cli (TypeScript).</string>
+    <string name="services_planned_note">Implemented services open in the app or an official SUSTech portal. Course reviews are still in development.</string>
     <string name="service_pms">Printing</string>
     <string name="service_pms_summary">Cloud print queue, stations, scans, usage</string>
     <string name="service_tis">Courses &amp; grades</string>
@@ -76,6 +79,25 @@
     <string name="transit_no_arrivals">No buses due right now.</string>
     <string name="transit_need_location">Allow location to sort stops by distance.</string>
     <string name="transit_credit">Data: sustech.online</string>
+    <string name="transit_load_error">Could not load campus bus information. Try again.</string>
+    <string name="transit_arriving">Arriving</string>
+    <string name="transit_live">Live</string>
+    <string name="transit_timetable">Timetable</string>
+    <string name="transit_last_bus_gone">Last bus has passed</string>
+    <string name="transit_not_operating_today">Not operating today</string>
+    <string name="transit_no_service">No service</string>
+    <string name="transit_bus_at_stop">At the stop</string>
+    <string name="transit_next_stop">%1$s · next %2$s</string>
+    <string name="transit_next_short">next %1$s</string>
+    <string name="transit_to">to %1$s</string>
+    <string name="transit_via">via %1$s</string>
+    <string name="transit_distance_away">%1$s away</string>
+    <string name="transit_direction_cw">CW</string>
+    <string name="transit_direction_ccw">CCW</string>
+    <string name="transit_direction_uphill">Uphill</string>
+    <string name="transit_direction_downhill">Downhill</string>
+    <string name="transit_widget_reason">%1$s · %2$s</string>
+    <string name="transit_widget_arrival">%1$s · %2$s%3$s</string>
 
     <!-- Library -->
     <string name="library_inside">Inside</string>
@@ -88,20 +110,54 @@
     <string name="library_no_results">Nothing matched.</string>
     <string name="library_search_first">Search, then tap a book to see where it is.</string>
     <string name="library_on_shelf">Available</string>
+    <string name="library_not_available">Currently unavailable</string>
+    <string name="library_status_unknown">Availability unknown</string>
     <string name="library_call_number">Shelf %1$s</string>
     <string name="library_electronic">Online copy only — nothing on a shelf.</string>
     <string name="library_credit">Data: lib.sustech.edu.cn · Primo</string>
     <string name="transit_source_credit">Live ETAs · buseta.sustcra.com (sustech.online)</string>
+    <plurals name="transit_eta_minutes">
+        <item quantity="one">%1$d min</item>
+        <item quantity="other">%1$d min</item>
+    </plurals>
+    <plurals name="transit_stops_remaining">
+        <item quantity="one">%1$d stop to go</item>
+        <item quantity="other">%1$d stops to go</item>
+    </plurals>
 
     <!-- Home-screen widget -->
     <string name="widget_label">SUSTech Mobile info</string>
-    <string name="widget_description">Campus bus ETAs, Blackboard deadlines, next class, or weather — pick one when you drop the card.</string>
+    <string name="widget_description">Campus bus ETAs, Blackboard deadlines, next class, or weather — pick one when you add the widget.</string>
     <string name="widget_config_title">What should this widget show?</string>
-    <string name="widget_config_hint">Tap the card any time to refresh it. Bus cards also refresh once a minute while the screen is on.</string>
+    <string name="widget_config_hint">Use ⟳ to refresh; tap a card to open its service. Bus cards update about once a minute.</string>
     <string name="widget_kind_bus">Campus bus arrivals (pick a stop)</string>
     <string name="widget_kind_bb">Blackboard deadlines</string>
     <string name="widget_kind_classes">Next class</string>
     <string name="widget_kind_weather">Weather + AQI</string>
+    <string name="widget_ecard_title">Campus card QR</string>
+    <string name="widget_ecard_qr_description">Live campus card payment and entry QR code</string>
+    <string name="widget_ecard_empty">The campus card returned an empty QR code.</string>
+    <string name="widget_ecard_label">Quick shortcuts</string>
+    <string name="widget_ecard_description">A configurable 2×2 widget with four campus shortcuts.</string>
+    <string name="widget_ecard_refresh">Refresh campus QR code</string>
+    <string name="widget_ecard_moved">The old campus QR card was replaced by configurable quick shortcuts.</string>
+    <string name="widget_ecard_moved_action">Remove the old card and add Quick shortcuts.</string>
+    <string name="widget_shortcuts_label">Quick shortcuts</string>
+    <string name="widget_shortcuts_description">A 2×2 widget with four configurable campus shortcuts.</string>
+    <string name="widget_shortcuts_config_title">Choose your shortcuts</string>
+    <string name="widget_shortcuts_config_hint">Pick an action for each tile. The defaults are electronic card, campus QR, printing, and campus bus.</string>
+    <string name="widget_shortcut_slot_1">Top left</string>
+    <string name="widget_shortcut_slot_2">Top right</string>
+    <string name="widget_shortcut_slot_3">Bottom left</string>
+    <string name="widget_shortcut_slot_4">Bottom right</string>
+    <string name="shortcut_ecard_face">Electronic card</string>
+    <string name="shortcut_campus_qr">Campus card QR</string>
+    <string name="shortcut_print">Printing</string>
+    <string name="shortcut_bus">Campus bus</string>
+    <string name="shortcut_library">Library</string>
+    <string name="shortcut_blackboard">Blackboard</string>
+    <string name="shortcut_exchange">Exchange</string>
+    <string name="shortcut_faculty">Faculty</string>
     <string name="widget_stop_auto">Automatic (nearest stop)</string>
     <string name="widget_stops_label">Stop</string>
     <string name="widget_stops_failed">Could not load stops: %1$s</string>
@@ -115,6 +171,16 @@
     <string name="service_transit_summary">Shuttle routes and live buses</string>
     <string name="service_nces">Course reviews</string>
     <string name="service_nces_summary">Community course evaluation ratings</string>
+    <string name="nces_search_hint">Search by course, code, or teacher</string>
+    <string name="nces_search_prompt">Search a course to view its reviews</string>
+    <string name="nces_no_courses">No courses found</string>
+    <string name="nces_no_reviews">No reviews for this course</string>
+    <string name="nces_teacher_unknown">Teacher unknown</string>
+    <string name="nces_course_rating">%1$.1f/10 · %2$d reviews</string>
+    <string name="nces_course_no_rating">No ratings yet</string>
+    <string name="nces_review_rating_term">%1$.1f/10 · %2$s</string>
+    <string name="nces_review_rating">%1$.1f/10</string>
+    <string name="nces_review_empty_content">No written comment.</string>
     <string name="service_faculty">Faculty</string>
     <string name="service_faculty_summary">Staff directory and contact lookup</string>
     <string name="service_ws">Exchange programs</string>
@@ -123,6 +189,25 @@
     <string name="service_cle_summary">One-on-one language tutoring reservations</string>
     <string name="service_wifi">Campus Wi-Fi</string>
     <string name="service_wifi_summary">SUSTC-Wifi sign-in and status</string>
+    <string name="portal_booking_intro">E-Hall hosts the university’s official room and venue reservations. The app reuses your campus CAS session when available.</string>
+    <string name="portal_booking_ehall">Open E-Hall booking services</string>
+    <string name="portal_faculty_intro">Search the university’s official faculty directory for staff and contact details.</string>
+    <string name="portal_faculty_open">Open faculty directory</string>
+    <string name="faculty_search_hint">Search name, title, or department</string>
+    <string name="faculty_count">%1$d faculty members</string>
+    <string name="faculty_empty">The bundled faculty directory is empty.</string>
+    <string name="faculty_no_results">No matching faculty members.</string>
+    <string name="faculty_source_note">Offline search · official directory snapshot: %1$s. Select a person to open their official profile.</string>
+    <string name="portal_exchange_intro">Browse study-abroad opportunities, then open the application platform for program details.</string>
+    <string name="portal_exchange_overview">Project info</string>
+    <string name="portal_exchange_platform">Open exchange platform</string>
+    <string name="portal_language_help_intro">The Center for Language Education offers tutoring appointments. Book at least one day ahead; in E-Hall, search for “CLE Language Help Service”.</string>
+    <string name="portal_language_help_booking">Book in E-Hall</string>
+    <string name="portal_language_help_guide">Language help guide</string>
+    <string name="portal_wifi_intro">Open Android Wi-Fi settings, connect to SUSTC-Wifi, and follow the campus sign-in prompt.</string>
+    <string name="portal_wifi_settings">Open Wi-Fi settings</string>
+    <string name="portal_web_title">SUSTech service</string>
+    <string name="portal_no_handler">No app can open this page.</string>
     <string name="not_implemented_title">Not available yet</string>
     <string name="not_implemented_body">%1$s is not implemented in this build. It is on the shared roadmap with the Python and TypeScript clients.</string>
 
@@ -137,6 +222,26 @@
     <string name="today_next_exam">Next exam</string>
     <string name="today_none">—</string>
     <string name="today_sign_in_hint">Sign in to fill this in.</string>
+    <string name="weather_feels_like">feels %1$d°C</string>
+    <string name="weather_rain_expected">rain expected</string>
+    <string name="weather_no_rain">no rain in the next 2 hours</string>
+    <string name="widget_rain_expected">rain in 2 h</string>
+    <string name="widget_no_rain">no rain in 2 h</string>
+    <string name="widget_bus_title">Bus</string>
+    <string name="widget_deadlines_title">BB deadlines</string>
+    <string name="widget_no_stop_data">no stop data</string>
+    <string name="widget_no_buses">no buses due right now</string>
+    <string name="widget_no_deadlines">no dated assignments</string>
+    <string name="widget_no_classes">no upcoming classes</string>
+    <string name="widget_sign_in_reason">sign in inside the app</string>
+    <string name="widget_campus_reason">needs campus network</string>
+    <string name="widget_failed_reason">update failed</string>
+    <string name="aqi_good">Good</string>
+    <string name="aqi_moderate">Moderate</string>
+    <string name="aqi_sensitive">Unhealthy for sensitive groups</string>
+    <string name="aqi_unhealthy">Unhealthy</string>
+    <string name="aqi_very_unhealthy">Very unhealthy</string>
+    <string name="aqi_hazardous">Hazardous</string>
 
     <!-- Courses & grades -->
     <string name="tis_week">This week</string>
@@ -241,4 +346,57 @@
     <string name="server_saved">Server saved</string>
     <string name="account_session_valid">Signed in</string>
     <string name="account_session_invalid">Signed out</string>
+    <string name="account_print_unavailable">Unavailable</string>
+    <string name="language_title">Language</string>
+    <string name="language_change">Change language</string>
+    <string name="language_system">Follow device language</string>
+    <string name="language_english">English</string>
+    <string name="language_chinese">简体中文</string>
+    <string name="language_russian">Русский</string>
+
+    <!-- Campus card -->
+    <string name="service_ecard">Campus card</string>
+    <string name="service_ecard_summary">Payment and identity codes, balance, transactions</string>
+    <string name="ecard_kind_campus">Payment code</string>
+    <string name="ecard_kind_identity">Identity code</string>
+    <string name="ecard_refresh">Refresh</string>
+    <string name="ecard_face">Card face</string>
+    <string name="ecard_recharge">Top up</string>
+    <string name="ecard_ignore">Dismiss</string>
+    <string name="ecard_bill">Transactions</string>
+    <string name="ecard_no_bill">No transactions yet</string>
+    <string name="ecard_balance">Balance %1$s</string>
+    <string name="ecard_warn">⚠️ Balance is only %1$s; it may not cover the payment</string>
+    <string name="ecard_tip_campus">Payment / access code · refreshes every %1$d seconds</string>
+    <string name="ecard_tip_identity">Identity check · refreshes every %1$d seconds</string>
+    <string name="ecard_qr_empty">QR code is empty. Try again shortly.</string>
+    <string name="ecard_qr_failed">Could not load QR code</string>
+    <string name="ecard_pay_title">Payment detected</string>
+    <string name="ecard_pay_msg">%1$s %2$s\nCurrent balance: %3$s\n\nSuggested top-up: %4$s yuan</string>
+
+    <string name="ecard_copy_link">Copy link</string>
+    <string name="ecard_share_wechat">Share to WeChat</string>
+    <string name="ecard_shared_hint">Sent to WeChat. Open the link there to pay; the amount is filled in.</string>
+    <string name="ecard_copied">Top-up link copied.\n\nSend it to yourself in WeChat, then open it there to complete payment.</string>
+    <string name="ecard_recharge_hint">Selected amount: %1$s yuan.\nPayment must be completed in WeChat due to university restrictions.\nTry WeCom or WeChat directly. If neither opens, share the link to yourself in WeChat; the amount is filled in.</string>
+    <string name="ecard_recharge_hint_bare">Payment must be completed in WeChat due to university restrictions.\nTry WeCom or WeChat directly. If neither opens, share the link to yourself in WeChat.</string>
+
+    <!-- Experimental direct launch -->
+    <string name="ecard_direct_wework">WeCom</string>
+    <string name="ecard_direct_wx">WeChat</string>
+    <string name="ecard_diag_copied">Diagnostics copied. Paste them into your report.</string>
+    <string name="ecard_diag_header">Direct top-up · %1$s</string>
+    <string name="ecard_diag_prepare_failed">Could not prepare link: %1$s</string>
+    <string name="ecard_diag_device">Device  Android %1$s (API %2$d)</string>
+    <string name="ecard_diag_installed">Installed  %1$s %2$s   %3$s %4$s</string>
+    <string name="ecard_diag_links">Candidate links</string>
+    <string name="ecard_diag_gateway">Gateway</string>
+    <string name="ecard_diag_no_redirect">(gateway did not return 302; flow may have changed)</string>
+    <string name="ecard_diag_resolution">Intent resolution (ACTION_VIEW + setPackage)</string>
+    <string name="ecard_diag_attempts">Launch attempts</string>
+    <string name="ecard_diag_no_activity">  ✗ %1$s · %2$s — no matching Activity</string>
+    <string name="ecard_diag_launched">  ✅ Opened %1$s; check whether the top-up page appeared</string>
+    <string name="ecard_diag_no_match">no match</string>
+    <string name="ecard_diag_not_installed">❌ not installed</string>
+    <string name="ecard_diag_fallback">Neither WeChat nor WeCom accepts the link directly. The link was shared to WeChat instead. Open the message there; the amount is filled in.</string>
 </resources>

@@ -27,14 +27,26 @@ import kotlin.math.sqrt
  *   GET /vehicles              → live buses with GPS position and next stop
  *   GET /notices               → service announcements (extra runs, changes)
  *
- * Every entity comes in `_zh` and `_en` fields; this client reads `_en` first
- * and falls back to `_zh` only when the English field is missing. Only the
+ * Every entity comes in `_zh` and `_en` fields; this client follows the app
+ * language (Russian falls back to English). Only the
  * HTTP contract is borrowed; no site code is copied. The site is CC BY-SA 4.0,
  * so reusing its JavaScript would drag its ShareAlike terms into this app —
  * the endpoints and their JSON shape are facts, and the client below is ours.
  * Credit stays visible in the UI.
  */
-class BusApi(private val http: OkHttpClient) {
+class BusApi(
+    private val http: OkHttpClient,
+    private val language: () -> String = { "en" },
+) {
+
+    private val languageTag: String
+        get() = if (language().startsWith("zh", ignoreCase = true)) "zh" else "en"
+
+    private fun localized(json: JSONObject, field: String): String {
+        val preferred = json.optString("${field}_${languageTag}")
+        val englishFallback = if (languageTag == "zh") json.optString("${field}_en") else ""
+        return preferred.ifBlank { englishFallback }.ifBlank { json.optString(field) }
+    }
 
     /**
      * One direction of one line calling at a stop.
@@ -51,11 +63,7 @@ class BusApi(private val http: OkHttpClient) {
     ) {
         /** "Clockwise" is what the data says; "CW" is what a rider reads. */
         val short: String
-            get() = when (directionName.lowercase()) {
-                "clockwise" -> CW
-                "counter-clockwise", "counterclockwise" -> CCW
-                else -> directionName
-            }
+            get() = canonicalDirection(directionName)
 
         /**
          * The name to show in a stop's service line.
@@ -66,7 +74,8 @@ class BusApi(private val http: OkHttpClient) {
          * hardcoded id, so a renamed or added line still reads correctly.
          */
         val label: String
-            get() = Regex("Line\\s*(\\d+)").find(routeName)?.groupValues?.get(1) ?: short
+            get() = Regex("(?:Line\\s*(\\d+)|(?:线路)?\\s*(\\d+)号线)", RegexOption.IGNORE_CASE)
+                .find(routeName)?.let { it.groupValues[1].ifBlank { it.groupValues[2] } } ?: short
     }
 
     /** One stop, with the display name the site composes from group + name. */
@@ -84,7 +93,7 @@ class BusApi(private val http: OkHttpClient) {
         val display: String
             get() {
                 val berth = when (name.trim().lowercase()) {
-                    "origin", "dest.", "dest" -> ""
+                    "origin", "dest.", "dest", "起点", "终点", "始发站", "终点站" -> ""
                     else -> name.trim()
                 }
                 return when {
@@ -182,45 +191,6 @@ class BusApi(private val http: OkHttpClient) {
         /** The stop the bus is heading for right now, by name. */
         val nextBusStop: String = "",
     ) {
-        /** What a row shows: "4 min" / "arriving" / "14:25" / a reason. */
-        val eta: String
-            get() = when {
-                minutes != null && minutes <= 0 -> "arriving"
-                minutes != null -> "$minutes min"
-                plannedAt.isNotEmpty() -> plannedAt
-                else -> unavailableText(reason)
-            }
-
-        /** The source, in a word the reader can act on. */
-        val sourceLabel: String
-            get() = when (source.lowercase()) {
-                "real_time" -> "live"
-                "planned" -> "timetable"
-                else -> unavailableText(reason)
-            }
-
-        /** True when the bus is moving on GPS; false for timetable rows. */
-        val isLive: Boolean get() = source.lowercase() == "real_time"
-
-        /**
-         * Where the bus itself is, counted in stops: `8 stops to go · next 学生宿舍北`.
-         *
-         * This is the answer to "how long until my bus reaches my stop" stated
-         * as a place rather than a countdown — a countdown cannot tell a rider
-         * whether the bus is stuck at the far end of the loop or one stop up.
-         * Empty when no live vehicle carries this trip.
-         */
-        val position: String
-            get() {
-                val away = stopsAway ?: return ""
-                val head = when {
-                    away <= 0 -> "no stops to go"
-                    away == 1 -> "1 stop to go"
-                    else -> "$away stops to go"
-                }
-                return if (nextBusStop.isEmpty()) head else "$head · next $nextBusStop"
-            }
-
         /**
          * How far along the approach picture is, 0..1. Null when there is no
          * distance to show (timetable row or the API sent none) — the picture
@@ -281,7 +251,7 @@ class BusApi(private val http: OkHttpClient) {
 
     data class Notice(val title: String, val body: String)
 
-    fun stops(): List<Stop> = Cache.get("bus.stops", Cache.TTL_LIST) {
+    fun stops(): List<Stop> = Cache.get("bus.stops.$languageTag", Cache.TTL_LIST) {
         val array = getArray("/stops")
         (0 until array.length()).mapNotNull { i ->
             val stop = array.optJSONObject(i) ?: return@mapNotNull null
@@ -297,18 +267,16 @@ class BusApi(private val http: OkHttpClient) {
                 if (routeId.isEmpty()) return@berthLoop null
                 Serve(
                     routeId = routeId,
-                    routeName = serve.optString("route_name_en")
-                        .ifBlank { serve.optString("route_name_zh") },
+                    routeName = localized(serve, "route_name"),
                     directionId = serve.optString("route_direction_id"),
-                    directionName = serve.optString("direction_name_en")
-                        .ifBlank { serve.optString("direction_name_zh") },
+                    directionName = localized(serve, "direction_name"),
                     color = serve.optString("route_color"),
                 )
             }
             Stop(
                 id = id,
-                name = stop.optString("name_en").ifBlank { stop.optString("name_zh") },
-                group = stop.optString("group_name_en").ifBlank { stop.optString("group_name_zh") },
+                name = localized(stop, "name"),
+                group = localized(stop, "group_name"),
                 latitude = stop.optDouble("latitude", Double.NaN),
                 longitude = stop.optDouble("longitude", Double.NaN),
                 serves = serves,
@@ -322,7 +290,7 @@ class BusApi(private val http: OkHttpClient) {
      * A stop with no group stands alone (it is already one place); otherwise
      * the berths sharing a group are one row.
      */
-    fun landmarks(): List<Landmark> = Cache.get("bus.landmarks", Cache.TTL_LIST) {
+    fun landmarks(): List<Landmark> = Cache.get("bus.landmarks.$languageTag", Cache.TTL_LIST) {
         val grouped = LinkedHashMap<String, MutableList<Stop>>()
         for (stop in stops()) {
             grouped.getOrPut(stop.group.ifEmpty { stop.display }) { ArrayList() }.add(stop)
@@ -361,7 +329,7 @@ class BusApi(private val http: OkHttpClient) {
      * a later bus above the one about to leave.
      */
     fun arrivals(stopId: String): List<Arrival> =
-        Cache.get("bus.arrivals.$stopId", Cache.TTL_LIVE) {
+        Cache.get("bus.arrivals.$languageTag.$stopId", Cache.TTL_LIVE) {
             val arrivals = getObject("/arrivals/$stopId").optJSONArray("arrivals") ?: JSONArray()
             val routesById = runCatching { routes() }.getOrDefault(emptyList()).associateBy { it.id }
             val stopsById = runCatching { stops() }.getOrDefault(emptyList()).associateBy { it.id }
@@ -389,10 +357,8 @@ class BusApi(private val http: OkHttpClient) {
                 val here = direction?.stopIds?.indexOf(stopId)?.takeIf { it >= 0 }?.plus(1)
                 val busAt = bus?.nextStopNum
                 Arrival(
-                    routeName = item.optString("route_name_en")
-                        .ifBlank { item.optString("route_name_zh") },
-                    direction = item.optString("direction_name_en")
-                        .ifBlank { item.optString("direction_name_zh") },
+                    routeName = localized(item, "route_name"),
+                    direction = localized(item, "direction_name"),
                     directionId = directionId,
                     terminal = direction?.stopIds?.lastOrNull()
                         ?.let { stopsById[it]?.display }.orEmpty(),
@@ -442,14 +408,14 @@ class BusApi(private val http: OkHttpClient) {
         return ids.drop(at + 1).take(count).mapNotNull { stopsById[it]?.display }
     }
 
-    fun routes(): List<Route> = Cache.get("bus.routes", Cache.TTL_LIST) {
+    fun routes(): List<Route> = Cache.get("bus.routes.$languageTag", Cache.TTL_LIST) {
         val array = getArray("/routes")
         (0 until array.length()).mapNotNull { i ->
             val route = array.optJSONObject(i) ?: return@mapNotNull null
             val directionsJson = route.optJSONArray("directions") ?: JSONArray()
             Route(
                 id = route.optString("id"),
-                name = route.optString("name_en").ifBlank { route.optString("name_zh") },
+                name = localized(route, "name"),
                 color = route.optString("color"),
                 serviceTime = route.optString("service_time"),
                 status = route.optString("operation_status"),
@@ -458,8 +424,7 @@ class BusApi(private val http: OkHttpClient) {
                     val stopArray = direction.optJSONArray("stops") ?: JSONArray()
                     Direction(
                         id = direction.optString("id"),
-                        name = direction.optString("name_en")
-                            .ifBlank { direction.optString("name_zh") },
+                        name = localized(direction, "name"),
                         // Travel order: this is what turns "Clockwise" into
                         // "next stops are Research Bldg 3 → North Dorms → …".
                         stopIds = (0 until stopArray.length()).mapNotNull { s ->
@@ -477,19 +442,18 @@ class BusApi(private val http: OkHttpClient) {
      * One request per cache window: this is the "where is it right now" view,
      * so it rides the short TTL rather than the list TTL.
      */
-    fun vehicles(): List<Vehicle> = Cache.get("bus.vehicles", Cache.TTL_LIVE) {
+    fun vehicles(): List<Vehicle> = Cache.get("bus.vehicles.$languageTag", Cache.TTL_LIVE) {
         val routesById = routes().associateBy { it.id }
         val array = getArray("/vehicles")
         (0 until array.length()).mapNotNull { i ->
             val vehicle = array.optJSONObject(i) ?: return@mapNotNull null
             val route = routesById[vehicle.optString("route_id")]
             Vehicle(
-                routeName = route?.name ?: vehicle.optString("display_name_en")
-                    .ifBlank { vehicle.optString("display_name_zh") },
+                routeName = route?.name ?: localized(vehicle, "display_name"),
                 direction = route?.directionNames?.firstOrNull { name ->
                     name == vehicle.optString("upstream_direction")
                 } ?: "",
-                nextStop = vehicle.optString("next_stop_name").trim(),
+                nextStop = localized(vehicle, "next_stop_name").trim(),
                 speedKph = if (vehicle.has("speed") && !vehicle.isNull("speed"))
                     vehicle.optDouble("speed", 0.0) else null,
                 latitude = vehicle.optDouble("latitude", Double.NaN),
@@ -506,13 +470,13 @@ class BusApi(private val http: OkHttpClient) {
         }
     }
 
-    fun notices(): List<Notice> = Cache.get("bus.notices", Cache.TTL_LIST) {
+    fun notices(): List<Notice> = Cache.get("bus.notices.$languageTag", Cache.TTL_LIST) {
         val array = getArray("/notices")
         (0 until array.length()).mapNotNull { i ->
             val notice = array.optJSONObject(i) ?: return@mapNotNull null
             Notice(
-                title = notice.optString("title_en").ifBlank { notice.optString("title_zh") },
-                body = notice.optString("body_markdown").lineSequence()
+                title = localized(notice, "title"),
+                body = localized(notice, "body_markdown").lineSequence()
                     .filter { it.isNotBlank() }.take(6).joinToString(" ")
                     .take(240),
             )
@@ -571,11 +535,13 @@ class BusApi(private val http: OkHttpClient) {
         /** Metres treated as the far end of an approach bar. */
         const val APPROACH_RANGE_M = 1500
 
-        /** Server-side labels → the copy a student reads. */
-        fun unavailableText(reason: String): String = when (reason.uppercase()) {
-            "LAST_SERVICE_PASSED" -> "last bus gone"
-            "NOT_OPERATING" -> "not running today"
-            else -> "no service"
+        private fun canonicalDirection(name: String): String = when {
+            name.equals("clockwise", ignoreCase = true) || name.contains("顺时针") -> CW
+            name.equals("counter-clockwise", ignoreCase = true) ||
+                name.equals("counterclockwise", ignoreCase = true) || name.contains("逆时针") -> CCW
+            name.equals("uphill", ignoreCase = true) || name.contains("上坡") -> UPHILL
+            name.equals("downhill", ignoreCase = true) || name.contains("下坡") -> DOWNHILL
+            else -> name
         }
 
         /** Metres between two WGS-84 points (equirectangular is exact enough). */

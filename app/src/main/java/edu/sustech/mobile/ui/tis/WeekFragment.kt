@@ -7,8 +7,8 @@ import edu.sustech.mobile.calendar.AcademicCalendar
 import edu.sustech.mobile.core.App
 import edu.sustech.mobile.core.ApiException
 import edu.sustech.mobile.tis.ClassEntry
-import edu.sustech.mobile.tis.Weekday
 import edu.sustech.mobile.ui.ListFragment
+import edu.sustech.mobile.ui.localizedWeekday
 import java.time.LocalDate
 
 /**
@@ -69,7 +69,7 @@ class WeekFragment : ListFragment<ClassEntry>(R.layout.fragment_tis_week) {
     }
 
     override fun bindRow(view: View, item: ClassEntry, position: Int) {
-        view.findViewById<TextView>(R.id.class_day).text = Weekday.short(item.weekday)
+        view.findViewById<TextView>(R.id.class_day).text = requireContext().localizedWeekday(item.weekday)
         view.findViewById<TextView>(R.id.class_time).text = item.timeText
         view.findViewById<TextView>(R.id.class_name).text = item.name
         view.findViewById<TextView>(R.id.class_meta).text = listOf(

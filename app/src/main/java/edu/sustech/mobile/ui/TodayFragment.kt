@@ -17,7 +17,6 @@ import edu.sustech.mobile.tis.ClassEntry
 import edu.sustech.mobile.tis.NextClass
 import edu.sustech.mobile.tis.PeriodTimes
 import edu.sustech.mobile.tis.Semester
-import edu.sustech.mobile.tis.Weekday
 import java.time.LocalDate
 import java.util.Calendar
 
@@ -62,7 +61,7 @@ class TodayFragment : Fragment(R.layout.fragment_today), Refreshable {
         val today = Calendar.getInstance()
         val todayDate = LocalDate.now()
         swipe?.isRefreshing = true
-        weekday?.text = Weekday.short(isoWeekday(today))
+        weekday?.text = requireContext().localizedWeekday(isoWeekday(today))
         week?.setText(R.string.today_week_unknown)
         classes?.setText(R.string.empty_loading)
         hint?.visibility = View.GONE
@@ -74,10 +73,10 @@ class TodayFragment : Fragment(R.layout.fragment_today), Refreshable {
             onOk = { (w, air) ->
                 weather?.text = listOfNotNull(
                     w.tempC?.let { "$it°C" },
-                    w.feelsLike?.let { "feels $it°C" },
-                    if (w.rainExpected) "rain expected" else "no rain in the next 2 hours",
+                    w.feelsLike?.let { getString(R.string.weather_feels_like, it) },
+                    getString(if (w.rainExpected) R.string.weather_rain_expected else R.string.weather_no_rain),
                 ).joinToString(" · ")
-                aqi?.text = air?.aqi?.let { "$it (${air.category})" } ?: "—"
+                aqi?.text = air?.aqi?.let { "$it (${requireContext().localizedAirQuality(air.category)})" } ?: "—"
             },
             onErr = { weather?.setText(R.string.today_none) },
         )
@@ -134,7 +133,7 @@ class TodayFragment : Fragment(R.layout.fragment_today), Refreshable {
      * is one — the reason the "Next up" line skipped today.
      */
     private fun weekLine(timetable: Timetable, now: Calendar, today: LocalDate): String {
-        val parts = mutableListOf(Weekday.short(isoWeekday(now)))
+        val parts = mutableListOf(requireContext().localizedWeekday(isoWeekday(now)))
         val term = timetable.semester.labelEn.ifEmpty { timetable.semester.label }
         if (term.isNotEmpty()) parts.add(term)
         timetable.term?.holiday(today)?.let { parts.add(it.name) }
@@ -157,7 +156,7 @@ class TodayFragment : Fragment(R.layout.fragment_today), Refreshable {
             NextClass.findInWeek(timetable.entries, timetable.week, today, currentPeriod)
         }
         if (next != null) {
-            val prefix = if (next.date == today) "" else "${Weekday.short(next.date.dayOfWeek.value)} "
+            val prefix = if (next.date == today) "" else "${requireContext().localizedWeekday(next.date.dayOfWeek.value)} "
             return describe(next.entry, prefix)
         }
         // Nothing ahead in the pattern at all, versus nothing left of today's.

@@ -18,6 +18,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.io.IOException
+import java.util.concurrent.TimeUnit
 
 /**
  * Server phrases that mean "your session is gone" rather than "your request was
@@ -46,6 +47,32 @@ class PmsApi(
     private val http: OkHttpClient,
     private val baseUrl: () -> String = { AppConfig.DEFAULT_BASE_URL },
 ) {
+
+    enum class Reachability { AVAILABLE, REPLIED, UNREACHABLE }
+
+    /** A valid response from the public PMS API proves that printing is reachable. */
+    fun reachability(): Reachability {
+        val url = (baseUrl() + "/api/client/Auth/PublicKey").toHttpUrlOrNull()
+            ?: return Reachability.UNREACHABLE
+        val request = Request.Builder()
+            .url(url)
+            .get()
+            .header("X-Requested-With", "XMLHttpRequest")
+            .header("Referer", baseUrl() + "/client/new/cprintPc/")
+            .build()
+        return try {
+            val call = http.newCall(request).apply { timeout().timeout(8, TimeUnit.SECONDS) }
+            call.execute().use { response ->
+                if (response.code != 200) return@use Reachability.REPLIED
+                val body = parseOrNull(response.body?.string().orEmpty())
+                if (body?.optInt("code", -1) == 0 &&
+                    !body?.optJSONObject("result")?.optString("publicKey").isNullOrEmpty()
+                ) Reachability.AVAILABLE else Reachability.REPLIED
+            }
+        } catch (_: IOException) {
+            Reachability.UNREACHABLE
+        }
+    }
 
     // -- Endpoints the site exposes -------------------------------------------
 
@@ -364,7 +391,7 @@ class PmsApi(
                     throw PmsException("File too large (HTTP 413)")
                 }
                 if (!allowErrorStatus && response.code >= 400) {
-                    throw PmsException("HTTP ${response.code}")
+                    throw PmsException("HTTP ${response.code}", httpStatus = response.code)
                 }
                 return HttpAnswer(response.code, text)
             }

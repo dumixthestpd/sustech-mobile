@@ -24,7 +24,7 @@ class CookieStore(context: Context) : CookieJar {
         load()
     }
 
-    private fun key(c: Cookie): String = "${c.name}|${c.domain}|${c.path}"
+    private fun key(c: Cookie): String = "${c.name}|${c.domain}|${c.path}|${c.hostOnly}"
 
     private fun load() {
         val raw = prefs.getString(KEY, null) ?: return
@@ -38,7 +38,17 @@ class CookieStore(context: Context) : CookieJar {
                     .path(o.optString("path", "/"))
                 val domain = o.optString("domain", "")
                 if (domain.isEmpty()) continue
-                builder.domain(domain)
+                // Older app versions did not persist attributes. Restore those
+                // conservatively as host-only, HTTPS-only session cookies.
+                if (o.optBoolean("hostOnly", true)) builder.hostOnlyDomain(domain.trimStart('.'))
+                else builder.domain(domain.trimStart('.'))
+                val expiresAt = o.optLong("expiresAt", Long.MAX_VALUE)
+                if (expiresAt < Long.MAX_VALUE) {
+                    if (expiresAt <= System.currentTimeMillis()) continue
+                    builder.expiresAt(expiresAt)
+                }
+                if (o.optBoolean("secure", true)) builder.secure()
+                if (o.optBoolean("httpOnly", true)) builder.httpOnly()
                 val cookie = builder.build()
                 cookies[key(cookie)] = cookie
             }
@@ -55,11 +65,16 @@ class CookieStore(context: Context) : CookieJar {
                 put("value", c.value)
                 put("domain", c.domain)
                 put("path", c.path)
+                put("hostOnly", c.hostOnly)
+                put("secure", c.secure)
+                put("httpOnly", c.httpOnly)
+                put("expiresAt", c.expiresAt)
             })
         }
         prefs.edit().putString(KEY, array.toString()).apply()
     }
 
+    @Synchronized
     override fun saveFromResponse(url: HttpUrl, cookieList: List<Cookie>) {
         var changed = false
         for (c in cookieList) {
@@ -69,6 +84,7 @@ class CookieStore(context: Context) : CookieJar {
         if (changed) save()
     }
 
+    @Synchronized
     override fun loadForRequest(url: HttpUrl): List<Cookie> {
         val now = System.currentTimeMillis()
         val expired = cookies.values.filter { it.expiresAt < now }
@@ -80,6 +96,7 @@ class CookieStore(context: Context) : CookieJar {
     }
 
     /** Replaces the stored cookies for [host] with a `name=value; …` header. */
+    @Synchronized
     fun replaceFromHeader(header: String, host: String, path: String = "/") {
         cookies.entries.removeAll { it.value.domain.endsWith(host) }
         for (pair in header.split(";")) {
@@ -98,15 +115,30 @@ class CookieStore(context: Context) : CookieJar {
     }
 
     /** The `Cookie:` header value for [host], or an empty string. */
+    @Synchronized
     fun headerFor(host: String): String =
         cookies.values.filter { it.domain.endsWith(host) }
             .joinToString("; ") { "${it.name}=${it.value}" }
 
+    /** Session cookies that can be installed into an in-app WebView for [host]. */
+    @Synchronized
+    fun cookiesForHost(host: String): List<Cookie> {
+        val url = HttpUrl.Builder().scheme("https").host(host).build()
+        val expired = cookies.values.filter { it.expiresAt < System.currentTimeMillis() }
+        if (expired.isNotEmpty()) {
+            expired.forEach { cookies.remove(key(it)) }
+            save()
+        }
+        return cookies.values.filter { it.matches(url) }
+    }
+
+    @Synchronized
     fun clear() {
         cookies.clear()
         prefs.edit().remove(KEY).apply()
     }
 
+    @Synchronized
     fun isEmpty(): Boolean = cookies.isEmpty()
 
     private companion object {

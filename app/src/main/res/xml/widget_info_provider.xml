@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   30 minutes is the platform's floor for updatePeriodMillis; the real refresh
-  cadence (tap + 60s alarm while the screen is on) is driven by
-  InfoWidgetProvider. This value only covers reboot/system nudges.
+  cadence (tap + 60s bus alarm) is driven by InfoWidgetProvider. The dedicated
+  campus-card QR widget has its own 2x2 provider. This value covers system nudges.
 -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="180dp"
-    android:minHeight="110dp"
+    android:minHeight="190dp"
     android:targetCellWidth="2"
-    android:targetCellHeight="2"
+    android:targetCellHeight="3"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_info"
     android:configure="edu.sustech.mobile.widget.WidgetConfigActivity"

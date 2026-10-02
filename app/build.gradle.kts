@@ -20,8 +20,8 @@ android {
         applicationId = "edu.sustech.mobile"
         minSdk = 26
         targetSdk = 34
-        versionCode = 15
-        versionName = "0.3.11"
+        versionCode = 24
+        versionName = "0.3.20-shortcuts"
         buildConfigField("String", "DEFAULT_SERVER_URL", "\"$defaultServerUrl\"")
     }
 
@@ -63,4 +63,7 @@ dependencies {
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // 原生生成二维码（校园卡）
+    implementation("com.google.zxing:core:3.5.3")
 }

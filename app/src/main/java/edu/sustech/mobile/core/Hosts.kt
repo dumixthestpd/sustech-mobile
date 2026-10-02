@@ -12,6 +12,7 @@ object Hosts {
     const val PMS = "https://pms.sustech.edu.cn"
     const val TIS = "https://tis.sustech.edu.cn"
     const val BLACKBOARD = "https://bb.sustech.edu.cn"
+    const val CAMPUS_CARD = "https://campuscard.sustech.edu.cn"
     const val CAS = "cas.sustech.edu.cn"
 
     /** SUSTech CRA's public campus weather API — no auth. */

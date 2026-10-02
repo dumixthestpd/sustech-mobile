@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
+import android.webkit.CookieManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.google.android.material.appbar.MaterialToolbar
@@ -68,6 +69,8 @@ class MainActivity : AppCompatActivity() {
             // clearing cookies alone would just sign back in on the next launch.
             Credentials.clear()
             App.cookies.clear()
+            CookieManager.getInstance().removeAllCookies(null)
+            CookieManager.getInstance().flush()
             Toast.makeText(this, R.string.account_forgotten, Toast.LENGTH_SHORT).show()
             startActivity(Intent(this, LoginActivity::class.java))
             finish()

@@ -49,6 +49,10 @@ object Session {
     /** TIS's CAS entry point, the same value the Python `TISAuth` uses. */
     private const val TIS_SERVICE = Hosts.TIS + "/cas"
 
+    /** 校园卡门户的 Spring Security CAS 入口（实际跳转确认过）。 */
+    private const val CARD_SERVICE =
+        Hosts.CAMPUS_CARD + "/epay/j_spring_cas_security_check"
+
     /**
      * The print site itself. Visiting it through CAS is what the website does,
      * and the print back end links the CAS identity to the print account (it
@@ -201,6 +205,29 @@ object Session {
     fun ensureBb(): Boolean = runCatching { App.bb.isSignedIn() }
         .getOrNull() == true
         ?: reloginBb()
+
+    /** 校园卡是否已被 CAS 接受（Account 页的会话探针）。 */
+    fun ensureCard(): Boolean = runCatching { App.ecard.isSignedIn() }.getOrDefault(false)
+
+    /**
+     * 校园卡会话失效后静默重登。
+     *
+     * 与 [reloginBb] 同一套契约：复用已存凭据走一次 CAS，成功即返回 true。
+     * 节流位 [reloginInFlight] 是共享的，避免多个服务同时打 CAS 被限流。
+     */
+    fun reloginCard(): Boolean {
+        if (!Credentials.configured || reloginInFlight) return false
+        reloginInFlight = true
+        return try {
+            Cache.invalidate("ecard.")
+            CasLogin.login(CARD_SERVICE, Credentials.sid, Credentials.password, xhr = false)
+            App.ecard.isSignedIn()
+        } catch (e: ApiException) {
+            false
+        } finally {
+            reloginInFlight = false
+        }
+    }
 
     fun reloginBb(): Boolean {
         if (!Credentials.configured || reloginInFlight) return false

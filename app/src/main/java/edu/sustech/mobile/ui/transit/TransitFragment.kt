@@ -10,10 +10,10 @@ import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import edu.sustech.mobile.R
 import edu.sustech.mobile.core.App
-import edu.sustech.mobile.core.friendly
 import edu.sustech.mobile.core.runIo
 import edu.sustech.mobile.transit.BusApi
 import edu.sustech.mobile.transit.LocationProbe
+import edu.sustech.mobile.transit.TransitText
 import edu.sustech.mobile.ui.ListFragment
 import edu.sustech.mobile.ui.ServicePage
 import edu.sustech.mobile.ui.TabbedServiceFragment
@@ -88,16 +88,18 @@ class TransitFragment : TabbedServiceFragment(R.layout.fragment_tabs) {
     /** The Buses tab names the place it is showing, and how far it is. */
     fun showPlace(metres: Int?) {
         val landmark = TransitSelection.landmark ?: return
-        val away = metres?.let { formatMetres(it) }
+        val away = metres?.let { TransitText.distance(requireContext(), it) }
         banner(
-            listOfNotNull(landmark.name, TransitSelection.directionShort.takeIf { it.isNotEmpty() },
-                away, getString(R.string.transit_credit)).joinToString(" · "),
+            listOfNotNull(
+                landmark.name,
+                TransitSelection.directionShort.takeIf { it.isNotEmpty() }
+                    ?.let { TransitText.direction(requireContext(), it) },
+                away,
+                getString(R.string.transit_credit),
+            ).joinToString(" · "),
             null,
         )
     }
-
-    private fun formatMetres(metres: Int): String =
-        if (metres < 1000) "$metres m" else String.format("%.1f km", metres / 1000.0)
 
     private companion object {
         const val BUSES = 1
@@ -133,7 +135,7 @@ class TransitStopsFragment : ListFragment<TransitStopsFragment.Row>(R.layout.fra
     override fun emptyText() = getString(R.string.transit_no_stops)
 
     override fun errorText(error: Throwable): String =
-        context?.let { error.friendly(it) } ?: error.message.orEmpty()
+        context?.getString(R.string.transit_load_error) ?: ""
 
     override fun onReady(view: View) {
         if (!LocationProbe.granted(requireContext()) && !pendingPermission) {
@@ -158,16 +160,14 @@ class TransitStopsFragment : ListFragment<TransitStopsFragment.Row>(R.layout.fra
             item.landmark.directions.size.takeIf { it > 0 }?.toString() ?: "·"
         view.findViewById<TextView>(R.id.transit_stop_name).text = item.landmark.name
         view.findViewById<TextView>(R.id.transit_stop_sub).text =
-            item.landmark.labels.joinToString(" · ")
+            TransitText.serviceLines(requireContext(), item.landmark.labels)
         view.findViewById<TextView>(R.id.transit_stop_away).text =
-            if (item.metres >= 0) distance(item.metres) else ""
+            if (item.metres >= 0) TransitText.distance(requireContext(), item.metres) else ""
         view.setOnClickListener {
             shell()?.open(item.landmark, item.metres.takeIf { it >= 0 })
         }
     }
 
-    private fun distance(metres: Int): String =
-        if (metres < 1000) "$metres m" else String.format("%.1f km", metres / 1000.0)
 }
 
 /**
@@ -191,7 +191,7 @@ class TransitBusesFragment : ListFragment<BusApi.Arrival>(R.layout.fragment_tran
     }
 
     override fun errorText(error: Throwable): String =
-        context?.let { error.friendly(it) } ?: error.message.orEmpty()
+        context?.getString(R.string.transit_load_error) ?: ""
 
     override fun onReady(view: View) {
         if (TransitSelection.landmark != null) {
@@ -234,7 +234,7 @@ class TransitBusesFragment : ListFragment<BusApi.Arrival>(R.layout.fragment_tran
         if (directions.size <= 1) return
         for (serve in directions) {
             val chip = Chip(requireContext())
-            chip.text = serve.short
+            chip.text = TransitText.direction(requireContext(), serve.short)
             chip.isCheckable = true
             chip.isChecked = serve.directionId == TransitSelection.directionId
             chip.id = View.generateViewId()
@@ -278,7 +278,7 @@ class TransitBusesFragment : ListFragment<BusApi.Arrival>(R.layout.fragment_tran
         val bar = view.findViewById<android.widget.ProgressBar>(R.id.transit_approach)
 
         view.findViewById<TextView>(R.id.transit_line_name).text = item.routeName
-        view.findViewById<TextView>(R.id.transit_eta).text = item.eta
+        view.findViewById<TextView>(R.id.transit_eta).text = TransitText.eta(requireContext(), item)
 
         // Where this direction ends — "to Xinyuan Terminal" answers the
         // "which way does it go" question better than any direction word.
@@ -286,8 +286,9 @@ class TransitBusesFragment : ListFragment<BusApi.Arrival>(R.layout.fragment_tran
         val goingTo = item.upcoming.firstOrNull()
         view.findViewById<TextView>(R.id.transit_direction).text =
             listOfNotNull(
-                item.terminal.takeIf { it.isNotEmpty() }?.let { "to $it" },
-                goingTo?.let { "via $it" },
+                item.terminal.takeIf { it.isNotEmpty() }
+                    ?.let { getString(R.string.transit_to, it) },
+                goingTo?.let { getString(R.string.transit_via, it) },
             ).joinToString(" ")
 
         // The approach picture: full bar = at the stop. Timetable rows have
@@ -305,19 +306,17 @@ class TransitBusesFragment : ListFragment<BusApi.Arrival>(R.layout.fragment_tran
         // says where — and "8 stops to go" is what a rider decides on when the
         // number and the bar disagree.
         val busPosition = view.findViewById<TextView>(R.id.transit_position)
-        busPosition.text = item.position
-        busPosition.visibility = if (item.position.isEmpty()) View.GONE else View.VISIBLE
+        val position = TransitText.position(requireContext(), item)
+        busPosition.text = position
+        busPosition.visibility = if (position.isEmpty()) View.GONE else View.VISIBLE
 
         view.findViewById<TextView>(R.id.transit_sub).text = listOfNotNull(
-            item.metresAway?.takeIf { it >= 0 }?.let { "${formatMetres(it)} away" },
-            item.sourceLabel,
+            item.metresAway?.takeIf { it >= 0 }?.let { TransitText.distance(requireContext(), it) },
+            TransitText.source(requireContext(), item).takeIf { it.isNotEmpty() },
         ).joinToString(" · ")
 
         dot.background.setTint(tint)
     }
-
-    private fun formatMetres(metres: Int): String =
-        if (metres < 1000) "$metres m" else String.format("%.1f km", metres / 1000.0)
 
     private fun parseColor(hex: String): Int =
         runCatching { Color.parseColor(hex.ifEmpty { "#00AB5B" }) }

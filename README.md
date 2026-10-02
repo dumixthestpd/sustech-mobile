@@ -13,9 +13,14 @@ A clean Android app for SUSTech campus services. Anywhere, anytime.
 - **Widget** — the next class or the next bus, on the home screen
 - **Account** — stored school account, per-service session state, network state (campus / off campus / offline)
 
-The Services tab also lists what is **not** built yet — venue booking, course reviews, faculty,
-exchange, Wi-Fi. That list is the backlog shared with the Python and TypeScript clients below, not
-a marketing one.
+The Services tab opens official school portals for venue booking, exchange programs, and language
+tutoring; those flows reuse the saved CAS account. Exchange opens its application platform first,
+with project information in the top-right menu. Language tutoring opens the E-Hall booking system
+directly. Faculty search uses a bilingual snapshot of the public roster, so name, title, and
+department searches work offline; selecting a person opens their official profile. The tutoring
+system loads its schedule through dynamic requests that are not exposed by its public page, so a
+native appointment list still needs a verified request/response schema. Course reviews (牛娃社区)
+remains on the roadmap.
 
 Course selection, bidding and evaluation are intentionally **not** in the app.
 
@@ -76,6 +81,10 @@ The app is a client. These are the services and datasets it talks to, and the te
 - **Campus shuttle** — [sustech.online](https://sustech.online) (`buseta.sustcra.com`), CC BY-SA 4.0.
   API only; none of its data is redistributed in this repo.
 - **Library occupancy and catalogue** — `lib.sustech.edu.cn` and SUSTech's Ex Libris Primo.
+- **Faculty directory** — public names, titles, departments, and profile links from the official
+  [Chinese roster](https://www.sustech.edu.cn/zh/letter/) and its English alphabet pages. The
+  compact snapshot is bundled in the APK for local search; individual profiles open on demand.
+  Refresh it with `python3 tools/crawl_faculty_directory.py`.
 - **Academic calendar** — mirrored from
   [`dumixthestpd/sustech-calendar`](https://github.com/dumixthestpd/sustech-calendar) at a pinned
   commit and bundled in the APK, so the app can tell a holiday from a teaching day with no network.

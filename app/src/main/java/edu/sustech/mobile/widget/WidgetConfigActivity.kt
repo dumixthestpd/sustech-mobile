@@ -7,7 +7,6 @@ import android.os.Bundle
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Button
-import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.Spinner
 import android.widget.TextView
@@ -30,6 +29,8 @@ class WidgetConfigActivity : AppCompatActivity() {
     private lateinit var stops: Spinner
     private lateinit var stopsLabel: TextView
     private var loadedStops: List<BusApi.Stop> = emptyList()
+    private var stopsLoaded = false
+    private var stopsLoading = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,25 +50,39 @@ class WidgetConfigActivity : AppCompatActivity() {
         stops = findViewById(R.id.widget_stops)
         stopsLabel = findViewById(R.id.widget_stops_label)
 
-        // Default to the bus card: it is the one that has to be ready before
-        // the user leaves the building.
-        (kinds.getChildAt(0) as? RadioButton)?.isChecked = true
+        val currentKind = WidgetPrefs.kind(this, widgetId)
+        val currentRadio = when (currentKind) {
+            WidgetKind.DEADLINES -> R.id.widget_kind_bb
+            WidgetKind.CLASSES -> R.id.widget_kind_classes
+            WidgetKind.WEATHER -> R.id.widget_kind_weather
+            WidgetKind.CAMPUS_CARD_QR -> R.id.widget_kind_bus
+            WidgetKind.BUS -> R.id.widget_kind_bus
+        }
         kinds.setOnCheckedChangeListener { _, checkedId ->
             val bus = checkedId == R.id.widget_kind_bus
             stops.visibility = if (bus) View.VISIBLE else View.GONE
             stopsLabel.visibility = if (bus) View.VISIBLE else View.GONE
+            if (bus) loadStops()
         }
+        kinds.check(currentRadio)
+        val showStops = currentKind == WidgetKind.BUS
+        stops.visibility = if (showStops) View.VISIBLE else View.GONE
+        stopsLabel.visibility = if (showStops) View.VISIBLE else View.GONE
+        if (showStops) loadStops()
 
         findViewById<Button>(R.id.widget_cancel).setOnClickListener { finish() }
         findViewById<Button>(R.id.widget_save).setOnClickListener { save(kinds) }
 
-        loadStops()
     }
 
     private fun loadStops() {
+        if (stopsLoaded || stopsLoading) return
+        stopsLoading = true
         runIo(
             block = { App.bus.stops() },
             onOk = { list ->
+                stopsLoading = false
+                stopsLoaded = true
                 loadedStops = list
                 // "Automatic" is first and is the default: the card exists
                 // for when you are walking, and then the nearest stop is the
@@ -84,6 +99,7 @@ class WidgetConfigActivity : AppCompatActivity() {
                 stops.setSelection(if (at >= 0) at + 1 else 0)
             },
             onErr = { error ->
+                stopsLoading = false
                 loadedStops = emptyList()
                 stopsLabel.text = getString(R.string.widget_stops_failed, error.message.orEmpty())
             },
@@ -100,7 +116,8 @@ class WidgetConfigActivity : AppCompatActivity() {
         // Position 0 is "Automatic (nearest stop)", which stores an empty
         // id — the provider reads that as "use wherever the phone is".
         val chosen = stops.selectedItemPosition - 1
-        val stopId = if (chosen < 0) "" else loadedStops.getOrNull(chosen)?.id.orEmpty()
+        val stopId = if (kind != WidgetKind.BUS || chosen < 0) ""
+        else loadedStops.getOrNull(chosen)?.id.orEmpty()
         WidgetPrefs.write(this, widgetId, kind, stopId)
 
         // The provider only registers its alarm on update, so nudge it now.

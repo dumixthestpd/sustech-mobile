@@ -1,5 +1,62 @@
 # Changelog
 
+## 0.3.18 — 2026-10-02
+
+- **Campus QR is now a separate 2×2 widget.** It has its own launcher entry and
+  refresh control; the general 2×3 widget no longer offers the QR code. Existing
+  2×3 QR cards show how to replace them.
+
+## 0.3.17 — 2026-10-02
+
+- **Campus card QR has its own 2×2 widget.** It is a separate launcher item
+  with a compact code display and immediate refresh button. Old configurable
+  QR cards show instructions to replace them with the new widget.
+
+## 0.3.16 — 2026-10-02
+
+- **The electronic campus card is easier to reach.** The campus card page opens
+  inside the app using the existing campus-card CAS session.
+- **A live campus-code widget is available.** It requests a fresh code about
+  every 30 seconds, can be refreshed immediately, and hides the code on failure
+  instead of showing a stale one. The QR payload is not written to app storage.
+- **Language tutoring API investigation continues.** The authenticated booking
+  page loads in-app, but no stable appointment API schema has been verified, so
+  native appointment data is not shown yet.
+
+## 0.3.15 — 2026-10-02
+
+- **Library labels follow the app language.** Chinese and Russian now localize the
+  catalogue credit and shelf availability, instead of exposing the API's English
+  status values.
+- **Faculty lookup is local.** A compact bilingual snapshot of the official
+  public directory is bundled in the app; name, title and department search works
+  offline, and opening a person loads only that public profile. The crawl script
+  refreshes the snapshot from the school's directory.
+- **Exchange opens the platform first.** Project information is available from a
+  top-right toolbar action, and the app requests the platform's own CAS ticket
+  using the stored school account.
+- **Language tutoring opens its booking app directly.** The saved account is used
+  to establish the E-Hall service session first. The scheduler's actual read API
+  is loaded dynamically and is not present in its published page/scripts, so a
+  native appointment list is not included until its live request schema can be
+  verified.
+- **CAS supports an existing SSO session.** When CAS immediately issues a service
+  ticket, the client now captures and exchanges it instead of expecting a login
+  form every time.
+
+## 0.3.14 — 2026-10-02
+
+- **Service status is now accurate.** The catalog labels implemented pages as
+  implemented; Printing also probes PMS when the Services screen opens and shows
+  unavailable when its public API returns HTTP 405 or cannot be reached.
+- **Venue booking, faculty, exchange, language help, and Wi-Fi now open useful
+  service pages.** Official SUSTech pages load inside the app; portal pages reuse
+  the app's saved CAS session. Wi-Fi opens Android's network settings. Course
+  reviews / 牛娃社区 remains planned as requested.
+- **Campus bus language follows the app.** Chinese uses the API's Chinese stop,
+  route, and direction names; English and Russian use English names, and arrival
+  states, distances, direction labels, and widget copy are localized.
+
 ## 0.3.11 — 2026-10-01
 
 - **Stops are places now, not berths.** The API serves 33 stops, but they are 18

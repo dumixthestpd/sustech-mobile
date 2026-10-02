@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  充值页。
+
+  页面分三块：
+   1. 顶部提示：本次打算充多少钱、以及为什么最后一步必须落到微信里。
+   2. 中间 WebView：学校自己的充值页（用于看余额、拿页面上的信息）。
+      注意这页的「立即支付」是 JSAPI，只在微信内置浏览器里可用，
+      在 App 的 WebView 里点了必然失败 —— 所以真正的出路是下面那排按钮。
+   3. 底部两排按钮 + 一块诊断面板（测试期用，点一下可复制诊断文本）。
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/recharge_hint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#E8F0FE"
+        android:padding="10dp"
+        android:textColor="@color/ink"
+        android:textSize="12sp" />
+
+    <WebView
+        android:id="@+id/recharge_web"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!--
+      诊断面板：默认隐藏，点「企业微信 / 微信」按钮后出现，显示每一个候选
+      Intent 到底能不能被解析、拉起是否抛异常。测试期靠它判断结论，
+      所以做成等宽小字、可点击复制。
+    -->
+    <ScrollView
+        android:id="@+id/recharge_diag_scroll"
+        android:layout_width="match_parent"
+        android:layout_height="150dp"
+        android:background="#111111"
+        android:visibility="gone"
+        android:padding="6dp">
+
+        <TextView
+            android:id="@+id/recharge_diag"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:textColor="#B6F6B6"
+            android:textSize="10sp"
+            android:textIsSelectable="false" />
+    </ScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/recharge_refill"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/ecard_recharge"
+            android:textColor="@color/ink" />
+
+        <Button
+            android:id="@+id/recharge_reload"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/ecard_refresh"
+            android:textColor="@color/ink" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/recharge_launch_wework"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/ecard_direct_wework"
+            android:textColor="@color/ink" />
+
+        <Button
+            android:id="@+id/recharge_launch_wx"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/ecard_direct_wx"
+            android:textColor="@color/ink" />
+
+        <Button
+            android:id="@+id/recharge_share"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/ecard_share_wechat"
+            android:textColor="@color/ink" />
+
+        <Button
+            android:id="@+id/recharge_copy"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/ecard_copy_link"
+            android:textColor="@color/ink" />
+    </LinearLayout>
+</LinearLayout>

@@ -12,10 +12,12 @@ package edu.sustech.mobile.core
  *  - [refused]: the service *answered* and rejected the credentials. Only this
  *    one justifies telling the user their account is wrong — a network failure,
  *    an off-campus reply or a 5xx must never be reported as bad credentials.
+ *  - [httpStatus]: the actual response code when the server supplied one.
  */
 open class ApiException(
     message: String,
     val offCampus: Boolean = false,
     val signInRequired: Boolean = false,
     val refused: Boolean = false,
+    val httpStatus: Int? = null,
 ) : Exception(message)

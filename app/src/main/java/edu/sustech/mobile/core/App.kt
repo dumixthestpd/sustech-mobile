@@ -5,7 +5,9 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatDelegate
 import edu.sustech.mobile.R
 import edu.sustech.mobile.bb.BbApi
+import edu.sustech.mobile.ecard.EcardApi
 import edu.sustech.mobile.library.LibraryApi
+import edu.sustech.mobile.nces.NcesApi
 import edu.sustech.mobile.pms.PmsApi
 import edu.sustech.mobile.tis.TisApi
 import edu.sustech.mobile.transit.BusApi
@@ -35,6 +37,9 @@ object App {
     }
 
     val cookies: CookieStore by lazy { CookieStore(appContext) }
+
+    /** 校园卡（一卡通）API */
+    val ecard: EcardApi by lazy { EcardApi(http) }
 
     /**
      * Client for API calls. Redirects are **not** followed: a 302 to CAS means
@@ -67,11 +72,16 @@ object App {
 
     val bb: BbApi by lazy { BbApi(http) }
 
-    val bus: BusApi by lazy { BusApi(http) }
+    val bus: BusApi by lazy {
+        BusApi(http) { appContext.resources.configuration.locales[0]?.language.orEmpty() }
+    }
 
     val weather: WeatherClient by lazy { WeatherClient(http) }
 
     val library: LibraryApi by lazy { LibraryApi(http) }
+
+    /** Public NCES course and review reads; no sign-in required. */
+    val nces: NcesApi by lazy { NcesApi(http) }
 
     /** Application context, for callers that need assets or resources. */
     val context: android.content.Context get() = appContext

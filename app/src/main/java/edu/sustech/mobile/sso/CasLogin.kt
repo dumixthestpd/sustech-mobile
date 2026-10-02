@@ -52,6 +52,13 @@ object CasLogin {
         }
 
         val page = CAS_PAGE + "?service=" + URLEncoder.encode(serviceUrl, "UTF-8")
+        // When CAS still has a live SSO ticket-granting cookie, its GET skips
+        // the login form and redirects straight to the service with a ticket.
+        // Capture that redirect before the follow-redirect client consumes it.
+        fetchImmediateTicket(page, xhr)?.let { ticketUrl ->
+            exchangeTicket(ticketUrl, xhr)
+            return true
+        }
         val execution = fetchExecution(page, xhr)
             ?: throw ApiException("CAS did not return an execution token")
 
@@ -135,6 +142,44 @@ object CasLogin {
             App.httpFollow.newCall(request).execute().use { response ->
                 val html = response.body?.string().orEmpty()
                 Regex("name=\"execution\" value=\"([^\"]+)\"").find(html)?.groupValues?.get(1)
+            }
+        } catch (e: IOException) {
+            throw ApiException(e.message ?: "network error")
+        }
+    }
+
+    private fun fetchImmediateTicket(page: String, xhr: Boolean): String? {
+        val request = Request.Builder()
+            .url(page)
+            .get()
+            .header("User-Agent", UA)
+            .apply { if (xhr) header("X-Requested-With", "XMLHttpRequest") }
+            .build()
+        return try {
+            App.httpNoRedirect.newCall(request).execute().use { response ->
+                val location = response.header("Location") ?: return@use null
+                if (!response.isRedirect) return@use null
+                val target = page.toHttpUrlOrNull()?.resolve(location)
+                target?.takeIf { it.queryParameter("ticket") != null }?.toString()
+            }
+        } catch (e: IOException) {
+            throw ApiException(e.message ?: "network error")
+        }
+    }
+
+    private fun exchangeTicket(ticketUrl: String, xhr: Boolean) {
+        val ticket = ticketUrl.toHttpUrlOrNull()
+            ?: throw ApiException("CAS returned a malformed ticket URL")
+        try {
+            App.httpFollow.newCall(
+                Request.Builder()
+                    .url(ticket)
+                    .get()
+                    .header("User-Agent", UA)
+                    .apply { if (xhr) header("X-Requested-With", "XMLHttpRequest") }
+                    .build(),
+            ).execute().use { response ->
+                if (response.code >= 400) throw ApiException("Ticket exchange failed: HTTP ${response.code}")
             }
         } catch (e: IOException) {
             throw ApiException(e.message ?: "network error")

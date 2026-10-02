@@ -38,7 +38,13 @@ class ServiceActivity : AppCompatActivity() {
         setSupportActionBar(findViewById<MaterialToolbar>(R.id.toolbar))
         supportActionBar?.title = getString(module.title)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        findViewById<MaterialToolbar>(R.id.toolbar).setNavigationOnClickListener { finish() }
+        findViewById<MaterialToolbar>(R.id.toolbar).setNavigationOnClickListener {
+            if (supportFragmentManager.backStackEntryCount > 0) {
+                supportFragmentManager.popBackStack()
+            } else {
+                finish()
+            }
+        }
 
         if (savedInstanceState == null) {
             supportFragmentManager.beginTransaction()

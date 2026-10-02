@@ -1,19 +1,28 @@
 package edu.sustech.mobile.service
 
 import edu.sustech.mobile.R
+import edu.sustech.mobile.ui.ServicePortalFragment
 import edu.sustech.mobile.ui.pms.PmsFragment
 import edu.sustech.mobile.ui.tis.TisFragment
+import edu.sustech.mobile.ui.nces.NcesFragment
 import java.util.Locale
 
 /**
  * The service catalog.
  *
  * Order is the display order in the Services tab: implemented services first,
- * then the roadmap. The roadmap mirrors the submodules that already exist in
- * the Python (`sustech_survival`) and TypeScript (`sustech-cli`) clients — it
- * is a shared backlog, not a marketing list.
+ * then the roadmap. Official services linked below open in the school portals.
  */
 object Services {
+
+    val ecard = ServiceModule(
+        id = "ecard",
+        title = R.string.service_ecard,
+        summary = R.string.service_ecard_summary,
+        icon = R.drawable.ic_card,
+        navId = R.id.nav_pms,
+        available = true,
+    ) { edu.sustech.mobile.ui.ecard.EcardFragment() }
 
     val printing = ServiceModule(
         id = "pms",
@@ -57,7 +66,8 @@ object Services {
         summary = R.string.service_booking_summary,
         icon = R.drawable.ic_grid,
         navId = R.id.nav_pms,
-    )
+        available = true,
+    ) { ServicePortalFragment.newInstance("booking") }
 
     val transit = ServiceModule(
         id = "transit",
@@ -74,7 +84,8 @@ object Services {
         summary = R.string.service_nces_summary,
         icon = R.drawable.ic_person,
         navId = R.id.nav_pms,
-    )
+        available = true,
+    ) { NcesFragment() }
 
     val faculty = ServiceModule(
         id = "faculty",
@@ -82,7 +93,8 @@ object Services {
         summary = R.string.service_faculty_summary,
         icon = R.drawable.ic_person,
         navId = R.id.nav_pms,
-    )
+        available = true,
+    ) { edu.sustech.mobile.ui.faculty.FacultyDirectoryFragment() }
 
     val exchange = ServiceModule(
         id = "ws",
@@ -90,7 +102,8 @@ object Services {
         summary = R.string.service_ws_summary,
         icon = R.drawable.ic_school,
         navId = R.id.nav_pms,
-    )
+        available = true,
+    ) { ServicePortalFragment.newInstance("exchange") }
 
     val languageHelp = ServiceModule(
         id = "cle",
@@ -98,7 +111,8 @@ object Services {
         summary = R.string.service_cle_summary,
         icon = R.drawable.ic_scan,
         navId = R.id.nav_pms,
-    )
+        available = true,
+    ) { ServicePortalFragment.newInstance("language_help") }
 
     val wifi = ServiceModule(
         id = "wifi",
@@ -106,11 +120,13 @@ object Services {
         summary = R.string.service_wifi_summary,
         icon = R.drawable.ic_refresh,
         navId = R.id.nav_pms,
-    )
+        available = true,
+    ) { ServicePortalFragment.newInstance("wifi") }
 
     val all: List<ServiceModule> = listOf(
-        printing, courses,
-        blackboard, library, booking, transit, nces, faculty, exchange,
+        ecard,
+        printing, courses, nces,
+        blackboard, library, booking, transit, faculty, exchange,
         languageHelp, wifi,
     )
 

@@ -3,24 +3,30 @@ package edu.sustech.mobile.ui
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import android.webkit.CookieManager
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import androidx.fragment.app.Fragment
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import edu.sustech.mobile.R
 import edu.sustech.mobile.core.App
 import edu.sustech.mobile.core.AppConfig
+import edu.sustech.mobile.core.ApiException
 import edu.sustech.mobile.core.Credentials
 import edu.sustech.mobile.core.Hosts
 import edu.sustech.mobile.core.friendly
 import edu.sustech.mobile.core.runIo
 import edu.sustech.mobile.sso.Session
+import edu.sustech.mobile.pms.PmsApi
 import okhttp3.Request
 
 /**
- * Account tab: the stored school account, per-service session state, and the
- * server override used when testing against a local mock.
+ * Account tab: the stored school account, per-service session state, language,
+ * and the server override used when testing against a local mock.
  *
  * Sessions are per host, so "signed in" is answered per service — and each of
  * them re-authenticates on its own from the stored account.
@@ -50,12 +56,50 @@ class AccountFragment : Fragment(R.layout.fragment_account), Refreshable {
         view.findViewById<MaterialButton>(R.id.btn_forget).setOnClickListener {
             Credentials.clear()
             App.cookies.clear()
+            CookieManager.getInstance().removeAllCookies(null)
+            CookieManager.getInstance().flush()
             Toast.makeText(requireContext(), R.string.account_forgotten, Toast.LENGTH_SHORT).show()
             startActivity(Intent(requireContext(), LoginActivity::class.java))
             requireActivity().finish()
         }
 
+        val language = view.findViewById<TextView>(R.id.account_language)
+        language.setText(languageNames()[selectedLanguageIndex()])
+        view.findViewById<MaterialButton>(R.id.btn_language).setOnClickListener {
+            val names = languageNames()
+            AlertDialog.Builder(requireContext())
+                .setTitle(R.string.language_title)
+                .setSingleChoiceItems(names, selectedLanguageIndex()) { dialog, index ->
+                    dialog.dismiss()
+                    if (index != selectedLanguageIndex()) {
+                        val tag = arrayOf("", "en", "zh-CN", "ru")[index]
+                        AppCompatDelegate.setApplicationLocales(
+                            if (tag.isEmpty()) LocaleListCompat.getEmptyLocaleList()
+                            else LocaleListCompat.forLanguageTags(tag),
+                        )
+                    }
+                }
+                .setNegativeButton(R.string.action_cancel, null)
+                .show()
+        }
+
         load()
+    }
+
+    private fun languageNames(): Array<String> = arrayOf(
+        getString(R.string.language_system),
+        getString(R.string.language_english),
+        getString(R.string.language_chinese),
+        getString(R.string.language_russian),
+    )
+
+    private fun selectedLanguageIndex(): Int = when (
+        AppCompatDelegate.getApplicationLocales().get(0)?.language
+    ) {
+        "en" -> 1
+        "zh" -> 2
+        "ru" -> 3
+        else -> 0
     }
 
     override fun refresh() = load()
@@ -75,7 +119,13 @@ class AccountFragment : Fragment(R.layout.fragment_account), Refreshable {
         runIo(
             block = { App.api.check() },
             onOk = { printSession?.setText(R.string.account_session_valid) },
-            onErr = { error -> printSession?.text = error.friendly(requireContext()) },
+            onErr = { error ->
+                if (error is ApiException && error.httpStatus == 405) {
+                    printSession?.setText(R.string.account_print_unavailable)
+                } else {
+                    printSession?.text = error.friendly(requireContext())
+                }
+            },
         )
         runIo(
             block = { Session.ensureCourses() },
@@ -100,19 +150,19 @@ class AccountFragment : Fragment(R.layout.fragment_account), Refreshable {
     }
 
     /**
-     * Which of the three networks the phone is on, told apart the only way the
-     * services themselves can: CAS answers from anywhere; the print host
-     * answers 403 "Access forbidden" from anywhere EXCEPT the campus network.
-     * So a non-403 PMS reply means campus, a 403 means online-but-off-campus,
-     * and no answer from either means no network.
+     * The host root can reply with HTTP 405 even when the printing API is
+     * blocked. Only a valid response from the public PMS endpoint proves that
+     * printing is usable. Any other PMS reply still proves the phone is online.
      */
     private fun networkClass(): String {
-        val casCode = ping("https://" + Hosts.CAS + "/cas/login")
-        val pmsCode = ping(Hosts.PMS)
-        return when {
-            pmsCode != null && pmsCode != 403 -> getString(R.string.network_campus)
-            pmsCode == 403 || casCode != null -> getString(R.string.network_off_campus)
-            else -> getString(R.string.network_none)
+        return when (App.api.reachability()) {
+            PmsApi.Reachability.AVAILABLE -> getString(R.string.network_campus)
+            PmsApi.Reachability.REPLIED -> getString(R.string.network_off_campus)
+            PmsApi.Reachability.UNREACHABLE -> {
+                if (ping("https://" + Hosts.CAS + "/cas/login") != null)
+                    getString(R.string.network_off_campus)
+                else getString(R.string.network_none)
+            }
         }
     }
 

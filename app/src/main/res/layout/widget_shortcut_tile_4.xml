@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_shortcut_tile_4" android:layout_width="match_parent"
+    android:layout_height="match_parent" android:background="@drawable/widget_shortcut_tile"
+    android:clickable="true" android:focusable="true" android:gravity="center"
+    android:orientation="vertical" android:padding="2dp">
+    <ImageView android:id="@+id/widget_shortcut_icon_4" android:layout_width="21dp"
+        android:layout_height="21dp" android:contentDescription="@null"
+        android:importantForAccessibility="no" />
+    <TextView android:id="@+id/widget_shortcut_label_4" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:ellipsize="end" android:gravity="center"
+        android:maxLines="2" android:textColor="@color/ink" android:textSize="9sp" />
+</LinearLayout>
