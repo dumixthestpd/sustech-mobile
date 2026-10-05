@@ -21,9 +21,6 @@ data class CleReservation(
     val status: String,
 )
 
-/** What the account may still book this semester. */
-data class CleQuota(val used: Int, val allowed: Int)
-
 /**
  * Language-centre tutoring (`ehall.sustech.edu.cn/dxggyw/sys/yyzxyy`, "CLE").
  *
@@ -85,11 +82,9 @@ class CleApi(private val http: OkHttpClient) {
             )
         }
 
-    /** Reservations used against the per-semester allowance. */
-    fun quota(): CleQuota {
-        val allowed = configs().firstOrNull()?.let { optionalInt(it, "ZDYYCS") } ?: 0
-        return CleQuota(used = reservations().size, allowed = allowed)
-    }
+    /** How many reservations the semester allows (0 when the config is unreadable). */
+    fun allowedPerSemester(): Int =
+        configs().firstOrNull()?.let { optionalInt(it, "ZDYYCS") } ?: 0
 
     private fun configs(): List<JSONObject> = rows(MODEL_CONFIG, "SFZZSY" to "1")
 

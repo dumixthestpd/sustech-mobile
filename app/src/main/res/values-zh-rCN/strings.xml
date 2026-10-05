@@ -200,6 +200,10 @@
     <string name="ws_no_programs">当前没有列出的交换项目。</string>
     <string name="service_cle">语言辅导</string>
     <string name="service_cle_summary">一对一语言辅导预约</string>
+    <string name="cle_no_reservations">你还没有语言辅导预约。</string>
+    <string name="cle_quota">本学期已用 %1$d/%2$d 次</string>
+    <string name="cle_bootstrapping">正在准备语言中心会话…</string>
+    <string name="cle_credit">预约需在官方页面完成。</string>
     <string name="service_wifi">校园 Wi-Fi</string>
     <string name="service_wifi_summary">SUSTC-Wifi 登录与状态</string>
     <string name="portal_booking_intro">场地预约由学校网上办事大厅提供。若已有有效会话，应用会复用校园 CAS 登录状态。</string>

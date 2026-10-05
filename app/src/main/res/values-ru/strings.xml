@@ -205,6 +205,10 @@
     <string name="ws_no_programs">Сейчас программы обмена не указаны.</string>
     <string name="service_cle">Языковая помощь</string>
     <string name="service_cle_summary">Запись на индивидуальные занятия по языку</string>
+    <string name="cle_no_reservations">У вас нет записей на консультацию.</string>
+    <string name="cle_quota">Использовано %1$d из %2$d за семестр</string>
+    <string name="cle_bootstrapping">Подготовка сессии языкового центра…</string>
+    <string name="cle_credit">Запись выполняется на официальной странице.</string>
     <string name="service_wifi">Wi-Fi кампуса</string>
     <string name="service_wifi_summary">Вход и состояние SUSTC-Wifi</string>
     <string name="portal_booking_intro">Официальная система бронирования помещений находится в E-Hall. Приложение использует активную сессию CAS кампуса, если она есть.</string>

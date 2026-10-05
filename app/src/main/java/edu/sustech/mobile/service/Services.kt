@@ -112,7 +112,7 @@ object Services {
         icon = R.drawable.ic_scan,
         navId = R.id.nav_pms,
         available = true,
-    ) { ServicePortalFragment.newInstance("language_help") }
+    ) { edu.sustech.mobile.ui.cle.CleFragment() }
 
     val wifi = ServiceModule(
         id = "wifi",

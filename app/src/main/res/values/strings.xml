@@ -220,6 +220,10 @@
     <string name="ws_no_programs">No exchange programmes are listed right now.</string>
     <string name="service_cle">Language help</string>
     <string name="service_cle_summary">One-on-one language tutoring reservations</string>
+    <string name="cle_no_reservations">You have no tutoring reservations.</string>
+    <string name="cle_quota">%1$d of %2$d bookings used this semester</string>
+    <string name="cle_bootstrapping">Preparing the language-centre session…</string>
+    <string name="cle_credit">Bookings are made on the official page.</string>
     <string name="service_wifi">Campus Wi-Fi</string>
     <string name="service_wifi_summary">SUSTC-Wifi sign-in and status</string>
     <string name="portal_booking_intro">E-Hall hosts the university’s official room and venue reservations. The app reuses your campus CAS session when available.</string>

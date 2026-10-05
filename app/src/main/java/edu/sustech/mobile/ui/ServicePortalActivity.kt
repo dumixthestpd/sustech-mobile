@@ -7,7 +7,6 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.webkit.CookieManager
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
@@ -19,12 +18,12 @@ import com.google.android.material.appbar.MaterialToolbar
 import edu.sustech.mobile.R
 import edu.sustech.mobile.core.App
 import edu.sustech.mobile.core.Credentials
+import edu.sustech.mobile.core.WebCookies
 import edu.sustech.mobile.sso.CasLogin
 import edu.sustech.mobile.sso.Session
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.Cookie
 
 /** Official service pages share the app's CAS session inside this WebView. */
 class ServicePortalActivity : AppCompatActivity() {
@@ -69,8 +68,6 @@ class ServicePortalActivity : AppCompatActivity() {
         web.settings.domStorageEnabled = true
         web.settings.allowFileAccess = false
         web.settings.allowContentAccess = false
-        CookieManager.getInstance().setAcceptCookie(true)
-        CookieManager.getInstance().setAcceptThirdPartyCookies(web, false)
         web.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView?, newProgress: Int) {
                 progress.progress = newProgress
@@ -104,7 +101,7 @@ class ServicePortalActivity : AppCompatActivity() {
             } else if (requiresCas(url) && Credentials.configured) {
                 withContext(Dispatchers.IO) { Session.ensureCourses() }
             }
-            installCookies(url)
+            WebCookies.install(web, url) { if (!isFinishing) web.loadUrl(url) }
         }
     }
 
@@ -119,42 +116,6 @@ class ServicePortalActivity : AppCompatActivity() {
             App.toast(R.string.portal_no_handler)
         }
         return true
-    }
-
-    private fun installCookies(url: String) {
-        val manager = CookieManager.getInstance()
-        val targetHost = Uri.parse(url).host.orEmpty()
-        val cookies = (App.cookies.cookiesForHost(targetHost) + App.cookies.cookiesForHost(CAS_HOST))
-            .distinctBy { "${it.name}|${it.domain}|${it.path}" }
-            .filter { it.expiresAt > System.currentTimeMillis() }
-        if (cookies.isEmpty()) {
-            web.loadUrl(url)
-            return
-        }
-
-        var remaining = cookies.size
-        cookies.forEach { cookie ->
-            val origin = "https://${cookie.domain.trimStart('.')}/"
-            manager.setCookie(origin, cookieHeader(cookie)) {
-                remaining -= 1
-                if (remaining == 0 && !isFinishing) {
-                    manager.flush()
-                    web.loadUrl(url)
-                }
-            }
-        }
-    }
-
-    private fun cookieHeader(cookie: Cookie): String = buildString {
-        append(cookie.name).append('=').append(cookie.value)
-        append("; Path=").append(cookie.path)
-        if (!cookie.hostOnly) append("; Domain=.").append(cookie.domain.trimStart('.'))
-        if (cookie.secure) append("; Secure")
-        if (cookie.httpOnly) append("; HttpOnly")
-        if (cookie.expiresAt < Long.MAX_VALUE) {
-            val maxAge = ((cookie.expiresAt - System.currentTimeMillis()) / 1000).coerceAtLeast(0)
-            append("; Max-Age=").append(maxAge)
-        }
     }
 
     private fun requiresCas(url: String): Boolean = Uri.parse(url).host.orEmpty() in setOf(
