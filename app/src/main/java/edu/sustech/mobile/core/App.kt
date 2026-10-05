@@ -88,6 +88,9 @@ object App {
     /** Public NCES course and review reads; no sign-in required. */
     val nces: NcesApi by lazy { NcesApi(http) }
 
+    /** 外事信息系统 exchange programmes, read natively with the stored account. */
+    val ws: edu.sustech.mobile.ws.WsApi by lazy { edu.sustech.mobile.ws.WsApi(http) }
+
     /** Application context, for callers that need assets or resources. */
     val context: android.content.Context get() = appContext
 

@@ -207,6 +207,7 @@
     <string name="service_faculty_summary">Staff directory and contact lookup</string>
     <string name="service_exchange">Exchange programs</string>
     <string name="service_exchange_summary">Student exchange and study-abroad listings</string>
+    <string name="ws_no_programs">No exchange programmes are listed right now.</string>
     <string name="service_cle">Language help</string>
     <string name="service_cle_summary">One-on-one language tutoring reservations</string>
     <string name="service_wifi">Campus Wi-Fi</string>

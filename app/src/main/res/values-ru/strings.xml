@@ -192,6 +192,7 @@
     <string name="service_faculty_summary">Справочник сотрудников и контакты</string>
     <string name="service_exchange">Программы обмена</string>
     <string name="service_exchange_summary">Студенческий обмен и обучение за рубежом</string>
+    <string name="ws_no_programs">Сейчас программы обмена не указаны.</string>
     <string name="service_cle">Языковая помощь</string>
     <string name="service_cle_summary">Запись на индивидуальные занятия по языку</string>
     <string name="service_wifi">Wi-Fi кампуса</string>

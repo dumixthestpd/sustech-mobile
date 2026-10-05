@@ -103,7 +103,7 @@ object Services {
         icon = R.drawable.ic_school,
         navId = R.id.nav_pms,
         available = true,
-    ) { ServicePortalFragment.newInstance("exchange") }
+    ) { edu.sustech.mobile.ui.ws.ExchangeFragment() }
 
     val languageHelp = ServiceModule(
         id = "cle",
