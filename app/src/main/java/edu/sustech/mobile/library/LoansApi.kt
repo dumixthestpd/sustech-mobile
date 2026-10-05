@@ -185,13 +185,16 @@ class LoansApi(private val http: okhttp3.OkHttpClient) {
             }
             response.use {
                 val location = it.header("Location")
+                // The body is a single-use stream: read it once, or the second
+                // read throws IllegalStateException("closed").
+                val body = if (it.isRedirect && !location.isNullOrEmpty()) "" else it.body?.string().orEmpty()
                 when {
                     it.isRedirect && !location.isNullOrEmpty() -> {
                         current = if (location.startsWith("/")) PRIMO + location else location
                     }
-                    it.body?.string().orEmpty().contains("name=\"ticket\"") -> {
+                    body.contains("name=\"ticket\"") -> {
                         val ticket = Regex("name=\"ticket\" value=\"([^\"]+)\"")
-                            .find(it.body?.string().orEmpty())?.groupValues?.get(1)
+                            .find(body)?.groupValues?.get(1)
                         val form = FormBody.Builder()
                             .add("ticket", ticket ?: "")
                             .add("update", "Apply")
