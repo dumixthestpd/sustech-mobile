@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.3.25 — 2026-10-05
+
+Two of the three "open the official page" services are now read natively. Neither
+was a matter of wrapping an API: each one's session had to be understood first.
+
+- **Exchange programmes, read natively.** Opening Exchange used to show the
+  platform's own SID/password form even though the app already holds your CAS
+  account — the WebView hand-off was wrapped in `runCatching` and failed
+  silently, so you were asked to sign in a second time. The listing is ours now:
+  170 programmes with region, school, length and status, read from the service's
+  JSON behind the app's session. Tapping a programme opens its official page
+  **already signed in**, which is where the application form belongs.
+- **Venue booking, read natively.** The E-Hall venue page is replaced by two
+  tabs: the bookable rooms (name, type, building, capacity, how far ahead you can
+  book, whether it needs approval) and your own reservations. Creating and
+  cancelling a booking still happen on the official page — they change a real
+  room calendar.
+
+Language tutoring is the one that is *not* a port: E-Hall's app APIs refuse plain
+HTTP even with a valid CAS session, because its JavaScript adapter has to run
+first. Making that one native needs an in-app bootstrap, so it stays a page for
+now.
+
 ## 0.3.24 — 2026-10-05
 
 - **Exchange opened nothing when reached by deep link.** The module carried the id
