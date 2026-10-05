@@ -16,9 +16,10 @@ A clean Android app for SUSTech campus services. Anywhere, anytime.
 - **Account** — stored school account, per-service session state, network state (campus / off campus / offline). It also tells you when a new release is out.
 
 The Services tab opens official school portals for venue booking, exchange programs, and language
-tutoring; those flows reuse the saved CAS account. Exchange opens its application platform first,
-with project information in the top-right menu. Language tutoring opens the E-Hall booking system
-directly. Faculty search uses a bilingual snapshot of the public roster, so name, title, and
+tutoring, handing them the app's CAS cookies so CAS-based pages start signed in — the exchange
+platform is the exception and still shows its own login form. Exchange opens its application
+platform first, with project information in the top-right menu. Language tutoring opens the E-Hall
+booking system directly. Faculty search uses a bilingual snapshot of the public roster, so name, title, and
 department searches work offline; selecting a person opens their official profile. The tutoring
 system loads its schedule through dynamic requests that are not exposed by its public page, so a
 native appointment list still needs a verified request/response schema.

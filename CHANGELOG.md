@@ -33,8 +33,10 @@ the intermediate versions were never published on their own.
   staff directory ships in the app, so name/title/department search works with no
   network; opening a person loads only that public profile.
 - **Official portals open in-app with the saved account.** Venue booking, exchange
-  programmes, language tutoring and Wi-Fi open their real pages, reusing the
-  stored CAS session instead of asking for credentials again.
+  programmes, language tutoring and Wi-Fi open their real pages inside the app,
+  with the stored CAS cookies handed to those pages so CAS-based ones start
+  signed in. The exchange platform is the exception — it still shows its own
+  login form.
 - **Chinese and Russian.** The whole interface is translated, including the names
   the campus-bus and library APIs return, instead of surfacing their English.
 - **Sessions are shared and honest.** CAS now accepts an existing SSO session when
