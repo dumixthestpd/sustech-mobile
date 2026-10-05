@@ -67,7 +67,7 @@ object Services {
         icon = R.drawable.ic_grid,
         navId = R.id.nav_pms,
         available = true,
-    ) { ServicePortalFragment.newInstance("booking") }
+    ) { edu.sustech.mobile.ui.booking.BookingFragment() }
 
     val transit = ServiceModule(
         id = "transit",

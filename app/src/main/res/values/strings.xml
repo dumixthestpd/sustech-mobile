@@ -189,6 +189,16 @@
     <string name="service_library_summary">How full it is, and where a book is</string>
     <string name="service_booking">Venue booking</string>
     <string name="service_booking_summary">E-Hall venue and facility reservations</string>
+    <string name="booking_rooms">Venues</string>
+    <string name="booking_mine">My bookings</string>
+    <string name="booking_search_hint">Room name, type or building</string>
+    <string name="booking_no_rooms">No venues to show.</string>
+    <string name="booking_no_rooms_match">No venue matches “%1$s”.</string>
+    <string name="booking_capacity">%1$d seats</string>
+    <string name="booking_needs_approval">Needs approval</string>
+    <string name="booking_bookable_days">Bookable %1$d days ahead</string>
+    <string name="booking_no_meetings">You have no venue bookings.</string>
+    <string name="booking_campus_only">Reading venues needs the campus network.</string>
     <string name="service_transit">Campus transit</string>
     <string name="service_transit_summary">Shuttle routes and live buses</string>
     <string name="service_nces">Course reviews</string>

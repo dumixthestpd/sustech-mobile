@@ -169,6 +169,16 @@
     <string name="service_library_summary">馆内人数及图书位置</string>
     <string name="service_booking">场地预约</string>
     <string name="service_booking_summary">E-Hall 场地与设施预约</string>
+    <string name="booking_rooms">场地</string>
+    <string name="booking_mine">我的预约</string>
+    <string name="booking_search_hint">房间名、类型或楼栋</string>
+    <string name="booking_no_rooms">暂无可预约场地。</string>
+    <string name="booking_no_rooms_match">没有匹配“%1$s”的场地。</string>
+    <string name="booking_capacity">%1$d 座</string>
+    <string name="booking_needs_approval">需要审批</string>
+    <string name="booking_bookable_days">可提前 %1$d 天预约</string>
+    <string name="booking_no_meetings">你还没有场地预约。</string>
+    <string name="booking_campus_only">查看场地需连接校园网。</string>
     <string name="service_transit">校园巴士</string>
     <string name="service_transit_summary">班车线路与实时位置</string>
     <string name="service_nces">课程评价</string>

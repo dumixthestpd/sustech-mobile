@@ -47,6 +47,24 @@ object CasLogin {
         xhr: Boolean = true,
         submitValue: String? = null,
     ): Boolean {
+        loginForTicket(serviceUrl, sid, password, xhr, submitValue)
+        return true
+    }
+
+    /**
+     * The same sign-in, returning the ticket URL rather than a bare success.
+     *
+     * Services that need the ticket *value* use this: venue booking exchanges it
+     * for a bearer token (a `GetUserProfile` call carrying `St`), which "did the
+     * sign-in work" cannot express.
+     */
+    fun loginForTicket(
+        serviceUrl: String,
+        sid: String,
+        password: String,
+        xhr: Boolean = true,
+        submitValue: String? = null,
+    ): String {
         if (sid.isEmpty() || password.isEmpty()) {
             throw ApiException("No credentials stored", signInRequired = true)
         }
@@ -57,7 +75,7 @@ object CasLogin {
         // Capture that redirect before the follow-redirect client consumes it.
         fetchImmediateTicket(page, xhr)?.let { ticketUrl ->
             exchangeTicket(ticketUrl, xhr)
-            return true
+            return ticketUrl
         }
         val execution = fetchExecution(page, xhr)
             ?: throw ApiException("CAS did not return an execution token")
@@ -128,7 +146,7 @@ object CasLogin {
         } catch (e: IOException) {
             throw ApiException(e.message ?: "network error")
         }
-        return true
+        return ticket.toString()
     }
 
     private fun fetchExecution(page: String, xhr: Boolean): String? {

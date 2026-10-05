@@ -91,6 +91,11 @@ object App {
     /** 外事信息系统 exchange programmes, read natively with the stored account. */
     val ws: edu.sustech.mobile.ws.WsApi by lazy { edu.sustech.mobile.ws.WsApi(http) }
 
+    /** E-Hall venue booking, read natively behind the ticket → token handshake. */
+    val booking: edu.sustech.mobile.booking.BookingApi by lazy {
+        edu.sustech.mobile.booking.BookingApi(http)
+    }
+
     /** Application context, for callers that need assets or resources. */
     val context: android.content.Context get() = appContext
 
