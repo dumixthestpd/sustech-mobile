@@ -12,7 +12,7 @@ A clean Android app for SUSTech campus services. Anywhere, anytime.
 - **Library** — how many people are inside each library, where a book is (floor, shelf, availability), and **your borrowed books with due dates and renewal**
 - **Transit** — the campus shuttle: every stop as a *place*, nearest first; pick a direction and see the buses on the way, live
 - **Today** — week number, next class, campus weather, AQI, next exam
-- **Widgets** — the next class or the next bus on the home screen, plus a live campus-code widget
+- **Widgets** — one shows the next class, the next bus, campus weather or Blackboard deadlines (you pick); the other is a 2×2 grid of four campus shortcuts you configure
 - **Account** — stored school account, per-service session state, network state (campus / off campus / offline). It also tells you when a new release is out.
 
 The Services tab opens official school portals for venue booking, exchange programs, and language

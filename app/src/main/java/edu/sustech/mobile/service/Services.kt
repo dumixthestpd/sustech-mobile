@@ -97,9 +97,9 @@ object Services {
     ) { edu.sustech.mobile.ui.faculty.FacultyDirectoryFragment() }
 
     val exchange = ServiceModule(
-        id = "ws",
-        title = R.string.service_ws,
-        summary = R.string.service_ws_summary,
+        id = "exchange",
+        title = R.string.service_exchange,
+        summary = R.string.service_exchange_summary,
         icon = R.drawable.ic_school,
         navId = R.id.nav_pms,
         available = true,

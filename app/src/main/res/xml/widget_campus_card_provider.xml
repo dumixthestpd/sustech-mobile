@@ -7,6 +7,7 @@
     android:targetCellHeight="2"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_ecard"
+    android:previewLayout="@layout/widget_ecard"
     android:widgetCategory="home_screen"
     android:configure="edu.sustech.mobile.widget.QuickAccessWidgetConfigActivity"
     android:description="@string/widget_shortcuts_description" />

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.24 — 2026-10-05
+
+- **Exchange opened nothing when reached by deep link.** The module carried the id
+  `ws` — with its string resources still named `service_ws` — while everything
+  else called it "exchange". `Services.byId("exchange")` therefore returned null,
+  and `ServiceActivity` silently `finish()`es on an unknown id, so
+  `--es service exchange` closed the screen instead of opening the exchange
+  platform. The widget's Exchange shortcut kept working only because it repeated
+  the same wrong id. The id is now `exchange`, the strings are named for it, and a
+  test pins the whole service-id list so a rename cannot pass unnoticed again.
+- **The widget previews were blank.** Neither widget declared a preview, so the
+  launcher's picker showed two empty white rectangles where a preview belongs.
+  Both now preview their real layout.
+
 ## 0.3.23 — 2026-10-05
 
 First release since v0.3.11. It bundles everything merged from the community
@@ -8,9 +22,10 @@ the intermediate versions were never published on their own.
 
 - **Electronic campus card (一卡通) is a service.** Balance and recent bills read
   from the campus-card API with the stored account, plus in-app recharge.
-- **A live campus-code widget.** A separate 2×2 launcher widget shows the payment
-  QR, refreshes on its own, and hides the code when the fetch fails rather than
-  showing a stale one. The code is never written to app storage.
+- **Two launcher widgets.** One shows the campus-bus ETAs, Blackboard deadlines,
+  the next class or the weather — you choose which when you add it. The other is
+  a 2×2 grid of four campus shortcuts you configure yourself; it starts out as
+  the electronic card, the campus-card QR, printing and the campus bus.
 - **Course reviews (牛娃社区).** Search a course, code or teacher and read the
   community's evaluation ratings — a service the catalog previously listed as
   planned.

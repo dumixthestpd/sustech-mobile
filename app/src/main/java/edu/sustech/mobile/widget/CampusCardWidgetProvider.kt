@@ -77,8 +77,8 @@ enum class QuickShortcut(
     val key: String,
     val label: Int,
     val icon: Int,
-    private val serviceId: String? = null,
-    private val portalUrl: String? = null,
+    val serviceId: String? = null,
+    val portalUrl: String? = null,
 ) {
     ELECTRONIC_CARD(
         "ecard_face", R.string.shortcut_ecard_face, R.drawable.ic_card,
@@ -89,7 +89,7 @@ enum class QuickShortcut(
     BUS("bus", R.string.shortcut_bus, R.drawable.ic_bus, "transit"),
     LIBRARY("library", R.string.shortcut_library, R.drawable.ic_history, "library"),
     BLACKBOARD("blackboard", R.string.shortcut_blackboard, R.drawable.ic_doc, "blackboard"),
-    EXCHANGE("exchange", R.string.shortcut_exchange, R.drawable.ic_school, "ws"),
+    EXCHANGE("exchange", R.string.shortcut_exchange, R.drawable.ic_school, "exchange"),
     FACULTY("faculty", R.string.shortcut_faculty, R.drawable.ic_person, "faculty"),
     ;
 

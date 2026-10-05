@@ -185,8 +185,8 @@
     <string name="nces_review_empty_content">此评价没有文字内容。</string>
     <string name="service_faculty">教职工</string>
     <string name="service_faculty_summary">教职工目录与联系方式</string>
-    <string name="service_ws">交换项目</string>
-    <string name="service_ws_summary">学生交换与海外学习信息</string>
+    <string name="service_exchange">交换项目</string>
+    <string name="service_exchange_summary">学生交换与海外学习信息</string>
     <string name="service_cle">语言辅导</string>
     <string name="service_cle_summary">一对一语言辅导预约</string>
     <string name="service_wifi">校园 Wi-Fi</string>

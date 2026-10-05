@@ -190,8 +190,8 @@
     <string name="nces_review_empty_content">В этом отзыве нет текста.</string>
     <string name="service_faculty">Сотрудники</string>
     <string name="service_faculty_summary">Справочник сотрудников и контакты</string>
-    <string name="service_ws">Программы обмена</string>
-    <string name="service_ws_summary">Студенческий обмен и обучение за рубежом</string>
+    <string name="service_exchange">Программы обмена</string>
+    <string name="service_exchange_summary">Студенческий обмен и обучение за рубежом</string>
     <string name="service_cle">Языковая помощь</string>
     <string name="service_cle_summary">Запись на индивидуальные занятия по языку</string>
     <string name="service_wifi">Wi-Fi кампуса</string>
