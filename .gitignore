@@ -27,3 +27,7 @@ tools/fixtures/
 # Python (tools/)
 __pycache__/
 *.pyc
+
+# JVM crash dumps (Gradle daemon OOM on this machine)
+hs_err_pid*.log
+replay_pid*.log
