@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.22 — 2026-10-05
+
+- **My borrowed books, with due dates and one-tap renew.** The library gains a
+  Loans tab: everything you have out, when each book is due, and its renewal
+  state. Renewing shows the exact request first and sends only after you
+  confirm — renewal quota is limited and a wasted renewal cannot be refunded.
+- **The app now notices its own updates.** The Account tab checks GitHub
+  Releases when it opens; when a newer build is published, a card appears with
+  the version and a button that opens the release page. Current builds and
+  offline moments stay silent — an update check must not nag louder than the
+  network deserves.
+- **Loans strings follow the app language** (English, Chinese, Russian).
+
 ## 0.3.18 — 2026-10-02
 
 - **Campus QR is now a separate 2×2 widget.** It has its own launcher entry and

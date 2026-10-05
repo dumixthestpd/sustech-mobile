@@ -20,8 +20,8 @@ android {
         applicationId = "edu.sustech.mobile"
         minSdk = 26
         targetSdk = 34
-        versionCode = 24
-        versionName = "0.3.20-shortcuts"
+        versionCode = 25
+        versionName = "0.3.22-loans"
         buildConfigField("String", "DEFAULT_SERVER_URL", "\"$defaultServerUrl\"")
     }
 
