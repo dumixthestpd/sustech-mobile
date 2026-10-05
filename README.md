@@ -6,12 +6,14 @@ A clean Android app for SUSTech campus services. Anywhere, anytime.
 
 - **Printing** (`pms`) — 联创 cloud print: upload with all five options, queue + delete, scans, usage report, stations
 - **Courses & grades** (`tis`) — this week's timetable on its real period grid, enrolled courses, grades + GPA, exams
+- **Course reviews** (牛娃社区) — search a course, code or teacher and read the community's evaluation ratings
 - **Blackboard** (`bb`) — enrolled courses and the assignments coming due
-- **Library** — how many people are inside each library right now, and where a book is (floor, shelf, availability)
+- **Campus card** (一卡通) — balance and recent bills, with in-app recharge
+- **Library** — how many people are inside each library, where a book is (floor, shelf, availability), and **your borrowed books with due dates and renewal**
 - **Transit** — the campus shuttle: every stop as a *place*, nearest first; pick a direction and see the buses on the way, live
 - **Today** — week number, next class, campus weather, AQI, next exam
-- **Widget** — the next class or the next bus, on the home screen
-- **Account** — stored school account, per-service session state, network state (campus / off campus / offline)
+- **Widgets** — the next class or the next bus on the home screen, plus a live campus-code widget
+- **Account** — stored school account, per-service session state, network state (campus / off campus / offline). It also tells you when a new release is out.
 
 The Services tab opens official school portals for venue booking, exchange programs, and language
 tutoring; those flows reuse the saved CAS account. Exchange opens its application platform first,
@@ -19,8 +21,7 @@ with project information in the top-right menu. Language tutoring opens the E-Ha
 directly. Faculty search uses a bilingual snapshot of the public roster, so name, title, and
 department searches work offline; selecting a person opens their official profile. The tutoring
 system loads its schedule through dynamic requests that are not exposed by its public page, so a
-native appointment list still needs a verified request/response schema. Course reviews (牛娃社区)
-remains on the roadmap.
+native appointment list still needs a verified request/response schema.
 
 Course selection, bidding and evaluation are intentionally **not** in the app.
 
@@ -29,8 +30,8 @@ Course selection, bidding and evaluation are intentionally **not** in the app.
 Grab the APK from [Releases](../../releases) (Android 8.0+), open it, allow "install unknown apps"
 once, sign in with your school account.
 
-The published APK is a sideload build signed with a release key (kept out of the repo). It is not
-a Play Store artifact, and it updates in place: releases from v0.3.23 on install over each other.
+The APK is a sideload build — not a Play Store app. Release v0.3.23 and later install over your
+existing copy, so you will not have to uninstall anything to update.
 
 ## Sign-in
 
@@ -41,29 +42,9 @@ Your CAS credentials are **stored on your device**. Sessions renew themselves si
 Printing needs the campus network (or a VPN back to campus) — PMS answers 403 from outside. You can
 check your account state in the Account tab.
 
-## Build
+## Build and test
 
-JDK 17+ and Android SDK (platform 34):
-
-```bash
-export JAVA_HOME=/opt/homebrew/opt/openjdk@21
-export ANDROID_HOME=$HOME/Library/Android/sdk
-./gradlew assembleDebug
-adb install -r app/build/outputs/apk/debug/app-debug.apk
-```
-
-## Testing
-
-No campus network needed — print flows run against a local mock that speaks the same wire format
-(including the RSA login):
-
-```bash
-python3 tools/mock_pms.py --port 8080
-python3 tools/inject_session.py --base-url http://10.0.2.2:8080 --creds
-python3 tools/drive_ui.py --scenario pms-smoke    # also: shell, pms-upload, tis-live, theme
-```
-
-`tis-live` runs against the real TIS with your stored account.
+Building, testing and releasing are covered in [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## iOS
 
