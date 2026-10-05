@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.3.23 — 2026-10-05
+
+First release since v0.3.11. It bundles everything merged from the community
+branch (0.3.14–0.3.18) with the library-loans and update-detection work below —
+the intermediate versions were never published on their own.
+
+- **Electronic campus card (一卡通) is a service.** Balance and recent bills read
+  from the campus-card API with the stored account, plus in-app recharge.
+- **A live campus-code widget.** A separate 2×2 launcher widget shows the payment
+  QR, refreshes on its own, and hides the code when the fetch fails rather than
+  showing a stale one. The code is never written to app storage.
+- **Course reviews (牛娃社区).** Search a course, code or teacher and read the
+  community's evaluation ratings — a service the catalog previously listed as
+  planned.
+- **Faculty directory, offline.** A bilingual snapshot of the official public
+  staff directory ships in the app, so name/title/department search works with no
+  network; opening a person loads only that public profile.
+- **Official portals open in-app with the saved account.** Venue booking, exchange
+  programmes, language tutoring and Wi-Fi open their real pages, reusing the
+  stored CAS session instead of asking for credentials again.
+- **Chinese and Russian.** The whole interface is translated, including the names
+  the campus-bus and library APIs return, instead of surfacing their English.
+- **Sessions are shared and honest.** CAS now accepts an existing SSO session when
+  it issues a ticket immediately, one cookie store serves every service, and a
+  service is reported unavailable only after its API actually says so.
+- **My borrowed books, with due dates and one-tap renew.** The library gains a
+  Loans tab: everything you have out, when each book is due, and its renewal
+  state. Renewing shows the exact request first and sends only after you confirm
+  — renewal quota is limited and a wasted renewal cannot be refunded.
+- **The app notices its own updates.** The Account tab checks GitHub Releases when
+  it opens; when a newer build is published, a card appears with the version and a
+  button that opens the release page. Current builds and offline moments stay
+  silent.
+
 ## 0.3.22 — 2026-10-05
 
 - **My borrowed books, with due dates and one-tap renew.** The library gains a
