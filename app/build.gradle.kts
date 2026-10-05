@@ -8,7 +8,7 @@ plugins {
 
 // Release signing lives OUTSIDE the repo (the keystore must never be committed).
 // Point at it from the gitignored local.properties:
-//   signing.properties=D:/dumix/.sustech_survival/android-signing/keystore.properties
+//   signing.properties=D:/dumix/.sustech-mobile/signing/keystore.properties
 // Missing file ⇒ the release build stays unsigned, so a fresh clone still builds.
 val signingProps: Properties? =
     run {
