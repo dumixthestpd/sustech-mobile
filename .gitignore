@@ -7,6 +7,13 @@ local.properties
 captures/
 tools/screenshots/
 
+# Signing material — never commit. The keystore lives outside the repo; these
+# patterns are the seatbelt in case one is ever copied in.
+keystore.properties
+*.jks
+*.keystore
+storepass.txt
+
 # Live captures (real grades, real timetable) — never commit these.
 tools/fixtures/
 .externalNativeBuild/

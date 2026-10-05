@@ -29,8 +29,8 @@ Course selection, bidding and evaluation are intentionally **not** in the app.
 Grab the APK from [Releases](../../releases) (Android 8.0+), open it, allow "install unknown apps"
 once, sign in with your school account.
 
-The published APK is a debug-signed sideload build — fine for personal use, not a Play Store
-artifact.
+The published APK is a sideload build signed with a release key (kept out of the repo). It is not
+a Play Store artifact, and it updates in place: releases from v0.3.23 on install over each other.
 
 ## Sign-in
 

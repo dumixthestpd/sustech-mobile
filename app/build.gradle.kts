@@ -1,7 +1,27 @@
+import java.io.File
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
+
+// Release signing lives OUTSIDE the repo (the keystore must never be committed).
+// Point at it from the gitignored local.properties:
+//   signing.properties=D:/dumix/.sustech_survival/android-signing/keystore.properties
+// Missing file ⇒ the release build stays unsigned, so a fresh clone still builds.
+val signingProps: Properties? =
+    run {
+        val pointer =
+            rootProject.file("local.properties")
+                .takeIf { it.exists() }
+                ?.let { file ->
+                    Properties().apply { file.inputStream().use { load(it) } }
+                        .getProperty("signing.properties")
+                }
+        pointer?.let { path -> File(path).takeIf { it.exists() } }
+            ?.let { file -> Properties().apply { file.inputStream().use { load(it) } } }
+    }
 
 // The server the app defaults to. Override for off-campus testing:
 //   ./gradlew assembleDebug -PserverUrl=http://10.0.2.2:8080
@@ -32,6 +52,17 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            // Signed with the out-of-repo keystore when it is configured; stays
+            // unsigned (as before) on a machine that has no signing.properties.
+            signingProps?.let { props ->
+                signingConfigs.create("release") {
+                    storeFile = File(props.getProperty("storeFile"))
+                    storePassword = props.getProperty("storePassword")
+                    keyAlias = props.getProperty("keyAlias")
+                    keyPassword = props.getProperty("keyPassword")
+                }
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
