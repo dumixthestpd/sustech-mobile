@@ -99,6 +99,22 @@
     <string name="library_call_number">Полка %1$s</string>
     <string name="library_electronic">Только электронная версия, на полке нет.</string>
     <string name="library_credit">Источник данных: lib.sustech.edu.cn · Primo</string>
+
+    <string name="library_loans">Мои книги</string>
+    <string name="library_loans_summary">Что взято, когда сдавать, продление в один тап</string>
+    <string name="library_loans_active">На руках</string>
+    <string name="library_loans_history">Возвращено</string>
+    <string name="library_no_loans">Сейчас ничего не взято.</string>
+    <string name="library_no_history">Истории borrowing пока нет.</string>
+    <string name="library_due">сдать до %1$s</string>
+    <string name="library_returned_on">возвращено %1$s</string>
+    <string name="library_renewed_flag">продлений: %1$s</string>
+    <string name="library_renew">Продлить</string>
+    <string name="library_renew_preview">Предпросмотр (не отправлено):\nPOST %1$s\nкнига %2$s</string>
+    <string name="library_renew_sent">Запрос на продление отправлен.</string>
+    <string name="library_renew_done">Продлено.</string>
+    <string name="library_renew_failed">Отказано: %1$s</string>
+    <string name="library_signin_needed">Войдите в школьный аккаунт, чтобы видеть свои книги.</string>
     <string name="transit_source_credit">Прибытие онлайн · buseta.sustcra.com (sustech.online)</string>
     <plurals name="transit_eta_minutes">
         <item quantity="one">через %1$d мин</item>

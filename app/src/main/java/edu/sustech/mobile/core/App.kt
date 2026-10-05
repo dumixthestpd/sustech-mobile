@@ -80,6 +80,11 @@ object App {
 
     val library: LibraryApi by lazy { LibraryApi(http) }
 
+    /** My-library loans (borrowed books, due dates, renew). */
+    val loans: edu.sustech.mobile.library.LoansApi by lazy {
+        edu.sustech.mobile.library.LoansApi(http)
+    }
+
     /** Public NCES course and review reads; no sign-in required. */
     val nces: NcesApi by lazy { NcesApi(http) }
 

@@ -8,7 +8,9 @@ import androidx.fragment.app.Fragment
 import edu.sustech.mobile.R
 import edu.sustech.mobile.core.App
 import edu.sustech.mobile.core.friendly
+import edu.sustech.mobile.core.runIo
 import edu.sustech.mobile.library.LibraryApi
+import edu.sustech.mobile.library.LoansApi
 import edu.sustech.mobile.ui.ListFragment
 import edu.sustech.mobile.ui.ServicePage
 import edu.sustech.mobile.ui.TabbedServiceFragment
@@ -18,6 +20,11 @@ import java.util.Locale
 /** The book whose "Where" tab is open, shared between the two fragments. */
 object LibrarySelection {
     @Volatile var book: LibraryApi.Book? = null
+}
+
+/** The loan a renew action is for, shared between the list and the dialog. */
+object LoanSelection {
+    @Volatile var lastLoan: LoansApi.Loan? = null
 }
 
 private fun Fragment.libraryShell(): LibraryFragment? = hostShell() as? LibraryFragment
@@ -36,6 +43,7 @@ private fun Fragment.libraryShell(): LibraryFragment? = hostShell() as? LibraryF
 class LibraryFragment : TabbedServiceFragment(R.layout.fragment_tabs) {
 
     override fun pages(): List<ServicePage> = listOf(
+        ServicePage(R.string.library_loans) { LibraryLoansFragment() },
         ServicePage(R.string.library_inside) { LibraryInsideFragment() },
         ServicePage(R.string.library_books) { LibraryBooksFragment() },
         ServicePage(R.string.library_where) { LibraryWhereFragment() },
@@ -189,5 +197,87 @@ class LibraryWhereFragment : ListFragment<LibraryApi.Shelf>(R.layout.fragment_li
             "checked out",
             "loaned",
         )
+    }
+}
+
+/**
+ * What you have borrowed, and when each book is due — the account page's
+ * loans tab, reduced to the two things a phone is asked on the way out the
+ * door: the title and the date.
+ *
+ * Tap a book to see the renewal preview; tap again (preview shows the exact
+ * request) — no, keep it honest and two-step: first tap shows the preview
+ * dialog, the dialog's positive button sends it.
+ */
+class LibraryLoansFragment : ListFragment<LoansApi.Loan>(R.layout.fragment_list) {
+
+    override fun cachePrefix() = "library.loans"
+
+    override fun rowLayout() = R.layout.item_library_loan
+
+    override fun emptyText() = getString(R.string.library_no_loans)
+
+    override suspend fun fetch(): List<LoansApi.Loan> = App.loans.loans("active")
+
+    override fun errorText(error: Throwable): String {
+        if (error.message?.contains("No school account", ignoreCase = true) == true) {
+            return getString(R.string.library_signin_needed)
+        }
+        return context?.let { error.friendly(it) } ?: error.message.orEmpty()
+    }
+
+    override fun bindRow(view: View, item: LoansApi.Loan, position: Int) {
+        view.findViewById<TextView>(R.id.loan_title).text =
+            listOf(item.title, item.author)
+                .filter { it.isNotEmpty() }
+                .joinToString(" · ")
+                .let { if (item.year.isNotEmpty()) "$it · ${item.year}" else it }
+        view.findViewById<TextView>(R.id.loan_date_label).text =
+            getString(R.string.library_due, item.dueDate.ifEmpty { item.returnDate })
+        view.findViewById<TextView>(R.id.loan_renewed).text =
+            getString(R.string.library_renewed_flag, item.renewed.ifEmpty { "-" })
+        view.findViewById<TextView>(R.id.loan_place).text =
+            listOf(item.location, item.subLocation, item.callNumber)
+                .filter { it.isNotEmpty() }
+                .joinToString(" · ")
+
+        view.setOnClickListener { confirmRenew(item) }
+    }
+
+    /**
+     * Two-step renew: the first look shows exactly what would be sent
+     * (nothing has gone out yet); confirming in the dialog commits it.
+     */
+    private fun confirmRenew(loan: LoansApi.Loan) {
+        val activity = activity ?: return
+        val message = getString(
+            R.string.library_renew_preview,
+            "$PRIMO_ACCOUNT/renew_loan",
+            loan.title,
+        )
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(activity)
+            .setTitle(R.string.library_renew)
+            .setMessage(message)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.library_renew) { _, _ ->
+                runIo(
+                    block = { App.loans.renew(loan.loanId, commit = true) },
+                    onOk = { _ ->
+                        if (!isAdded) return@runIo
+                        App.toast(R.string.library_renew_done)
+                        load(force = true)
+                    },
+                    onErr = { error ->
+                        if (!isAdded) return@runIo
+                        App.toast(getString(R.string.library_renew_failed, error.message.orEmpty()))
+                    },
+                )
+            }
+            .show()
+    }
+
+    private companion object {
+        const val PRIMO_ACCOUNT =
+            "https://sustc.primo.exlibrisgroup.com.cn/primaws/rest/priv/myaccount"
     }
 }

@@ -115,6 +115,23 @@
     <string name="library_call_number">Shelf %1$s</string>
     <string name="library_electronic">Online copy only — nothing on a shelf.</string>
     <string name="library_credit">Data: lib.sustech.edu.cn · Primo</string>
+
+    <!-- Loans (my borrowed books) -->
+    <string name="library_loans">Loans</string>
+    <string name="library_loans_summary">What you have borrowed and when it is due</string>
+    <string name="library_loans_active">Borrowed</string>
+    <string name="library_loans_history">Returned</string>
+    <string name="library_no_loans">Nothing borrowed right now.</string>
+    <string name="library_no_history">No borrowing history yet.</string>
+    <string name="library_due">due %1$s</string>
+    <string name="library_returned_on">returned %1$s</string>
+    <string name="library_renewed_flag">renewed: %1$s</string>
+    <string name="library_renew">Renew</string>
+    <string name="library_renew_preview">Renewal preview (nothing sent):\nPOST %1$s\nbook %2$s</string>
+    <string name="library_renew_sent">Renewal request sent.</string>
+    <string name="library_renew_done">Renewed.</string>
+    <string name="library_renew_failed">Renewal refused: %1$s</string>
+    <string name="library_signin_needed">Sign in with your school account to see your loans.</string>
     <string name="transit_source_credit">Live ETAs · buseta.sustcra.com (sustech.online)</string>
     <plurals name="transit_eta_minutes">
         <item quantity="one">%1$d min</item>

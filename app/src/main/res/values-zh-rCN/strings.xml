@@ -100,6 +100,22 @@
     <string name="library_call_number">索书号 %1$s</string>
     <string name="library_electronic">仅有电子版，无实体馆藏。</string>
     <string name="library_credit">数据来源：lib.sustech.edu.cn · Primo</string>
+
+    <string name="library_loans">我的借阅</string>
+    <string name="library_loans_summary">借了什么、何时到期、一键续借</string>
+    <string name="library_loans_active">在借</string>
+    <string name="library_loans_history">已还</string>
+    <string name="library_no_loans">现在没有借书。</string>
+    <string name="library_no_history">还没有借阅记录。</string>
+    <string name="library_due">到期 %1$s</string>
+    <string name="library_returned_on">归还于 %1$s</string>
+    <string name="library_renewed_flag">已续借: %1$s</string>
+    <string name="library_renew">续借</string>
+    <string name="library_renew_preview">续借预览（未发送）：\nPOST %1$s\n书 %2$s</string>
+    <string name="library_renew_sent">续借请求已发送。</string>
+    <string name="library_renew_done">续借成功。</string>
+    <string name="library_renew_failed">续借被拒：%1$s</string>
+    <string name="library_signin_needed">登录校园账号后即可查看借阅。</string>
     <string name="transit_source_credit">实时到站 · buseta.sustcra.com (sustech.online)</string>
     <plurals name="transit_eta_minutes">
         <item quantity="other">%1$d 分钟</item>
