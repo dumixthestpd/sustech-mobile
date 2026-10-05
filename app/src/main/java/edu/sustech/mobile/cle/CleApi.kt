@@ -24,12 +24,15 @@ data class CleReservation(
 /**
  * Language-centre tutoring (`ehall.sustech.edu.cn/dxggyw/sys/yyzxyy`, "CLE").
  *
- * 🔴 This is the one E-Hall app that a CAS ticket alone cannot read: its data
- * endpoints answer **403** until the portal's own JavaScript adapter (EMAP) has
- * run. So the session has two halves — a WebView loads the app index once to run
- * that adapter, its cookies are copied into this app's jar, and only then do the
- * `/modules/fwyy/<MODEL>.do` queries answer. `bootstrap()` performs the first
- * half; the caller owns the WebView.
+ * 🔴 This is the one E-Hall app a CAS ticket alone cannot read: its data endpoints
+ * answer **403** until the portal's own JavaScript adapter (EMAP) has run, and the
+ * session it establishes does not survive being copied into another HTTP client —
+ * the same request replayed from this app's OkHttp jar is still refused.
+ *
+ * So the queries are **issued by the page itself**, which is also what the
+ * reference implementation does (it drives a browser and reads through the
+ * browser context's request API). [JS_FETCH] is the snippet the screen evaluates;
+ * this class only builds the path and parses the answer.
  *
  * Reads only: booking posts the reservation model's entire control set and
  * consumes one of three per-semester slots, so it stays on the official page.
@@ -40,14 +43,14 @@ class CleApi(private val http: OkHttpClient) {
     var bootstrapped: Boolean = false
         private set
 
-    /** Marks the session usable once the caller's WebView has run the adapter. */
+    /** Marks the session usable once the screen's WebView has run the adapter. */
     fun markBootstrapped() {
         bootstrapped = true
     }
 
     /**
-     * Makes sure the E-Hall session exists in the cookie jar, so the bootstrap
-     * WebView can load the app without showing a login form.
+     * Makes sure an E-Hall session exists, so the bootstrap page loads without
+     * showing a login form.
      */
     fun ensureSession() {
         val probe = Request.Builder()
@@ -68,8 +71,15 @@ class CleApi(private val http: OkHttpClient) {
         CasLogin.login(APP_INDEX, Credentials.sid, Credentials.password, xhr = false)
     }
 
-    fun reservations(): List<CleReservation> =
-        rows(MODEL_RESERVATION).map { row ->
+    /** A model query path for the page to fetch. */
+    fun modelPath(model: String, vararg extra: Pair<String, String>): String {
+        val query = listOf("pageSize" to "100", "pageNumber" to "1") + extra
+        return "/dxggyw/sys/yyzxyy/modules/fwyy/$model.do?" +
+            query.joinToString("&") { "${it.first}=${it.second}" }
+    }
+
+    fun reservations(body: String): List<CleReservation> =
+        parseRows(body, MODEL_RESERVATION).map { row ->
             CleReservation(
                 id = text(row, "WID", "ID", "YYID"),
                 teacher = text(row, "JSRXM", "JSXM", "TeacherName"),
@@ -82,57 +92,40 @@ class CleApi(private val http: OkHttpClient) {
             )
         }
 
-    /** How many reservations the semester allows (0 when the config is unreadable). */
-    fun allowedPerSemester(): Int =
-        configs().firstOrNull()?.let { optionalInt(it, "ZDYYCS") } ?: 0
-
-    private fun configs(): List<JSONObject> = rows(MODEL_CONFIG, "SFZZSY" to "1")
-
-    private fun rows(model: String, vararg params: Pair<String, String>): List<JSONObject> {
-        if (!bootstrapped) {
-            throw ApiException("cle: the E-Hall session was not bootstrapped", signInRequired = true)
+    /**
+     * How many reservations the semester allows (0 when the config is unreadable).
+     *
+     * 🔴 The field arrives as a JSON **number** (`3.0`), so read it numerically —
+     * `optString(...).toIntOrNull()` yields null and the allowance silently reads 0.
+     */
+    fun allowedPerSemester(body: String): Int {
+        parseRows(body, MODEL_CONFIG).forEach { row ->
+            val value = row.optDouble("ZDYYCS", 0.0).toInt()
+            if (value > 0) return value
         }
-        val url = buildString {
-            append(BASE).append("/dxggyw/sys/yyzxyy/modules/fwyy/").append(model).append(".do")
-            if (params.isNotEmpty()) {
-                append('?').append(params.joinToString("&") { "${it.first}=${it.second}" })
-            }
-        }
-        val request = Request.Builder()
-            .url(url)
-            .header("User-Agent", CasLogin.UA)
-            .header("X-Requested-With", "XMLHttpRequest")
-            .header("Referer", APP_INDEX)
-            .build()
-        val text = try {
-            http.newCall(request).execute().use { response ->
-                if (response.code == 403) {
-                    // The adapter has not run (or the session lapsed): say so
-                    // rather than reporting an empty list.
-                    throw ApiException("cle: the E-Hall session was refused", signInRequired = true)
-                }
-                if (!response.isSuccessful) {
-                    throw ApiException("cle: HTTP ${response.code}", httpStatus = response.code)
-                }
-                // Read once — a response body is a single-use stream.
-                response.body?.string().orEmpty()
-            }
-        } catch (e: IOException) {
-            throw ApiException(e.message ?: "network error")
-        }
-        return parseRows(model, text)
+        return 0
     }
 
-    private fun parseRows(model: String, body: String): List<JSONObject> {
+    /**
+     * `{datas: {<model>: {rows: [...]}}}` — the EMAP envelope. A body that is not
+     * JSON (an HTML error page) means the adapter's session was not accepted.
+     */
+    private fun parseRows(body: String, model: String): List<JSONObject> {
+        if (body.startsWith(ERROR_PREFIX)) {
+            throw ApiException("cle: ${body.removePrefix(ERROR_PREFIX).take(80)}")
+        }
         val json = try {
             JSONObject(body)
         } catch (e: Exception) {
-            throw ApiException("cle: unexpected response", signInRequired = true)
+            throw ApiException("cle: the E-Hall session was not accepted", signInRequired = true)
         }
-        val datas = json.optJSONObject("datas") ?: return emptyList()
-        val model1 = datas.optJSONObject(model) ?: return emptyList()
-        val rows = model1.optJSONArray("rows") ?: JSONArray()
-        return (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+        val datas = json.optJSONObject("datas")
+        val block = datas
+            ?.let { it.optJSONObject(model) ?: it.optJSONObject("pageAction") }
+            ?.optJSONArray("rows")
+            ?: JSONArray()
+        if (block.length() == 0) return emptyList()
+        return (0 until block.length()).mapNotNull { block.optJSONObject(it) }
     }
 
     private fun text(row: JSONObject, vararg keys: String): String {
@@ -143,9 +136,6 @@ class CleApi(private val http: OkHttpClient) {
         return ""
     }
 
-    private fun optionalInt(row: JSONObject, key: String): Int? =
-        row.optString(key).toIntOrNull()
-
     companion object {
         const val BASE = "https://ehall.sustech.edu.cn"
         const val APP_INDEX = "$BASE/dxggyw/sys/yyzxyy/*default/index.do"
@@ -153,8 +143,31 @@ class CleApi(private val http: OkHttpClient) {
         const val MODEL_CONFIG = "T_NKD_YYZX_FWPZ_QUERY"
         const val MODEL_RESERVATION = "T_NKD_YYZX_XSYY_QUERY"
 
-        /** Models the Android side does not read yet, listed for the next pass. */
+        /** Models a later pass can read: the service/teacher list and time buckets. */
         const val MODEL_RESOURCE = "T_NKD_YYZX_FWZY_QUERY"
         const val MODEL_BUCKET = "T_NKD_YYZX_SKSJB_QUERY"
+
+        /** The JS interface the page reports to; must match the screen's bridge. */
+        const val BRIDGE = "CleBridge"
+
+        const val ERROR_PREFIX = "__CLE_ERR__"
+
+        /**
+         * Runs inside the bootstrapped page: same cookies, same origin, same
+         * session the adapter established. `__PATH__` is replaced with a
+         * [modelPath] and `__ID__` with the asking request's id, so an answer can
+         * never be handed to the wrong waiter.
+         */
+        val JS_FETCH = """
+            (function () {
+              fetch("__PATH__", {
+                credentials: "same-origin",
+                headers: {"x-requested-with": "XMLHttpRequest", "accept": "application/json, */*"}
+              })
+                .then(function (r) { return r.text(); })
+                .then(function (t) { $BRIDGE.onResult("__ID__", t); })
+                .catch(function (e) { $BRIDGE.onResult("__ID__", "$ERROR_PREFIX" + e); });
+            })();
+        """.trimIndent()
     }
 }

@@ -22,7 +22,14 @@ object WebCookies {
 
     private const val CAS_HOST = "cas.sustech.edu.cn"
 
-    /** Copies the jar's cookies for [url]'s host into [web], then reports done. */
+    /**
+     * Copies the jar's cookies for [url]'s host into [web], then reports done.
+     *
+     * Sets them without waiting on `setCookie`'s callback: on some builds that
+     * callback never fires when the WebView is off-screen, and a bootstrap that
+     * waits for it silently never starts. The manager applies cookies
+     * synchronously, so ordering is still guaranteed.
+     */
     fun install(web: WebView, url: String, onInstalled: () -> Unit = {}) {
         val manager = CookieManager.getInstance()
         manager.setAcceptCookie(true)
@@ -31,31 +38,12 @@ object WebCookies {
         val cookies = (App.cookies.cookiesForHost(host) + App.cookies.cookiesForHost(CAS_HOST))
             .distinctBy { "${it.name}|${it.domain}|${it.path}" }
             .filter { it.expiresAt > System.currentTimeMillis() }
-        if (cookies.isEmpty()) {
-            onInstalled()
-            return
-        }
-        var remaining = cookies.size
         cookies.forEach { cookie ->
             val origin = "https://${cookie.domain.trimStart('.')}/"
-            manager.setCookie(origin, header(cookie)) {
-                remaining -= 1
-                if (remaining == 0) {
-                    manager.flush()
-                    onInstalled()
-                }
-            }
+            manager.setCookie(origin, header(cookie))
         }
-    }
-
-    /**
-     * Copies the WebView's cookies for [host] into the jar and returns the header
-     * that was imported (empty when the page set none).
-     */
-    fun capture(host: String, path: String = "/"): String {
-        val header = CookieManager.getInstance().getCookie("https://$host/").orEmpty()
-        if (header.isNotBlank()) App.cookies.replaceFromHeader(header, host, path)
-        return header
+        manager.flush()
+        onInstalled()
     }
 
     private fun header(cookie: Cookie): String = buildString {

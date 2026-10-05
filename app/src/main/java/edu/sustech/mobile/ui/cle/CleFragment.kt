@@ -2,6 +2,7 @@ package edu.sustech.mobile.ui.cle
 
 import android.view.View
 import android.view.ViewGroup
+import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.TextView
@@ -13,19 +14,27 @@ import edu.sustech.mobile.core.WebCookies
 import edu.sustech.mobile.core.friendly
 import edu.sustech.mobile.core.runIo
 import edu.sustech.mobile.ui.ListFragment
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 
 /**
  * Language-centre tutoring (CLE): what this account has booked, and how much of
  * the per-semester allowance is left.
  *
  * 🔴 This is the one E-Hall app whose data endpoints refuse a CAS ticket alone
- * (403). Its JavaScript adapter has to run first, so the screen drives a
- * one-pixel WebView through the app index, then hands that page's cookies to the
- * app's HTTP jar — after which the JSON queries answer. The WebView is invisible
- * and exists only for that.
+ * (403), and whose session does not survive being copied into this app's HTTP
+ * client — the same query replayed from the jar is refused even with the page's
+ * cookies in it. So the queries run **inside the bootstrapped page** over a
+ * JavaScript bridge, which is what the reference implementation does by driving
+ * a browser.
  *
- * Nothing is booked from here: a reservation posts the model's entire control set
- * and consumes one of three per-semester slots, so it stays on the official page.
+ * The WebView is 1×1 and invisible: it is a session, not a screen. Nothing is
+ * booked from here — a reservation posts the model's entire control set and
+ * consumes one of three per-semester slots, so it stays on the official page.
  */
 class CleFragment : ListFragment<CleReservation>(R.layout.fragment_cle) {
 
@@ -33,11 +42,33 @@ class CleFragment : ListFragment<CleReservation>(R.layout.fragment_cle) {
     private var note: TextView? = null
     private var allowed = 0
 
+    /** One query at a time: answers come back through a single bridge. */
+    private val queries = Mutex()
+
+    /** The request waiting for an answer, and its tag. */
+    @Volatile
+    private var pending: CompletableDeferred<String>? = null
+
+    @Volatile
+    private var pendingId = 0
+
+    /** The page announces itself more than once (it re-routes); bootstrap once. */
+    @Volatile
+    private var settled = false
+
+    private val bridge = object {
+        @JavascriptInterface
+        fun onResult(id: String, payload: String) {
+            val waiting = pending ?: return
+            // A late answer from an earlier request must not satisfy this one.
+            if (id != pendingId.toString()) return
+            if (waiting.isActive) waiting.complete(payload)
+        }
+    }
+
     override fun rowLayout() = R.layout.item_cle_reservation
 
     override fun cachePrefix() = "cle.mine."
-
-    override fun emptyText() = getString(R.string.cle_no_reservations)
 
     override fun onReady(view: View) {
         note = view.findViewById(R.id.cle_note)
@@ -46,21 +77,32 @@ class CleFragment : ListFragment<CleReservation>(R.layout.fragment_cle) {
     }
 
     override suspend fun fetch(): List<CleReservation> {
-        val reservations = App.cle.reservations()
-        allowed = App.cle.allowedPerSemester()
+        // The screen's first load runs before the WebView has made the session
+        // usable; the bootstrap calls load(force = true) when it is done.
+        if (!App.cle.bootstrapped) return emptyList()
+        val reservations = App.cle.reservations(query(App.cle.modelPath(CleApi.MODEL_RESERVATION)))
+        allowed = App.cle.allowedPerSemester(
+            query(App.cle.modelPath(CleApi.MODEL_CONFIG, "SFZZSY" to "1")),
+        )
         return reservations
     }
 
+    override fun emptyText(): String = if (App.cle.bootstrapped) {
+        getString(R.string.cle_no_reservations)
+    } else {
+        getString(R.string.cle_bootstrapping)
+    }
+
     override fun onLoaded(rows: List<CleReservation>) {
+        // Loading before the bootstrap is a no-op, not a result — don't overwrite
+        // the "preparing the session" line with a summary of nothing.
+        if (!App.cle.bootstrapped) return
         note?.text = if (allowed > 0) {
             getString(R.string.cle_quota, rows.size, allowed)
         } else {
             getString(R.string.cle_credit)
         }
     }
-
-    override fun errorText(error: Throwable): String =
-        context?.let { error.friendly(it) } ?: error.message.orEmpty()
 
     override fun bindRow(view: View, item: CleReservation, position: Int) {
         view.findViewById<TextView>(R.id.cle_reservation_title).text = listOf(
@@ -75,15 +117,28 @@ class CleFragment : ListFragment<CleReservation>(R.layout.fragment_cle) {
         whereView.text = where
         whereView.visibility = if (where.isBlank()) View.GONE else View.VISIBLE
 
-        val topic = view.findViewById<TextView>(R.id.cle_reservation_status)
+        val statusView = view.findViewById<TextView>(R.id.cle_reservation_status)
         val status = listOf(item.status, item.topic).filter { it.isNotBlank() }.joinToString(" · ")
-        topic.text = status
-        topic.visibility = if (status.isBlank()) View.GONE else View.VISIBLE
+        statusView.text = status
+        statusView.visibility = if (status.isBlank()) View.GONE else View.VISIBLE
+    }
+
+    /** Asks the page for a path and waits for that request's own answer. */
+    private suspend fun query(path: String): String = queries.withLock {
+        val web = bootstrap ?: throw IllegalStateException("cle: no bootstrap WebView")
+        val id = ++pendingId
+        val waiting = CompletableDeferred<String>()
+        pending = waiting
+        val script = CleApi.JS_FETCH
+            .replace("__PATH__", path)
+            .replace("__ID__", id.toString())
+        withContext(Dispatchers.Main) { web.evaluateJavascript(script, null) }
+        return withTimeout(30_000) { waiting.await() }
     }
 
     /**
-     * Runs the E-Hall page's JavaScript so the session becomes usable, then loads
-     * the list. The WebView is 1×1 and invisible — it is plumbing, not UI.
+     * Loads the app index once so the EMAP adapter runs, then loads the list. The
+     * page keeps the session; nothing is exported from it.
      */
     private fun startBootstrap(view: View) {
         val web = WebView(requireContext())
@@ -93,13 +148,19 @@ class CleFragment : ListFragment<CleReservation>(R.layout.fragment_cle) {
         web.settings.allowFileAccess = false
         web.settings.allowContentAccess = false
         web.visibility = View.INVISIBLE
+        web.addJavascriptInterface(bridge, CleApi.BRIDGE)
         (view as? ViewGroup)?.addView(web, ViewGroup.LayoutParams(1, 1))
         web.webViewClient = object : WebViewClient() {
             override fun onPageFinished(loaded: WebView, url: String) {
-                // The adapter has now run: its cookies are what the JSON wants.
-                WebCookies.capture(EHALL_HOST)
-                App.cle.markBootstrapped()
-                load(force = true)
+                if (settled) return
+                // The adapter's own XHRs run just after the page finishes; let
+                // them land before asking for data.
+                loaded.postDelayed({
+                    if (settled || !isAdded) return@postDelayed
+                    settled = true
+                    App.cle.markBootstrapped()
+                    load(force = true)
+                }, BOOTSTRAP_SETTLE_MS)
             }
         }
         viewLifecycleOwner.runIo(
@@ -118,6 +179,7 @@ class CleFragment : ListFragment<CleReservation>(R.layout.fragment_cle) {
 
     override fun onDestroyView() {
         bootstrap?.let { web ->
+            web.removeJavascriptInterface(CleApi.BRIDGE)
             (web.parent as? ViewGroup)?.removeView(web)
             web.destroy()
         }
@@ -127,6 +189,7 @@ class CleFragment : ListFragment<CleReservation>(R.layout.fragment_cle) {
     }
 
     private companion object {
-        const val EHALL_HOST = "ehall.sustech.edu.cn"
+        /** Time for the E-Hall page's own XHRs to establish its session. */
+        const val BOOTSTRAP_SETTLE_MS = 2500L
     }
 }

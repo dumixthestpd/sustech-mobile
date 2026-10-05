@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.3.26 — 2026-10-06
+
+The last of the three "open the official page" services is read natively, and it
+was the one that could not be done the way the other two were.
+
+- **Language tutoring.** It now lists what you have booked with the language
+  centre and how much of the semester's allowance is used (1/3 on the account this
+  was built against). Opening it used to show the E-Hall page and ask you to sign
+  in again. Booking stays on the official page on purpose: a reservation posts the
+  form's entire control set and consumes one of the three slots.
+- 🔴 E-Hall's app APIs refuse a plain HTTP request **even with valid CAS cookies**,
+  and its session does not survive being copied into the app's own HTTP client —
+  the same query replayed from the jar is refused. So the query is issued **by the
+  page itself**, over a WebView that is a session rather than a screen, and the
+  answer comes back through a JavaScript bridge.
+- Two bugs came out of testing that path rather than from reading the code: two
+  page loads shared a single answer slot, so answers were handed to the wrong
+  question (it looked like the endpoints were refusing us); and the allowance
+  arrives as a JSON number, which read as `0` through a string parse.
+- Cookie marshalling now lives in one place (`core/WebCookies.kt`), shared with the
+  in-app page hand-off instead of duplicated in the portal activity.
+
 ## 0.3.25 — 2026-10-05
 
 Two of the three "open the official page" services are now read natively. Neither
