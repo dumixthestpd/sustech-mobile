@@ -116,6 +116,11 @@
     <string name="library_renew_done">续借成功。</string>
     <string name="library_renew_failed">续借被拒：%1$s</string>
     <string name="library_signin_needed">登录校园账号后即可查看借阅。</string>
+    <string name="update_check">检查更新</string>
+    <string name="update_available">有新版本：%1$s</string>
+    <string name="update_size">%.1f MB</string>
+    <string name="update_get">获取（打开浏览器）</string>
+    <string name="update_check_failed">检查更新失败：%1$s</string>
     <string name="transit_source_credit">实时到站 · buseta.sustcra.com (sustech.online)</string>
     <plurals name="transit_eta_minutes">
         <item quantity="other">%1$d 分钟</item>

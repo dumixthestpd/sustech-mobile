@@ -115,6 +115,11 @@
     <string name="library_renew_done">Продлено.</string>
     <string name="library_renew_failed">Отказано: %1$s</string>
     <string name="library_signin_needed">Войдите в школьный аккаунт, чтобы видеть свои книги.</string>
+    <string name="update_check">Проверить обновления</string>
+    <string name="update_available">Есть обновление: %1$s</string>
+    <string name="update_size">%.1f МБ</string>
+    <string name="update_get">Открыть (в браузере)</string>
+    <string name="update_check_failed">Не удалось проверить обновления: %1$s</string>
     <string name="transit_source_credit">Прибытие онлайн · buseta.sustcra.com (sustech.online)</string>
     <plurals name="transit_eta_minutes">
         <item quantity="one">через %1$d мин</item>

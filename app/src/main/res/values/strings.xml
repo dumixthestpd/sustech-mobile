@@ -132,6 +132,11 @@
     <string name="library_renew_done">Renewed.</string>
     <string name="library_renew_failed">Renewal refused: %1$s</string>
     <string name="library_signin_needed">Sign in with your school account to see your loans.</string>
+    <string name="update_check">Check for updates</string>
+    <string name="update_available">Update available: %1$s</string>
+    <string name="update_size">%.1f MB</string>
+    <string name="update_get">Get it (opens the browser)</string>
+    <string name="update_check_failed">Could not check for updates: %1$s</string>
     <string name="transit_source_credit">Live ETAs · buseta.sustcra.com (sustech.online)</string>
     <plurals name="transit_eta_minutes">
         <item quantity="one">%1$d min</item>

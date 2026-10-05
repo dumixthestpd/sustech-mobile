@@ -1,6 +1,7 @@
 package edu.sustech.mobile.ui
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.webkit.CookieManager
@@ -83,6 +84,12 @@ class AccountFragment : Fragment(R.layout.fragment_account), Refreshable {
                 .show()
         }
 
+        view.findViewById<MaterialButton>(R.id.btn_update).setOnClickListener {
+            startActivity(
+                Intent(Intent.ACTION_VIEW, Uri.parse(edu.sustech.mobile.core.UpdateChecker.RELEASES_PAGE)),
+            )
+        }
+
         load()
     }
 
@@ -146,6 +153,36 @@ class AccountFragment : Fragment(R.layout.fragment_account), Refreshable {
             block = { networkClass() },
             onOk = { network?.text = it },
             onErr = { network?.setText(R.string.network_none) },
+        )
+        checkForUpdate()
+    }
+
+    /**
+     * Update check against GitHub Releases. The card stays hidden when the
+     * build is current — "you are up to date" is not worth a permanent card —
+     * and a failed check is silent: updates must never nag louder than the
+     * network deserves.
+     */
+    private fun checkForUpdate() {
+        val card = view?.findViewById<View>(R.id.card_update) ?: return
+        val title = view?.findViewById<TextView>(R.id.account_update_title)
+        val detail = view?.findViewById<TextView>(R.id.account_update_detail)
+        runIo(
+            block = { edu.sustech.mobile.core.UpdateChecker.check(App.http) },
+            onOk = { update ->
+                if (!isAdded) return@runIo
+                if (update == null) {
+                    card.visibility = View.GONE
+                    return@runIo
+                }
+                val size = update.apkSize?.let {
+                    " · " + getString(R.string.update_size, it / 1024.0 / 1024.0)
+                }.orEmpty()
+                title?.text = getString(R.string.update_available, update.tag)
+                detail?.text = update.name + size
+                card.visibility = View.VISIBLE
+            },
+            onErr = { card.visibility = View.GONE },
         )
     }
 
