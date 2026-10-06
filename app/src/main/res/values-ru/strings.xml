@@ -206,6 +206,7 @@
     <string name="service_cle">Языковая помощь</string>
     <string name="service_cle_summary">Запись на индивидуальные занятия по языку</string>
     <string name="cle_no_reservations">У вас нет записей на консультацию.</string>
+    <string name="cle_signin_stale">Языковой центр отклонил сессию. Откройте раздел из списка сервисов и войдите снова.</string>
     <string name="cle_quota">Использовано %1$d из %2$d за семестр</string>
     <string name="cle_bootstrapping">Подготовка сессии языкового центра…</string>
     <string name="cle_credit">Запись выполняется на официальной странице.</string>

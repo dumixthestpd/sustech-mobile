@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.3.27 — 2026-10-06
+
+Fixes language tutoring, which shipped in 0.3.26 working only while an E-Hall
+session was live — and failing confusingly the moment it expired.
+
+- 🔴 The session was being handed to the page **by host**, and matching cookies by
+  host **drops any cookie scoped to a path**. E-Hall's session cookie is exactly
+  that, so the page loaded signed out, its own queries bounced to CAS, and the
+  screen showed a network error (or spun on "preparing") instead of the list.
+  Cookies are now matched against the full URL, path included.
+- The page's cookie store is cleared before the bootstrap: a stale entry there made
+  the app page and CAS bounce off each other until the load died with
+  `ERR_TOO_MANY_REDIRECTS`.
+- When CAS does ask for a sign-in, the screen answers it **on the page** — filling
+  CAS's own form with the stored account — instead of assuming a silent hand-off.
+  If that does not take, it says so plainly rather than spinning.
+- A booking's status now reads the display field, so a cancelled reservation shows
+  `取消预约` instead of a raw code, and the reservation's own topic reads with it.
+
 ## 0.3.26 — 2026-10-06
 
 The last of the three "open the official page" services is read natively, and it

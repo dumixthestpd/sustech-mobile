@@ -114,6 +114,14 @@ class CookieStore(context: Context) : CookieJar {
         save()
     }
 
+    /** Drops the stored cookies for [host] and its subdomains. */
+    @Synchronized
+    fun clearHost(host: String) {
+        val before = cookies.size
+        cookies.entries.removeAll { it.value.domain.endsWith(host) }
+        if (cookies.size != before) save()
+    }
+
     /** The `Cookie:` header value for [host], or an empty string. */
     @Synchronized
     fun headerFor(host: String): String =
@@ -124,6 +132,16 @@ class CookieStore(context: Context) : CookieJar {
     @Synchronized
     fun cookiesForHost(host: String): List<Cookie> {
         val url = HttpUrl.Builder().scheme("https").host(host).build()
+        return cookiesForUrl(url)
+    }
+
+    /**
+     * The cookies that apply to [url] — matched against the **full URL**, not just
+     * its host. A session cookie scoped to a path (`/dxggyw/…`) does not match the
+     * host root and would silently go missing.
+     */
+    @Synchronized
+    fun cookiesForUrl(url: HttpUrl): List<Cookie> {
         val expired = cookies.values.filter { it.expiresAt < System.currentTimeMillis() }
         if (expired.isNotEmpty()) {
             expired.forEach { cookies.remove(key(it)) }

@@ -97,7 +97,7 @@ object App {
     }
 
     /** E-Hall language tutoring; needs the WebView bootstrap before its reads answer. */
-    val cle: edu.sustech.mobile.cle.CleApi by lazy { edu.sustech.mobile.cle.CleApi(http) }
+    val cle: edu.sustech.mobile.cle.CleApi by lazy { edu.sustech.mobile.cle.CleApi() }
 
     /** Application context, for callers that need assets or resources. */
     val context: android.content.Context get() = appContext

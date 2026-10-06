@@ -2,7 +2,10 @@ package edu.sustech.mobile.ui.cle
 
 import android.view.View
 import android.view.ViewGroup
+import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.TextView
@@ -10,6 +13,7 @@ import edu.sustech.mobile.R
 import edu.sustech.mobile.cle.CleApi
 import edu.sustech.mobile.cle.CleReservation
 import edu.sustech.mobile.core.App
+import edu.sustech.mobile.core.Credentials
 import edu.sustech.mobile.core.WebCookies
 import edu.sustech.mobile.core.friendly
 import edu.sustech.mobile.core.runIo
@@ -20,17 +24,18 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import org.json.JSONObject
 
 /**
  * Language-centre tutoring (CLE): what this account has booked, and how much of
  * the per-semester allowance is left.
  *
- * 🔴 This is the one E-Hall app whose data endpoints refuse a CAS ticket alone
- * (403), and whose session does not survive being copied into this app's HTTP
- * client — the same query replayed from the jar is refused even with the page's
- * cookies in it. So the queries run **inside the bootstrapped page** over a
- * JavaScript bridge, which is what the reference implementation does by driving
- * a browser.
+ * 🔴 E-Hall's app APIs are the one E-Hall surface a CAS ticket alone cannot read,
+ * and their session does not survive being copied into this app's HTTP client (the
+ * same query replayed from the jar is refused even with the page's cookies in it).
+ * So this screen drives a WebView the way a browser would: it signs in on the page
+ * when CAS asks, then issues the queries from inside the page and reads answers
+ * back over a JavaScript bridge.
  *
  * The WebView is 1×1 and invisible: it is a session, not a screen. Nothing is
  * booked from here — a reservation posts the model's entire control set and
@@ -64,7 +69,19 @@ class CleFragment : ListFragment<CleReservation>(R.layout.fragment_cle) {
             if (id != pendingId.toString()) return
             if (waiting.isActive) waiting.complete(payload)
         }
+
+        /** The page reports what its sign-in did; keeps the reason visible. */
+        @JavascriptInterface
+        fun onSignIn(outcome: String) {
+            if (outcome != "clicked" && outcome != "submitted") {
+                android.util.Log.i("CleSignIn", "page could not sign in: $outcome")
+            }
+        }
     }
+
+    /** Attempts, so a rejected sign-in cannot spin on CAS forever. */
+    @Volatile
+    private var signInAttempts = 0
 
     override fun rowLayout() = R.layout.item_cle_reservation
 
@@ -137,8 +154,9 @@ class CleFragment : ListFragment<CleReservation>(R.layout.fragment_cle) {
     }
 
     /**
-     * Loads the app index once so the EMAP adapter runs, then loads the list. The
-     * page keeps the session; nothing is exported from it.
+     * Opens the app page and keeps it: if CAS asks who we are, the page's own form
+     * gets filled with the stored account and submitted, and the page then lands on
+     * E-Hall signed in. Nothing is exported from the WebView.
      */
     private fun startBootstrap(view: View) {
         val web = WebView(requireContext())
@@ -152,7 +170,22 @@ class CleFragment : ListFragment<CleReservation>(R.layout.fragment_cle) {
         (view as? ViewGroup)?.addView(web, ViewGroup.LayoutParams(1, 1))
         web.webViewClient = object : WebViewClient() {
             override fun onPageFinished(loaded: WebView, url: String) {
-                if (settled) return
+                // CAS is asking: answer on the page itself and let it continue.
+                if (url.contains(CleApi.CAS_HOST)) {
+                    // A CAS page that keeps coming back means the form was not
+                    // accepted; two tries is a retry, more is a loop.
+                    if (signInAttempts >= 2) {
+                        if (!settled && isAdded) {
+                            note?.text = getString(R.string.cle_signin_stale)
+                            showEmpty(true, getString(R.string.cle_signin_stale))
+                        }
+                        return
+                    }
+                    signInAttempts += 1
+                    if (Credentials.configured) signInOnPage(loaded)
+                    return
+                }
+                if (settled || !url.contains(CleApi.EHALL_HOST)) return
                 // The adapter's own XHRs run just after the page finishes; let
                 // them land before asking for data.
                 loaded.postDelayed({
@@ -162,19 +195,57 @@ class CleFragment : ListFragment<CleReservation>(R.layout.fragment_cle) {
                     load(force = true)
                 }, BOOTSTRAP_SETTLE_MS)
             }
+
+            override fun onReceivedError(
+                view: WebView,
+                request: WebResourceRequest,
+                error: WebResourceError,
+            ) {
+                if (request.isForMainFrame && !settled) {
+                    android.util.Log.i(
+                        "CleSignIn",
+                        "page load failed: ${error.errorCode} ${error.description}",
+                    )
+                }
+            }
         }
+        // Nothing reached E-Hall by now: the sign-in did not take.
+        web.postDelayed({
+            if (!settled && isAdded) {
+                note?.text = getString(R.string.cle_signin_stale)
+                showEmpty(true, getString(R.string.cle_signin_stale))
+            }
+        }, BOOTSTRAP_TIMEOUT_MS)
+
         viewLifecycleOwner.runIo(
-            block = { App.cle.ensureSession() },
+            block = {
+                // The WebView keeps its own cookie store, separate from the app's
+                // jar. A stale entry there is what makes the app page and CAS
+                // bounce off each other until the load dies with
+                // ERR_TOO_MANY_REDIRECTS; a missing one is why the page arrives
+                // signed out. So: start clean, then hand the page the app's own
+                // session (CAS included — that is what lets the page SSO straight
+                // through instead of showing a form).
+                withContext(Dispatchers.Main) {
+                    val manager = CookieManager.getInstance()
+                    manager.removeAllCookies(null)
+                    manager.flush()
+                    WebCookies.install(web, CleApi.APP_INDEX)
+                }
+            },
             onOk = {
                 if (!isAdded) return@runIo
-                WebCookies.install(web, CleApi.APP_INDEX) { web.loadUrl(CleApi.APP_INDEX) }
-            },
-            onErr = { error ->
-                if (!isAdded) return@runIo
-                note?.text = error.friendly(requireContext())
-                showEmpty(true, error.friendly(requireContext()))
+                web.loadUrl(CleApi.APP_INDEX)
             },
         )
+    }
+
+    /** Fills CAS's own form with the stored account and submits it. */
+    private fun signInOnPage(web: WebView) {
+        val script = CleApi.JS_SIGN_IN
+            .replace("__SID__", JSONObject.quote(Credentials.sid))
+            .replace("__PASSWORD__", JSONObject.quote(Credentials.password))
+        web.evaluateJavascript(script, null)
     }
 
     override fun onDestroyView() {
@@ -191,5 +262,8 @@ class CleFragment : ListFragment<CleReservation>(R.layout.fragment_cle) {
     private companion object {
         /** Time for the E-Hall page's own XHRs to establish its session. */
         const val BOOTSTRAP_SETTLE_MS = 2500L
+
+        /** Nothing reached E-Hall by now: the sign-in did not take. */
+        const val BOOTSTRAP_TIMEOUT_MS = 40_000L
     }
 }

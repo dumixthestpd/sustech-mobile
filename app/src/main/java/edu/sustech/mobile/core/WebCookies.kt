@@ -1,29 +1,30 @@
 package edu.sustech.mobile.core
 
-import android.net.Uri
 import android.webkit.CookieManager
 import android.webkit.WebView
 import okhttp3.Cookie
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 /**
  * Cookie marshalling between the app's HTTP jar and an in-app WebView.
  *
  * Some services only answer once a page's own JavaScript has run, so the app has
- * to drive a WebView — which keeps its own cookie store. These two directions are
- * the only bridge:
+ * to drive a WebView — which keeps its own cookie store. [install] is the bridge
+ * from the jar into the page, so the page opens already signed in.
  *
- *  - [install]: jar → WebView, so the page opens already signed in.
- *  - [capture]: WebView → jar, so plain HTTP endpoints inherit what the page set.
- *
- * Both live here rather than in each screen: the marshalling is fiddly (domains,
- * expiry, host-only cookies) and two copies would drift.
+ * It lives here rather than in each screen: the marshalling is fiddly (domains,
+ * paths, expiry, host-only cookies) and two copies would drift.
  */
 object WebCookies {
 
     private const val CAS_HOST = "cas.sustech.edu.cn"
 
     /**
-     * Copies the jar's cookies for [url]'s host into [web], then reports done.
+     * Copies the jar's cookies that apply to [url] into [web], then reports done.
+     *
+     * 🔴 Match against the **full URL**, not just its host: a session cookie scoped
+     * to a path (`/dxggyw/…`) does not match the host root, so matching by host
+     * quietly drops exactly the cookie that matters and the page loads signed out.
      *
      * Sets them without waiting on `setCookie`'s callback: on some builds that
      * callback never fires when the WebView is off-screen, and a bootstrap that
@@ -34,12 +35,17 @@ object WebCookies {
         val manager = CookieManager.getInstance()
         manager.setAcceptCookie(true)
         manager.setAcceptThirdPartyCookies(web, false)
-        val host = Uri.parse(url).host.orEmpty()
-        val cookies = (App.cookies.cookiesForHost(host) + App.cookies.cookiesForHost(CAS_HOST))
+        val target = url.toHttpUrlOrNull()
+        val cookies = buildList {
+            if (target != null) addAll(App.cookies.cookiesForUrl(target))
+            addAll(App.cookies.cookiesForHost(CAS_HOST))
+        }
             .distinctBy { "${it.name}|${it.domain}|${it.path}" }
             .filter { it.expiresAt > System.currentTimeMillis() }
         cookies.forEach { cookie ->
-            val origin = "https://${cookie.domain.trimStart('.')}/"
+            // The origin has to carry the cookie's own path, or a path-scoped
+            // cookie is stored under the wrong scope (or refused).
+            val origin = "https://${cookie.domain.trimStart('.')}${cookie.path}"
             manager.setCookie(origin, header(cookie))
         }
         manager.flush()

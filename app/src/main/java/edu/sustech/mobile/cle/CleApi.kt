@@ -1,13 +1,8 @@
 package edu.sustech.mobile.cle
 
 import edu.sustech.mobile.core.ApiException
-import edu.sustech.mobile.core.Credentials
-import edu.sustech.mobile.sso.CasLogin
-import okhttp3.OkHttpClient
-import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.IOException
 
 /** One tutoring reservation this account holds. */
 data class CleReservation(
@@ -24,51 +19,39 @@ data class CleReservation(
 /**
  * Language-centre tutoring (`ehall.sustech.edu.cn/dxggyw/sys/yyzxyy`, "CLE").
  *
- * 🔴 This is the one E-Hall app a CAS ticket alone cannot read: its data endpoints
- * answer **403** until the portal's own JavaScript adapter (EMAP) has run, and the
- * session it establishes does not survive being copied into another HTTP client —
- * the same request replayed from this app's OkHttp jar is still refused.
+ * 🔴 This is the one E-Hall app a CAS ticket alone cannot read. Measured
+ * 2026-10-06, signed out:
+ *   - `index.do` answers **200 with a shell**, so it cannot tell "signed in" from
+ *     "signed out"; in the WebView it then loops (`net::ERR_TOO_MANY_REDIRECTS`).
+ *   - `/jsonp/userInfo.json` also answers 200.
+ *   - The model endpoint answers **302**, and with redirects followed that becomes
+ *     OkHttp's `"Too many follow-up requests: 21"` — a network error that hides a
+ *     sign-in problem.
+ *   - Copying the session into this app's own HTTP client does not work either:
+ *     the same query replayed from the jar is still refused even with the page's
+ *     cookies in it.
  *
- * So the queries are **issued by the page itself**, which is also what the
- * reference implementation does (it drives a browser and reads through the
- * browser context's request API). [JS_FETCH] is the snippet the screen evaluates;
- * this class only builds the path and parses the answer.
+ * So the screen drives a WebView that behaves like a browser — it signs in on the
+ * page when CAS asks, and issues the queries from inside the page — and this class
+ * only builds the paths and reads the answers.
+ *
+ * The sign-in the page has to go through is E-Hall's `amp-auth-adapter`
+ * (`/amp-auth-adapter/login?service=…`): it is what mints the session, handing CAS
+ * a `loginSuccess?sessionToken=…` callback of its own making, which is why a plain
+ * CAS sign-in for the app URL loops instead of working.
  *
  * Reads only: booking posts the reservation model's entire control set and
  * consumes one of three per-semester slots, so it stays on the official page.
  */
-class CleApi(private val http: OkHttpClient) {
+class CleApi {
 
     @Volatile
     var bootstrapped: Boolean = false
         private set
 
-    /** Marks the session usable once the screen's WebView has run the adapter. */
+    /** Marks the session usable once the screen's WebView is on the app page. */
     fun markBootstrapped() {
         bootstrapped = true
-    }
-
-    /**
-     * Makes sure an E-Hall session exists, so the bootstrap page loads without
-     * showing a login form.
-     */
-    fun ensureSession() {
-        val probe = Request.Builder()
-            .url(APP_INDEX)
-            .header("User-Agent", CasLogin.UA)
-            .build()
-        val needsLogin = try {
-            http.newCall(probe).execute().use { response ->
-                response.code == 401 || response.code == 403 || response.isRedirect
-            }
-        } catch (e: IOException) {
-            throw ApiException(e.message ?: "network error")
-        }
-        if (!needsLogin) return
-        if (!Credentials.configured) {
-            throw ApiException("cle: no stored account", signInRequired = true)
-        }
-        CasLogin.login(APP_INDEX, Credentials.sid, Credentials.password, xhr = false)
     }
 
     /** A model query path for the page to fetch. */
@@ -82,13 +65,13 @@ class CleApi(private val http: OkHttpClient) {
         parseRows(body, MODEL_RESERVATION).map { row ->
             CleReservation(
                 id = text(row, "WID", "ID", "YYID"),
-                teacher = text(row, "JSRXM", "JSXM", "TeacherName"),
+                teacher = text(row, "JSXM", "JSRXM", "TeacherName"),
                 serviceType = text(row, "FWZYMXMC", "FWZYMC", "ServiceName"),
                 room = text(row, "JYDD", "ROOM", "RoomName"),
                 date = text(row, "YYRQ", "ReserveDate"),
                 time = text(row, "YYSJ", "SKSJ", "TimeRange"),
                 topic = text(row, "YYSM", "Topic"),
-                status = text(row, "YYZTMC", "ZTMC", "Status"),
+                status = text(row, "YYZT_DISPLAY", "YYZTMC", "ZTMC", "Status"),
             )
         }
 
@@ -108,11 +91,11 @@ class CleApi(private val http: OkHttpClient) {
 
     /**
      * `{datas: {<model>: {rows: [...]}}}` — the EMAP envelope. A body that is not
-     * JSON (an HTML error page) means the adapter's session was not accepted.
+     * JSON (an HTML error page) means the page's session was not accepted.
      */
     private fun parseRows(body: String, model: String): List<JSONObject> {
         if (body.startsWith(ERROR_PREFIX)) {
-            throw ApiException("cle: ${body.removePrefix(ERROR_PREFIX).take(80)}")
+            throw ApiException("cle: ${body.removePrefix(ERROR_PREFIX).take(90)}")
         }
         val json = try {
             JSONObject(body)
@@ -140,6 +123,9 @@ class CleApi(private val http: OkHttpClient) {
         const val BASE = "https://ehall.sustech.edu.cn"
         const val APP_INDEX = "$BASE/dxggyw/sys/yyzxyy/*default/index.do"
 
+        const val EHALL_HOST = "ehall.sustech.edu.cn"
+        const val CAS_HOST = "cas.sustech.edu.cn"
+
         const val MODEL_CONFIG = "T_NKD_YYZX_FWPZ_QUERY"
         const val MODEL_RESERVATION = "T_NKD_YYZX_XSYY_QUERY"
 
@@ -153,21 +139,55 @@ class CleApi(private val http: OkHttpClient) {
         const val ERROR_PREFIX = "__CLE_ERR__"
 
         /**
-         * Runs inside the bootstrapped page: same cookies, same origin, same
-         * session the adapter established. `__PATH__` is replaced with a
+         * Runs inside the page: same cookies, same origin, same session, so it
+         * needs no credentials of its own. `__PATH__` is replaced with a
          * [modelPath] and `__ID__` with the asking request's id, so an answer can
          * never be handed to the wrong waiter.
          */
         val JS_FETCH = """
             (function () {
+              var id = "__ID__";
               fetch("__PATH__", {
                 credentials: "same-origin",
                 headers: {"x-requested-with": "XMLHttpRequest", "accept": "application/json, */*"}
               })
-                .then(function (r) { return r.text(); })
-                .then(function (t) { $BRIDGE.onResult("__ID__", t); })
-                .catch(function (e) { $BRIDGE.onResult("__ID__", "$ERROR_PREFIX" + e); });
+                .then(function (r) {
+                  return r.text().then(function (t) { return {s: r.status, u: r.url, b: t}; });
+                })
+                .then(function (o) {
+                  if (o.b.charAt(0) === "{") { $BRIDGE.onResult(id, o.b); }
+                  else { $BRIDGE.onResult(id, "$ERROR_PREFIX" + o.s + " " + o.u); }
+                })
+                .catch(function (e) { $BRIDGE.onResult(id, "$ERROR_PREFIX" + e); });
             })();
         """.trimIndent()
+
+        /**
+         * Types the stored account into CAS's own form and submits it.
+         *
+         * 🔴 Click the submit control rather than calling `form.submit()`: CAS's
+         * theme runs its own submit handling, and a bare `form.submit()` is
+         * re-rendered as the login page again — which shows up as the page
+         * reloading on the same CAS URL in a loop.
+         *
+         * `__SID__` / `__PASSWORD__` are replaced with JSON-quoted values.
+         */
+        val JS_SIGN_IN = """
+            (function () {
+              var user = document.querySelector("input[name=username]");
+              var pass = document.querySelector("input[name=password]");
+              if (!user || !pass) { $BRIDGE.onSignIn("no-form"); return; }
+              user.value = __SID__;
+              pass.value = __PASSWORD__;
+              user.dispatchEvent(new Event("input", {bubbles: true}));
+              pass.dispatchEvent(new Event("input", {bubbles: true}));
+              var button = document.querySelector(
+                "input[name=submit], input[type=submit], button[type=submit], #login"
+              );
+              if (button) { button.click(); $BRIDGE.onSignIn("clicked"); }
+              else { document.querySelector("form").submit(); $BRIDGE.onSignIn("submitted"); }
+            })();
+        """.trimIndent()
+
     }
 }
