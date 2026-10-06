@@ -21,14 +21,27 @@ import java.util.Locale
 /** A room category with its right-now occupancy (讨论间, 会议室, …). */
 data class RoomCategory(val name: String, val idle: Int, val total: Int)
 
-/** One bookable room, with where it is. */
+/** One bookable room, with where it is and what it takes to book it. */
 data class RoomInfo(
     val devId: Int,
     val name: String,
     val lab: String,
+    /** The capacity the service put in the name, e.g. `3-6人`; empty when unnamed. */
+    val people: String,
+    /** True for rooms whose *minimum* capacity is 3+: they need co-applicants. */
+    val needsMembers: Boolean,
     /** The service's minimum session length in minutes (10 for the rooms measured). */
     val minMinutes: Int,
     val free: Boolean,
+)
+
+/** Someone this account can name as a co-applicant. */
+data class RoomMember(
+    val accNo: Int,
+    val sid: String,
+    val name: String,
+    /** The service marks accounts that cannot be booked with (2 = unavailable). */
+    val unavailable: Boolean,
 )
 
 /** A room reservation this account holds. */
@@ -66,11 +79,11 @@ data class RoomReservation(
  * before any auth runs, so that is reported as a location problem rather than a
  * login one.
  *
- * Booking rules the service enforces (from the library's 讨论间使用办法, and shown
- * in the UI rather than guessed at): up to 2 days ahead, at most 2 hours per
- * booking, rooms for 3+ people need co-applicants, and cancelling later than
- * 10 minutes before the start can still count as a no-show. Co-applicants are
- * deliberately not offered here — that stays on the official page.
+ * Booking rules the service enforces (from the library's 讨论间使用办法, shown in the
+ * UI rather than guessed at): up to 2 days ahead, at most 2 hours per booking, and a
+ * room whose minimum capacity is 3+ needs **the booker plus two co-applicants** —
+ * rooms named `（1-3人）` do not, rooms named `（3-6人）` do. Co-applicants are named by
+ * student id and resolved to account numbers through the service's own member lookup.
  */
 class RoomApi(private val http: OkHttpClient) {
 
@@ -152,8 +165,8 @@ class RoomApi(private val http: OkHttpClient) {
     /**
      * Right-now occupancy per category, as the service's own home page shows it.
      *
-     * Note this list carries **no ids** — only a name — so it can summarise but not
-     * be drilled into.
+     * These counts are per category and carry **no ids**, so they summarise rather
+     * than match [allRooms]; the numbers legitimately differ.
      */
     fun categories(): List<RoomCategory> {
         val data = call("/home/page/room/idle").optJSONArray("data") ?: JSONArray()
@@ -193,10 +206,13 @@ class RoomApi(private val http: OkHttpClient) {
                 val roomInfos = lab.optJSONArray("roomInfos") ?: continue
                 for (r in 0 until roomInfos.length()) {
                     val room = roomInfos.optJSONObject(r) ?: continue
+                    val name = room.optString("devName")
                     rooms += RoomInfo(
                         devId = room.optInt("devId"),
-                        name = room.optString("devName"),
+                        name = name,
                         lab = labName,
+                        people = peopleLabel(name),
+                        needsMembers = needsCoApplicants(name),
                         minMinutes = room.optInt("minResvTime"),
                         // Populated exactly when the room is taken.
                         free = (room.optJSONArray("resvInfos")?.length() ?: 0) == 0,
@@ -204,7 +220,7 @@ class RoomApi(private val http: OkHttpClient) {
                 }
             }
         }
-        return rooms
+        return rooms.sortByFloor()
     }
 
     /** How many reservations this account holds. */
@@ -243,31 +259,66 @@ class RoomApi(private val http: OkHttpClient) {
         }
     }
 
+    /**
+     * Finds a co-applicant by student id (or name) using the service's own member
+     * lookup — the same call the page's picker makes: `account/getMembers?key=`.
+     *
+     * Returns null when nothing matches, so the caller can refuse *before* sending.
+     */
+    fun findMember(sid: String): RoomMember? = searchMembers(sid)
+        .firstOrNull { it.sid.equals(sid, ignoreCase = true) || it.name == sid }
+        ?: searchMembers(sid).firstOrNull()
+
+    /** Members matching [key] (student id or name). */
+    fun searchMembers(key: String): List<RoomMember> {
+        val data = call(
+            "/account/getMembers",
+            "key" to key,
+            "page" to "1",
+            "pageNum" to "10",
+        ).optJSONArray("data") ?: JSONArray()
+        return (0 until data.length()).mapNotNull { data.optJSONObject(it) }.mapNotNull { row ->
+            val accNo = row.optInt("accNo")
+            if (accNo == 0) return@mapNotNull null
+            RoomMember(
+                accNo = accNo,
+                sid = row.optString("logonName"),
+                name = row.optString("trueName"),
+                unavailable = row.optInt("status") == 2 || row.optInt("localstatus") == 2,
+            )
+        }
+    }
+
     // -- Writes --------------------------------------------------------------
 
     /**
-     * Books [devId] for the half-open window [begin, end). The caller confirms
-     * first: this consumes the room's slot and the service records misuse.
+     * Books [devId] for the half-open window [begin, end).
      *
-     * The payload is the whole set the form posts — the same fields the service's
-     * own page sends, including the applicant's account number from `auth/userInfo`.
+     * [coApplicants] are account numbers (resolve student ids with [findMember]);
+     * passing any switches the booking to a group one (`memberKind = 2`), which is
+     * what a room whose minimum capacity is 3+ requires — the service refuses it
+     * otherwise.
      */
-    fun book(devId: Int, begin: Date, end: Date, title: String): JSONObject {
-        if (myAccNo == 0) {
-            myAccNo = call("/auth/userInfo").optJSONObject("data")?.optInt("accNo") ?: 0
-        }
-        if (myAccNo == 0) {
-            throw ApiException("room: the service did not return an account number")
-        }
+    fun book(
+        devId: Int,
+        begin: Date,
+        end: Date,
+        title: String,
+        coApplicants: List<Int> = emptyList(),
+    ): JSONObject {
+        val me = myAccNo()
+        val members = listOf(me) + coApplicants.filter { it != me }.distinct()
         val payload = JSONObject()
             .put("sysKind", RESEARCH_ROOMS)
-            .put("appAccNo", myAccNo)
-            .put("memberKind", 1)
-            .put("resvMember", JSONArray().put(myAccNo))
+            .put("appAccNo", me)
+            .put("memberKind", if (members.size > 1) 2 else 1)
+            .put("resvMember", JSONArray(members))
             .put("resvBeginTime", IC_STAMP.format(begin))
             .put("resvEndTime", IC_STAMP.format(end))
             .put("testName", title.ifBlank { DEFAULT_TITLE })
+            .put("resvKind", 2)
             .put("resvProperty", 0)
+            .put("appUrl", "")
             .put("resvDev", JSONArray().put(devId))
             .put("memo", "")
         return call("/reserve", body = payload, method = "POST")
@@ -282,6 +333,16 @@ class RoomApi(private val http: OkHttpClient) {
             throw ApiException("room: this reservation has no cancellation key")
         }
         return call("/reserve/delete", body = JSONObject().put("uuid", uuid), method = "POST")
+    }
+
+    private fun myAccNo(): Int {
+        if (myAccNo == 0) {
+            myAccNo = call("/auth/userInfo").optJSONObject("data")?.optInt("accNo") ?: 0
+        }
+        if (myAccNo == 0) {
+            throw ApiException("room: the service did not return an account number")
+        }
+        return myAccNo
     }
 
     // -- Plumbing ------------------------------------------------------------
@@ -319,6 +380,8 @@ class RoomApi(private val http: OkHttpClient) {
             .url(url)
             .header("User-Agent", CasLogin.UA)
             .header("Accept", "application/json, text/plain, */*")
+            // The service's own client sends these on every call.
+            .header("X-Requested-With", "XMLHttpRequest")
         if (method == "POST") {
             builder.post((body ?: JSONObject()).toString().toRequestBody(JSON))
         }
@@ -371,6 +434,9 @@ class RoomApi(private val http: OkHttpClient) {
         /** The library's rule: bookable up to two days ahead. */
         const val MAX_DAYS_AHEAD = 2
 
+        /** A 3+ person room needs the booker plus this many co-applicants. */
+        const val MIN_CO_APPLICANTS = 2
+
         const val DEFAULT_TITLE = "小组讨论"
 
         private const val OFF_CAMPUS_BODY = "Access forbidden, please contact administrator."
@@ -386,6 +452,30 @@ class RoomApi(private val http: OkHttpClient) {
 
         /** The wire format for booking times: "YYYY-MM-DD HH:mm:00". */
         private val IC_STAMP = SimpleDateFormat("yyyy-MM-dd HH:mm:00", Locale.US)
+
+        private val CAPACITY = Regex("（(\\d+)-(\\d+)人）")
+        private val CAPACITY_MIN = Regex("（(\\d+)人以上）")
+        private val CAPACITY_LABEL = Regex("（[^）]*人[^）]*）")
+        private val FLOOR_ORDER = Regex("^(\\D+)")
+
+        /**
+         * True when the service's own name says the room starts at 3+ people, which
+         * is what triggers the co-applicant rule (policy 1.3). `（1-3人）` is not one:
+         * the check is on the **lower** bound, mirroring the Python client.
+         */
+        fun needsCoApplicants(name: String): Boolean {
+            CAPACITY.find(name)?.let { return (it.groupValues[1].toIntOrNull() ?: 0) >= 3 }
+            CAPACITY_MIN.find(name)?.let { return (it.groupValues[1].toIntOrNull() ?: 0) >= 3 }
+            return false
+        }
+
+        private fun peopleLabel(name: String): String =
+            CAPACITY_LABEL.find(name)?.value?.trim('（', '）').orEmpty()
+
+        /** Floors in reading order, then by room name, so the list is not criss-cross. */
+        private fun List<RoomInfo>.sortByFloor(): List<RoomInfo> = sortedWith(
+            compareBy({ FLOOR_ORDER.find(it.lab)?.value.orEmpty() }, { it.name }),
+        )
 
         /** The days the booking sheet offers, starting tomorrow. */
         fun bookableDays(): List<Date> {

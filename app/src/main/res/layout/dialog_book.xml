@@ -73,6 +73,26 @@
             android:importantForAutofill="no" />
 
         <TextView
+            android:id="@+id/book_members_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:textSize="13sp"
+            android:textColor="?android:attr/textColorSecondary"
+            android:visibility="gone"
+            tools:text="共同申请人学号（至少 2 人，逗号分隔）"
+            xmlns:tools="http://schemas.android.com/tools" />
+
+        <EditText
+            android:id="@+id/book_members"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="text"
+            android:maxLength="200"
+            android:importantForAutofill="no"
+            android:visibility="gone" />
+
+        <TextView
             android:id="@+id/book_policy"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
