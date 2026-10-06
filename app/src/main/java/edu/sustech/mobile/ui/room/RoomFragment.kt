@@ -12,7 +12,6 @@ import edu.sustech.mobile.core.runIo
 import edu.sustech.mobile.library.room.RoomApi
 import edu.sustech.mobile.library.room.RoomInfo
 import edu.sustech.mobile.library.room.RoomMember
-import edu.sustech.mobile.library.room.RoomRule
 import edu.sustech.mobile.ui.ListFragment
 import edu.sustech.mobile.ui.ServicePortalActivity
 import java.util.Date

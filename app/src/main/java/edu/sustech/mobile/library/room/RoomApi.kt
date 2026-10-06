@@ -1,5 +1,7 @@
 package edu.sustech.mobile.library.room
 
+import android.text.Html
+import edu.sustech.mobile.R
 import edu.sustech.mobile.core.ApiException
 import edu.sustech.mobile.core.App
 import edu.sustech.mobile.core.Credentials
@@ -248,6 +250,10 @@ class RoomApi(private val http: OkHttpClient) {
      * `GET /sysInfo/help?sysType=16&sysKind=4&status=2&sysValue=`, the one sysKind whose
      * reply is text rather than a banner image. This is what the ⓘ shows: the library's
      * words, not this app's summary of them. Null when the service declines.
+     *
+     * 🔴 The reply is a list of rows whose `content` is **HTML** — rendering it raw put
+     * `<p class=…>` on screen, so it goes through `Html.fromHtml` first (which also
+     * decodes the entities).
      */
     fun policy(): String? {
         val body = call(
@@ -257,8 +263,18 @@ class RoomApi(private val http: OkHttpClient) {
             "status" to "2",
             "sysValue" to "",
         )
-        val text = body.optString("data").ifBlank { body.optString("message") }
-        return text.replace("\\r\\n", "\n").replace("\\n", "\n").trim().ifBlank { null }
+        val rows = body.optJSONArray("data")
+        val html = if (rows != null) {
+            (0 until rows.length())
+                .mapNotNull { rows.optJSONObject(it)?.optString("content") }
+                .firstOrNull { it.isNotBlank() }
+        } else {
+            body.optString("data").ifBlank { body.optString("message") }
+        }
+        val text = html?.let {
+            Html.fromHtml(it, Html.FROM_HTML_MODE_LEGACY).toString()
+        }
+        return text?.trim()?.ifBlank { null }
     }
 
     /**
