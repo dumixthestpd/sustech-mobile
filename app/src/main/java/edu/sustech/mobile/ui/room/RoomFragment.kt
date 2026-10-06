@@ -4,58 +4,91 @@ import android.view.View
 import android.widget.TextView
 import edu.sustech.mobile.R
 import edu.sustech.mobile.core.App
-import edu.sustech.mobile.core.friendly
-import edu.sustech.mobile.library.room.RoomCategory
+import edu.sustech.mobile.core.runIo
+import edu.sustech.mobile.library.room.RoomInfo
 import edu.sustech.mobile.ui.ListFragment
 
 /**
- * The IC library's discussion rooms, right now.
+ * The IC library's discussion rooms, right now: each room, the floor it is on, and
+ * whether it is taken. Tapping one opens the booking sheet — a room that is busy now
+ * can still be free later, which is what the sheet is for.
  *
- * Read-only on purpose: creating or cancelling a reservation changes a real room
- * calendar, so those stay on the official page. This screen answers the question
- * people actually ask in the corridor — is anything free.
+ * Two questions, one screen: what is free, and what this account has booked (the
+ * note's second line).
  *
  * Needs the campus network: off campus the service refuses before any sign-in, and
  * that is reported as a location problem rather than a login one.
  */
-class RoomFragment : ListFragment<RoomCategory>(R.layout.fragment_rooms) {
+class RoomFragment : ListFragment<RoomInfo>(R.layout.fragment_rooms), BookDialog.Listener {
 
     private var note: TextView? = null
+    private var mine: TextView? = null
 
-    /** How many reservations this account is holding, shown with the occupancy. */
-    private var mine = 0
+    /** How many reservations this account is holding. */
+    private var booked = 0
 
-    override fun rowLayout() = R.layout.item_room_category
+    override fun rowLayout() = R.layout.item_room
 
-    override fun cachePrefix() = "rooms.idle."
+    override fun cachePrefix() = "rooms.all."
 
     override fun emptyText() = getString(R.string.rooms_empty)
 
     override fun onReady(view: View) {
         note = view.findViewById(R.id.rooms_note)
+        mine = view.findViewById(R.id.rooms_mine)
         note?.text = getString(R.string.rooms_loading)
+        mine?.visibility = View.GONE
+        mine?.setOnClickListener {
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.service_container, MyRoomsFragment())
+                .addToBackStack("rooms_mine")
+                .commit()
+        }
     }
 
-    override suspend fun fetch(): List<RoomCategory> {
-        val categories = App.rooms.categories()
-        mine = App.rooms.count()
-        return categories
+    override suspend fun fetch(): List<RoomInfo> {
+        val rooms = App.rooms.allRooms()
+        // The count is a separate call; if it fails, the list is still worth showing.
+        booked = runCatching { App.rooms.count() }.getOrDefault(0)
+        return rooms
     }
 
-    override fun onLoaded(rows: List<RoomCategory>) {
-        val free = rows.sumOf { it.idle }
-        val total = rows.sumOf { it.total }
-        note?.text = getString(R.string.rooms_note, free, total, mine)
+    override fun onLoaded(rows: List<RoomInfo>) {
+        val free = rows.count { it.free }
+        note?.text = getString(R.string.rooms_note, free, rows.size, booked)
+        mine?.visibility = View.VISIBLE
+        mine?.text = getString(R.string.rooms_mine_link, booked)
     }
 
-    override fun errorText(error: Throwable): String =
-        context?.let { error.friendly(it) } ?: error.message.orEmpty()
+    /** Called by the sheet once the slot is confirmed — this is the actual booking. */
+    override fun onBook(room: RoomInfo, begin: java.util.Date, end: java.util.Date, title: String) {
+        viewLifecycleOwner.runIo(
+            block = { App.rooms.book(room.devId, begin, end, title) },
+            onOk = {
+                if (!isAdded) return@runIo
+                android.widget.Toast.makeText(
+                    requireContext(),
+                    R.string.rooms_booked,
+                    android.widget.Toast.LENGTH_SHORT,
+                ).show()
+                // The room's state just changed; reload rather than patching the row.
+                load(force = true)
+            },
+            onErr = { error ->
+                if (!isAdded) return@runIo
+                showError(error)
+            },
+        )
+    }
 
-    override fun bindRow(view: View, item: RoomCategory, position: Int) {
-        view.findViewById<TextView>(R.id.room_category_name).text = item.name
-        val count = view.findViewById<TextView>(R.id.room_category_count)
-        count.text = getString(R.string.rooms_free, item.idle, item.total)
-        // Nothing free in this category: it stays listed, because "all taken" is
-        // the answer, not a reason to hide the row.
+    override fun bindRow(view: View, item: RoomInfo, position: Int) {
+        view.findViewById<TextView>(R.id.room_name).text = item.name
+        view.findViewById<TextView>(R.id.room_where).text = item.lab
+        view.findViewById<TextView>(R.id.room_status).text = getString(
+            if (item.free) R.string.rooms_free_now else R.string.rooms_taken_now,
+        )
+        view.setOnClickListener {
+            BookDialog.newInstance(item).show(parentFragmentManager, "book")
+        }
     }
 }
