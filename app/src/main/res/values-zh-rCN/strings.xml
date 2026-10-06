@@ -253,6 +253,9 @@
     <string name="rooms_day_open">该日可预约：%1$s</string>
     <string name="rooms_day_closed">这一天服务端没有给出可预约时段。</string>
     <string name="rooms_slot_outside">该时间不在当天可预约时段内（%1$s），未发送任何请求。</string>
+    <string name="rooms_lending_tag">设备外借</string>
+    <string name="rooms_lending_body">这是设备外借，不是研讨间：预约要填用途、日期与起止时间、备注，还要输入验证码，只有官方页面有这张表单。\n\n打开的页面已带上你的登录状态，在首页选「设备外借」。</string>
+    <string name="rooms_lending_open">打开官方页面</string>
     <string name="rooms_members_rule">最小人数 3 人以上的房间，需发起人再加 %1$d 位共同申请人。</string>
     <string name="rooms_policy">学校规定：最多可提前两天预约（当天也可以），每场不超过两小时；取消需在开始前十分钟以上。</string>
     <string name="service_cle">语言辅导</string>

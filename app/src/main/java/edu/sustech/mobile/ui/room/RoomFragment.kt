@@ -14,6 +14,7 @@ import edu.sustech.mobile.library.room.RoomInfo
 import edu.sustech.mobile.library.room.RoomMember
 import edu.sustech.mobile.library.room.RoomRule
 import edu.sustech.mobile.ui.ListFragment
+import edu.sustech.mobile.ui.ServicePortalActivity
 import java.util.Date
 
 /**
@@ -235,22 +236,48 @@ class RoomFragment : ListFragment<RoomInfo>(R.layout.fragment_rooms), BookDialog
         view.findViewById<TextView>(R.id.room_name).text = item.name
         view.findViewById<TextView>(R.id.room_where).text = listOf(
             item.lab,
-            if (item.needsMembers) {
-                getString(R.string.rooms_needs_members, RoomApi.MIN_CO_APPLICANTS)
-            } else {
-                ""
+            when {
+                item.lending -> getString(R.string.rooms_lending_tag)
+                item.needsMembers -> {
+                    getString(R.string.rooms_needs_members, RoomApi.MIN_CO_APPLICANTS)
+                }
+                else -> ""
             },
         ).filter { it.isNotBlank() }.joinToString(" · ")
         view.findViewById<TextView>(R.id.room_status).text = getString(
             if (item.free) R.string.rooms_free_now else R.string.rooms_taken_now,
         )
         view.setOnClickListener {
+            // Equipment lending is not a room and takes a different form — never the
+            // room sheet.
+            if (item.lending) {
+                lendingSheet(item)
+                return@setOnClickListener
+            }
             // childFragmentManager, so the sheet's parentFragment is this screen —
             // that is how the confirmed slot gets back here to be sent. On the
             // parent manager the dialog's parentFragment is null and the confirm
             // silently does nothing.
             BookDialog.newInstance(item).show(childFragmentManager, "book")
         }
+    }
+
+    /**
+     * Equipment lending (设备外借) books through a form this app does not fill: a purpose
+     * from the service's own code table, a date with a start and an end, a memo, and a
+     * captcha. It says so and hands over to the official page — **with the session
+     * already in place** — rather than sending a room's payload at a device.
+     */
+    private fun lendingSheet(item: RoomInfo) {
+        if (!isAdded) return
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle(item.name)
+            .setMessage(getString(R.string.rooms_lending_body))
+            .setPositiveButton(R.string.rooms_lending_open) { _, _ ->
+                startActivity(ServicePortalActivity.intent(requireContext(), RoomApi.LENDING_PAGE))
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private companion object {

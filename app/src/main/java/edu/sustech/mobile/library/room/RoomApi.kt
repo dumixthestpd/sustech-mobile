@@ -34,6 +34,18 @@ data class RoomInfo(
     /** The service's minimum session length in minutes (10 for the rooms measured). */
     val minMinutes: Int,
     val free: Boolean,
+    /**
+     * True for equipment lending (设备外借) rather than a room — the studio, the 3D
+     * printer, the book scanner. The service hands them over in the same flat inventory
+     * with **no field saying so**, so this is derived: they are the labs that carry
+     * exactly one device, named after the lab itself, while real rooms sit several to a
+     * floor.
+     *
+     * 🔴 They take a different booking form (a purpose from code table 1005, date, start
+     * and end, a memo, **and a captcha**) and post to a different endpoint, so the room
+     * sheet must never be used for one of them.
+     */
+    val lending: Boolean = false,
 )
 
 /** Someone this account can name as a co-applicant. */
@@ -217,6 +229,11 @@ class RoomApi(private val http: OkHttpClient) {
                 val lab = labInfos.optJSONObject(l) ?: continue
                 val labName = lab.optString("labName")
                 val roomInfos = lab.optJSONArray("roomInfos") ?: continue
+                // Equipment lending arrives in the same inventory as rooms: a lab that
+                // holds exactly one device, named after the lab itself. A floor holds
+                // several and is never named after one of them, so this separates them
+                // without a name list to maintain.
+                val single = roomInfos.length() == 1
                 for (r in 0 until roomInfos.length()) {
                     val room = roomInfos.optJSONObject(r) ?: continue
                     val name = room.optString("devName")
@@ -229,6 +246,7 @@ class RoomApi(private val http: OkHttpClient) {
                         minMinutes = room.optInt("minResvTime"),
                         // Populated exactly when the room is taken.
                         free = (room.optJSONArray("resvInfos")?.length() ?: 0) == 0,
+                        lending = single && labName == name,
                     )
                 }
             }
@@ -479,8 +497,11 @@ class RoomApi(private val http: OkHttpClient) {
         private const val FINAL_PAGE = "https://booking.lib.sustech.edu.cn/ic/home"
         private const val ERROR_PAGE = "https://booking.lib.sustech.edu.cn/#/error"
 
-        /** 1 = the research/discussion rooms (讨论间). */
+        /** What the service's own menu calls this family. */
         const val RESEARCH_ROOMS = 1
+
+        /** Where the families the app does not book natively are handed over. */
+        const val LENDING_PAGE = "https://booking.lib.sustech.edu.cn/ic/home"
 
         /** The library's rule; the service refuses anything longer. */
         const val MAX_MINUTES = 120
