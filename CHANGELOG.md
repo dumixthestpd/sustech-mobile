@@ -5,11 +5,13 @@
 **Library discussion rooms**, read and booked in the app; equipment lending handed
 over properly; and four fixes found by running it rather than by reading it.
 
-- **Discussion rooms.** Every IC room by floor with its live occupancy, a search box
-  and filter chips (all / free / taken, plus one per floor), then a booking sheet:
-  day, start, length, topic. Which days are bookable is the service's own answer —
-  today is one of them, which the sheet used to omit — and the windows it states are
-  enforced rather than guessed at.
+- **Discussion rooms.** The service, the sign-in chain and the library's rules were worked
+  out on 2026-06-29 and in the weeks after, in the project's Python engine; this is the
+  Android front end for them. Every IC room by floor with its live occupancy, a search box
+  and filter chips (all / free / taken, plus one per floor), then a booking sheet: day,
+  start, length, topic. Which days are bookable is the service's own answer — today is one
+  of them, which the sheet used to omit — and the windows it states are enforced rather
+  than guessed at.
 - **Co-applicants, named as you type.** A room whose *minimum* capacity is 3+ is
   refused by the service without two co-applicants, so the sheet takes one student id
   per box, asks the service who each one is, and prints the name under the box while
