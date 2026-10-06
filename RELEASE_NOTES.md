@@ -61,6 +61,8 @@ consolidated note, so removing intermediate releases loses nothing.
 - Wi-Fi, the e-card, printing and staff profiles open their official pages inside
   the app with your stored session.
   <br><sub>Contributed by [@Shirakawa-Kotone](https://github.com/Shirakawa-Kotone).</sub>
+- The venue-booking, exchange and language-tutoring pages open in-app the same way —
+  that part is not from the contributed portal work, and each is described above.
 
 ## Interface
 
@@ -71,9 +73,10 @@ consolidated note, so removing intermediate releases loses nothing.
 ## Reliability
 
 - **Sessions are shared and honest.** CAS accepts an existing SSO session when it
-  issues a ticket straight away, one cookie store serves every service, and a
-  service is reported unavailable only after its API actually says so.
+  issues a ticket straight away, and one cookie store serves every service.
   <br><sub>Contributed by [@Shirakawa-Kotone](https://github.com/Shirakawa-Kotone).</sub>
+- **A page that shows a login form is not the same as a service being down**: a
+  service is only reported unavailable once its own API says so.
 - **My borrowed books used to fail entirely**: the login hop's response body was
   read twice, which throws in OkHttp and surfaced as a network error.
 - **Exchange's deep link opened nothing**: the module carried the id `ws` while

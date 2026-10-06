@@ -144,19 +144,18 @@ the intermediate versions were never published on their own.
   staff directory ships in the app, so name/title/department search works with no
   network; opening a person loads only that public profile.
   <br><sub>Contributed by [@Shirakawa-Kotone](https://github.com/Shirakawa-Kotone).</sub>
-- **Official portals open in-app with the saved account.** Venue booking, exchange
-  programmes, language tutoring and Wi-Fi open their real pages inside the app,
-  with the stored CAS cookies handed to those pages so CAS-based ones start
-  signed in. The exchange platform is the exception — it still shows its own
-  login form.
+- **Official pages open inside the app.** A page viewer that hands the stored CAS
+  cookies to whatever official page it loads, so CAS-based ones start signed in
+  instead of asking for the account a second time.
   <br><sub>Contributed by [@Shirakawa-Kotone](https://github.com/Shirakawa-Kotone).</sub>
 - **Chinese and Russian.** The whole interface is translated, including the names
   the campus-bus and library APIs return, instead of surfacing their English.
   <br><sub>Contributed by [@Shirakawa-Kotone](https://github.com/Shirakawa-Kotone).</sub>
 - **Sessions are shared and honest.** CAS now accepts an existing SSO session when
-  it issues a ticket immediately, one cookie store serves every service, and a
-  service is reported unavailable only after its API actually says so.
+  it issues a ticket immediately, and one cookie store serves every service.
   <br><sub>Contributed by [@Shirakawa-Kotone](https://github.com/Shirakawa-Kotone).</sub>
+- **A page that shows a login form is not the same as a service being down**, so a
+  service is only reported unavailable once its own API says so.
 - **My borrowed books, with due dates and one-tap renew.** The library gains a
   Loans tab: everything you have out, when each book is due, and its renewal
   state. Renewing shows the exact request first and sends only after you confirm
