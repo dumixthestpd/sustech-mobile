@@ -500,8 +500,14 @@ class RoomApi(private val http: OkHttpClient) {
         /** What the service's own menu calls this family. */
         const val RESEARCH_ROOMS = 1
 
-        /** Where the families the app does not book natively are handed over. */
-        const val LENDING_PAGE = "https://booking.lib.sustech.edu.cn/ic/home"
+        /**
+         * Where the families the app does not book natively are handed over — the SPA's
+         * entry, which is the one route it will render: `/ic/deviceLending` and the other
+         * routes answer "error page!" even with a live IC session (measured 2026-10-06,
+         * both ways), so the section is one tap from here rather than deep-linked.
+         * ServicePortalActivity establishes the IC session before loading it.
+         */
+        const val LENDING_PAGE = "https://booking.lib.sustech.edu.cn/"
 
         /** The library's rule; the service refuses anything longer. */
         const val MAX_MINUTES = 120

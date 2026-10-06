@@ -98,6 +98,12 @@ class ServicePortalActivity : AppCompatActivity() {
                 withContext(Dispatchers.IO) {
                     if (!Session.ensureCard()) Session.reloginCard()
                 }
+            } else if (Credentials.configured && isIcBookingUrl(url)) {
+                // The IC booking app has its own authcenter handshake. Without it the
+                // page renders its own "error page!" — measured 2026-10-06: every route
+                // does that with no ic-cookie, whatever the URL, and `requiresCas` below
+                // would otherwise give it the *courses* session instead.
+                withContext(Dispatchers.IO) { runCatching { App.rooms.ensureSession() } }
             } else if (requiresCas(url) && Credentials.configured) {
                 withContext(Dispatchers.IO) { Session.ensureCourses() }
             }
@@ -153,6 +159,9 @@ class ServicePortalActivity : AppCompatActivity() {
     private fun isCampusCardUrl(url: String): Boolean =
         Uri.parse(url).host == "campuscard.sustech.edu.cn"
                 && Uri.parse(url).path.orEmpty().startsWith("/epay/")
+
+    private fun isIcBookingUrl(url: String): Boolean =
+        Uri.parse(url).host == "booking.lib.sustech.edu.cn"
 
     private fun isOfficialUrl(url: String): Boolean =
         Uri.parse(url).scheme == "https" && isOfficialHost(Uri.parse(url).host.orEmpty())
