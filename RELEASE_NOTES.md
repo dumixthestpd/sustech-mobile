@@ -9,21 +9,6 @@ consolidated note, so removing intermediate releases loses nothing.
 
 ---
 
-## Who wrote what
-
-**[@dumixthestpd](https://github.com/dumixthestpd) wrote this app and everything in it.** The
-reverse engineering behind every service — the TIS course system, the library's IC booking
-system (its wire, its sign-in chain and the library's own rules, from 2026-06-29), the NCES
-community data, E-Hall language tutoring, the library loans API, the calendar — the Python
-engine and the CLI that the app ports from, and every screen here. All of it, and all of this
-release.
-
-The one exception, a contribution merged 2026-10-02 as PR #1:
-[@Shirakawa-Kotone](https://github.com/Shirakawa-Kotone) added the campus-card screen, the
-community course reviews, the offline faculty snapshot, both launcher widgets, the in-app
-official-page viewer, and the Chinese/Russian string files. Those entries are marked
-**Contributed by** below. Nothing else here is theirs.
-
 ## New screens
 
 - **Electronic campus card (一卡通)** — balance and recent bills read with your

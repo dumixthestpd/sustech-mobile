@@ -2,15 +2,6 @@
 
 ## 0.3.28 — 2026-10-06
 
-**Who wrote what.** [@dumixthestpd](https://github.com/dumixthestpd) wrote this app and
-everything in it: the reverse engineering behind every service (the TIS course system, the
-library's IC booking system with its wire, sign-in chain and rules from 2026-06-29, the NCES
-community data, E-Hall language tutoring, the library loans API, the calendar), the Python
-engine and the CLI the app ports from, and every screen — all of this release. The one
-exception, merged 2026-10-02 as PR #1: [@Shirakawa-Kotone](https://github.com/Shirakawa-Kotone)
-added the campus-card screen, the course reviews, the faculty snapshot, both widgets, the
-in-app page viewer and the Chinese/Russian strings; those entries are marked *Contributed by*
-below, and nothing else here is theirs.
 
 **Library discussion rooms**, read and booked in the app; equipment lending handed
 over properly; and four fixes found by running it rather than by reading it.
