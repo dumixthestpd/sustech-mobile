@@ -44,6 +44,15 @@ data class RoomMember(
     val unavailable: Boolean,
 )
 
+/** One booking-rule row as the service states it (`borrow/reserve/resvRules`). */
+data class RoomRule(
+    val earliest: String,
+    val latest: String,
+    val shortest: Int,
+    val longest: Int,
+    val interval: Int,
+)
+
 /** A room reservation this account holds. */
 data class RoomReservation(
     val resvId: Int,
@@ -225,6 +234,28 @@ class RoomApi(private val http: OkHttpClient) {
 
     /** How many reservations this account holds. */
     fun count(): Int = call("/reserve/count").optInt("data")
+
+    /**
+     * The service's own booking rules for this account (`borrow/reserve/resvRules`) —
+     * the numbers the page's rule block renders. The service is the authority on what
+     * is bookable; an empty list means it had nothing to say, not that there are no
+     * rules, so the caller shows the library's own wording as well.
+     */
+    fun rules(): List<RoomRule> {
+        // The page calls this with no parameters, and so does this — measured
+        // 2026-10-06: the service answers code 0 with `data: null` for this account,
+        // so an empty list is a real answer, not a failure.
+        val data = call("/borrow/reserve/resvRules").optJSONArray("data") ?: return emptyList()
+        return (0 until data.length()).mapNotNull { data.optJSONObject(it) }.map { row ->
+            RoomRule(
+                earliest = stamp(row.opt("earliestResvTime")),
+                latest = stamp(row.opt("latestResvTime")),
+                shortest = row.optInt("minResvTime"),
+                longest = row.optInt("maxResvTime"),
+                interval = row.optInt("timeInterval"),
+            )
+        }
+    }
 
     /**
      * This account's reservations in a date range.

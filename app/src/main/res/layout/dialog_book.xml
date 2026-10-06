@@ -80,16 +80,24 @@
             android:textSize="13sp"
             android:textColor="?android:attr/textColorSecondary"
             android:visibility="gone"
-            tools:text="共同申请人学号（至少 2 人，逗号分隔）"
+            tools:text="共同申请人（至少 2 人）"
             xmlns:tools="http://schemas.android.com/tools" />
 
-        <EditText
-            android:id="@+id/book_members"
+        <LinearLayout
+            android:id="@+id/book_members_rows"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="text"
-            android:maxLength="200"
-            android:importantForAutofill="no"
+            android:orientation="vertical"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/book_members_add"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:textSize="13sp"
+            android:textStyle="bold"
             android:visibility="gone" />
 
         <TextView

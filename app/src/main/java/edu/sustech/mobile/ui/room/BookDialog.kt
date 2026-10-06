@@ -3,16 +3,31 @@ package edu.sustech.mobile.ui.room
 import android.app.Dialog
 import android.app.TimePickerDialog
 import android.os.Bundle
+import android.text.Editable
+import android.text.InputType
+import android.text.TextWatcher
+import android.util.TypedValue
 import android.view.View
+import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.Spinner
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.DialogFragment
+import androidx.lifecycle.lifecycleScope
 import edu.sustech.mobile.R
+import edu.sustech.mobile.core.App
 import edu.sustech.mobile.library.room.RoomApi
 import edu.sustech.mobile.library.room.RoomInfo
+import edu.sustech.mobile.library.room.RoomMember
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -26,10 +41,12 @@ import java.util.Locale
  * co-applicants, cancel at least ten minutes before the start) are the service's, not
  * this screen's.
  *
- * 🔴 A room whose *minimum* capacity is 3+ is refused by the service unless the
- * booking carries co-applicants, so this asks for their student ids and the screen
- * resolves them (and fails closed if one cannot be found). Rooms named `（1-3人）` need
- * none.
+ * 🔴 A room whose *minimum* capacity is 3+ is refused by the service unless the booking
+ * carries co-applicants, so this offers one student-id box per co-applicant and asks
+ * the service who each one is. **The name appears under the box as you type** — that is
+ * the check: you see it resolved to a person, not merely spelled right. Nothing is sent
+ * while a box is unresolved or while fewer than the required number are named, and
+ * ids are never split on punctuation (people type 、 and ， and trailing spaces).
  *
  * 🔴 The start is a plain time picker, not a list built from the room's `openTimes`:
  * the service returns `07:00–07:00` with `openLimit: 0` for every room measured, so
@@ -45,13 +62,22 @@ class BookDialog : DialogFragment() {
             begin: Date,
             end: Date,
             title: String,
-            studentIds: List<String>,
+            coApplicants: List<RoomMember>,
         )
+    }
+
+    /** One co-applicant box, what the service said about it, and the pending lookup. */
+    private class MemberRow(val input: EditText, val status: TextView) {
+        var job: Job? = null
+        var member: RoomMember? = null
     }
 
     private lateinit var startButton: TextView
     private var startHour = 0
     private var startMinute = 0
+    private var needsMembers = false
+    private var memberLabel: TextView? = null
+    private val memberRows = mutableListOf<MemberRow>()
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val room = RoomInfo(
@@ -63,6 +89,7 @@ class BookDialog : DialogFragment() {
             minMinutes = requireArguments().getInt(ARG_MIN),
             free = true,
         )
+        needsMembers = room.needsMembers
         val view = layoutInflater.inflate(R.layout.dialog_book, null)
         view.findViewById<TextView>(R.id.book_room).text = listOf(
             room.name,
@@ -109,14 +136,23 @@ class BookDialog : DialogFragment() {
 
         // A 3+ person room will be refused without co-applicants, so ask for them here.
         val memberLabel = view.findViewById<TextView>(R.id.book_members_label)
-        val members = view.findViewById<EditText>(R.id.book_members)
+        val memberBox = view.findViewById<LinearLayout>(R.id.book_members_rows)
+        val memberAdd = view.findViewById<TextView>(R.id.book_members_add)
         if (room.needsMembers) {
             memberLabel.visibility = View.VISIBLE
-            members.visibility = View.VISIBLE
-            memberLabel.text = getString(
-                R.string.rooms_members_label,
-                RoomApi.MIN_CO_APPLICANTS,
-            )
+            memberBox.visibility = View.VISIBLE
+            memberAdd.visibility = View.VISIBLE
+            this.memberLabel = memberLabel
+            memberLabel.text = getString(R.string.rooms_members_label, RoomApi.MIN_CO_APPLICANTS)
+            memberAdd.text = getString(R.string.rooms_members_add)
+            repeat(RoomApi.MIN_CO_APPLICANTS) { addRow(memberBox) }
+            memberAdd.setOnClickListener {
+                if (memberRows.size >= MAX_MEMBERS) {
+                    toast(getString(R.string.rooms_members_max, MAX_MEMBERS))
+                } else {
+                    addRow(memberBox)
+                }
+            }
         }
 
         return AlertDialog.Builder(requireContext())
@@ -133,24 +169,164 @@ class BookDialog : DialogFragment() {
                         val end = Date(
                             begin.time + lengths[lengthSpinner.selectedItemPosition] * 60_000L,
                         )
+                        val members = readyMembers() ?: return@setOnClickListener
                         confirm(
                             room = room,
                             begin = begin,
                             end = end,
                             title = topic.text.toString().trim(),
-                            studentIds = parseIds(members.text.toString()),
+                            members = members,
                         )
                     }
+                    // Nothing can be sent until the service has named the required
+                    // number of co-applicants — the button stays shut rather than
+                    // refusing after the press.
+                    refreshReady()
                 }
             }
     }
 
-    /** Student ids as typed: separated by commas, spaces or newlines. */
-    private fun parseIds(text: String): List<String> = text
-        .split(',', '，', '、', ' ', '\n', '\t')
-        .map { it.trim() }
-        .filter { it.isNotEmpty() }
-        .distinct()
+    // -- Co-applicants --------------------------------------------------------
+
+    private fun addRow(box: LinearLayout) {
+        val line = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.HORIZONTAL
+        }
+        val input = EditText(requireContext()).apply {
+            hint = getString(R.string.rooms_members_hint)
+            inputType = InputType.TYPE_CLASS_TEXT
+            maxLines = 1
+            importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        val status = TextView(requireContext()).apply {
+            textSize = 12f
+            setTextColor(secondaryColor())
+            setPadding(0, 0, 0, PAD)
+        }
+        val entry = MemberRow(input, status)
+        val drop = TextView(requireContext()).apply {
+            text = "✕"
+            textSize = 15f
+            setPadding(PAD, PAD, PAD, PAD)
+            setOnClickListener {
+                // Drop the box *and* its lookup from the tally, or a deleted box would
+                // keep the booking button shut.
+                box.removeView(line.parent as View)
+                entry.job?.cancel()
+                memberRows.remove(entry)
+                refreshReady()
+            }
+        }
+        line.addView(input)
+        line.addView(drop)
+
+        val row = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(line)
+            addView(status)
+        }
+        box.addView(row)
+
+        memberRows += entry
+        input.addTextChangedListener(
+            object : TextWatcher {
+                override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
+                override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
+                override fun afterTextChanged(s: Editable?) {
+                    resolve(entry, s?.toString()?.trim().orEmpty())
+                }
+            },
+        )
+    }
+
+    /**
+     * Asks the service who this id is and shows the answer under the box. The lookup is
+     * delayed while typing and superseded by the next keystroke, so the name shown
+     * always belongs to what is in the box.
+     */
+    private fun resolve(entry: MemberRow, sid: String) {
+        entry.job?.cancel()
+        entry.member = null
+        entry.status.text = ""
+        if (sid.isEmpty()) return
+        entry.status.text = getString(R.string.rooms_member_checking)
+        entry.job = lifecycleScope.launch {
+            delay(LOOKUP_SETTLE_MS)
+            val found = try {
+                withContext(Dispatchers.IO) { App.rooms.findMember(sid) }
+            } catch (t: Throwable) {
+                null
+            }
+            if (!isAdded || entry.input.text.toString().trim() != sid) return@launch
+            entry.member = found
+            entry.status.setTextColor(secondaryColor())
+            entry.status.text = when {
+                found == null -> getString(R.string.rooms_member_missing)
+                found.unavailable -> getString(R.string.rooms_member_unavailable)
+                found.name.isBlank() -> getString(R.string.rooms_member_found, sid, found.sid)
+                else -> getString(R.string.rooms_member_found, found.name, found.sid)
+            }
+            refreshReady()
+        }
+    }
+
+    /**
+     * Keeps the booking button shut until the service has named at least the required
+     * number of co-applicants, and says how far along that is. A 1-3 person room has
+     * nothing to wait for and the button is open from the start.
+     */
+    private fun refreshReady() {
+        val button = (dialog as? AlertDialog)?.getButton(AlertDialog.BUTTON_POSITIVE) ?: return
+        val named = memberRows.mapNotNull { it.member }.filter { !it.unavailable }
+        val pending = memberRows.any { it.input.text.isNotBlank() && it.member == null }
+        val enough = named.size >= RoomApi.MIN_CO_APPLICANTS
+        button.isEnabled = !needsMembers || (enough && !pending)
+        if (!needsMembers) return
+        memberLabel?.text = buildString {
+            append(getString(R.string.rooms_members_label, RoomApi.MIN_CO_APPLICANTS))
+            if (named.isNotEmpty() || memberRows.any { it.input.text.isNotBlank() }) {
+                append(" · ")
+                append(
+                    getString(
+                        R.string.rooms_members_progress,
+                        named.size,
+                        RoomApi.MIN_CO_APPLICANTS,
+                    ),
+                )
+            }
+        }
+    }
+
+    /**
+     * The co-applicants, or null after saying why not. Ids are taken exactly as typed —
+     * one box, one id — so a Chinese comma or a stray space can never split one into two.
+     */
+    private fun readyMembers(): List<RoomMember>? {
+        if (!needsMembers) return emptyList()
+        val typed = memberRows.filter { it.input.text.isNotBlank() }
+        if (typed.any { it.member == null }) {
+            toast(getString(R.string.rooms_members_pending))
+            return null
+        }
+        val members = typed.mapNotNull { it.member }
+        if (members.size < RoomApi.MIN_CO_APPLICANTS) {
+            toast(
+                getString(
+                    R.string.rooms_members_required,
+                    RoomApi.MIN_CO_APPLICANTS,
+                ),
+            )
+            return null
+        }
+        if (members.any { it.unavailable }) {
+            toast(getString(R.string.rooms_member_unavailable))
+            return null
+        }
+        return members
+    }
+
+    // -- The rest -------------------------------------------------------------
 
     private fun showStart() {
         startButton.text = String.format(Locale.US, "%02d:%02d", startHour, startMinute)
@@ -162,21 +338,24 @@ class BookDialog : DialogFragment() {
         begin: Date,
         end: Date,
         title: String,
-        studentIds: List<String>,
+        members: List<RoomMember>,
     ) {
         val lines = mutableListOf(
             room.name,
             "${DAY.format(begin)} ${SLOT.format(begin)}–${SLOT.format(end)}",
         )
-        if (studentIds.isNotEmpty()) {
-            lines += getString(R.string.rooms_members_confirm, studentIds.joinToString("、"))
+        if (members.isNotEmpty()) {
+            lines += getString(
+                R.string.rooms_members_confirm,
+                members.joinToString("、") { it.name.ifBlank { it.sid } },
+            )
         }
         lines += getString(R.string.rooms_book_confirm_warning)
         AlertDialog.Builder(requireContext())
             .setTitle(R.string.rooms_book_confirm_title)
             .setMessage(lines.joinToString("\n"))
             .setPositiveButton(R.string.rooms_book) { _, _ ->
-                (parentFragment as? Listener)?.onBook(room, begin, end, title, studentIds)
+                (parentFragment as? Listener)?.onBook(room, begin, end, title, members)
                 dismiss()
             }
             .setNegativeButton(android.R.string.cancel, null)
@@ -194,6 +373,17 @@ class BookDialog : DialogFragment() {
         return calendar.time
     }
 
+    private fun toast(message: String) {
+        if (isAdded) Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+    }
+
+    /** The app's secondary text colour, theme-dependent. */
+    private fun secondaryColor(): Int {
+        val value = TypedValue()
+        requireContext().theme.resolveAttribute(android.R.attr.textColorSecondary, value, true)
+        return value.data
+    }
+
     companion object {
         private const val ARG_DEV = "devId"
         private const val ARG_NAME = "name"
@@ -203,6 +393,14 @@ class BookDialog : DialogFragment() {
         private const val ARG_MIN = "minMinutes"
 
         private val LENGTHS = listOf(30, 60, 90, 120)
+
+        /** A 3-10 person room plus its booker: nine co-applicants is more than enough. */
+        private const val MAX_MEMBERS = 9
+
+        /** Let a student id finish being typed before asking who it is. */
+        private const val LOOKUP_SETTLE_MS = 550L
+
+        private const val PAD = 8
 
         private val DAY = SimpleDateFormat("yyyy-MM-dd EEE", Locale.US)
         private val SLOT = SimpleDateFormat("HH:mm", Locale.US)

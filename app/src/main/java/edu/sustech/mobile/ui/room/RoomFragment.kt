@@ -11,6 +11,8 @@ import edu.sustech.mobile.core.App
 import edu.sustech.mobile.core.runIo
 import edu.sustech.mobile.library.room.RoomApi
 import edu.sustech.mobile.library.room.RoomInfo
+import edu.sustech.mobile.library.room.RoomMember
+import edu.sustech.mobile.library.room.RoomRule
 import edu.sustech.mobile.ui.ListFragment
 import java.util.Date
 
@@ -57,6 +59,9 @@ class RoomFragment : ListFragment<RoomInfo>(R.layout.fragment_rooms), BookDialog
         filters = view.findViewById(R.id.rooms_filters)
         note?.text = getString(R.string.rooms_loading)
         mine?.visibility = View.GONE
+        // The service publishes its own booking rules; the page shows them on entry,
+        // and they are worth reading before a slot is taken.
+        view.findViewById<View>(R.id.rooms_info).setOnClickListener { showRules() }
         mine?.setOnClickListener {
             parentFragmentManager.beginTransaction()
                 .replace(R.id.service_container, MyRoomsFragment())
@@ -140,37 +145,34 @@ class RoomFragment : ListFragment<RoomInfo>(R.layout.fragment_rooms), BookDialog
         group.addView(chip)
     }
 
-    /** Called by the sheet once the slot is confirmed — this is the actual booking. */
+    /**
+     * Called by the sheet once the slot is confirmed — this is the actual booking. The
+     * sheet has already asked the service who each co-applicant is, so what is sent is
+     * what was shown; the count is checked again here, so a 3+ person room can never go
+     * out without them.
+     */
     override fun onBook(
         room: RoomInfo,
         begin: Date,
         end: Date,
         title: String,
-        studentIds: List<String>,
+        coApplicants: List<RoomMember>,
     ) {
+        if (room.needsMembers && coApplicants.size < RoomApi.MIN_CO_APPLICANTS) {
+            showError(
+                ApiException(
+                    getString(
+                        R.string.rooms_member_needed,
+                        room.people,
+                        RoomApi.MIN_CO_APPLICANTS,
+                    ),
+                ),
+            )
+            return
+        }
+        val accNos = coApplicants.map { it.accNo }
         viewLifecycleOwner.runIo(
-            block = {
-                val context = App.context
-                // Resolve every student id through the service's own lookup, and
-                // refuse before sending if one cannot be placed.
-                val accNos = studentIds.map { sid ->
-                    val member = App.rooms.findMember(sid)
-                    if (member == null || member.unavailable) {
-                        throw ApiException(context.getString(R.string.rooms_member_unknown, sid))
-                    }
-                    member.accNo
-                }
-                if (room.needsMembers && accNos.size < RoomApi.MIN_CO_APPLICANTS) {
-                    throw ApiException(
-                        context.getString(
-                            R.string.rooms_member_needed,
-                            room.people,
-                            RoomApi.MIN_CO_APPLICANTS,
-                        ),
-                    )
-                }
-                App.rooms.book(room.devId, begin, end, title, accNos)
-            },
+            block = { App.rooms.book(room.devId, begin, end, title, accNos) },
             onOk = {
                 if (!isAdded) return@runIo
                 android.widget.Toast.makeText(
@@ -186,6 +188,47 @@ class RoomFragment : ListFragment<RoomInfo>(R.layout.fragment_rooms), BookDialog
                 showError(error)
             },
         )
+    }
+
+    /**
+     * The service's own booking rules, which is what its page shows on entering the
+     * booking site: the window it accepts, the session length, the start interval —
+     * stated by the service, not paraphrased here — plus the library's own wording and
+     * the co-applicant rule.
+     */
+    private fun showRules() {
+        viewLifecycleOwner.runIo(
+            block = { App.rooms.rules() },
+            onOk = { rows -> rulesDialog(rulesFrom(rows)) },
+            // A rule block is a courtesy: when it cannot be fetched, say what the
+            // library's wording says rather than reporting a failure.
+            onErr = { rulesDialog(listOf(getString(R.string.rooms_policy))) },
+        )
+    }
+
+    private fun rulesFrom(rows: List<RoomRule>): List<String> {
+        val lines = mutableListOf<String>()
+        rows.firstOrNull { it.earliest.isNotBlank() || it.latest.isNotBlank() }?.let {
+            lines += getString(R.string.rooms_rule_scope, it.earliest, it.latest)
+        }
+        rows.firstOrNull { it.longest > 0 }?.let {
+            lines += getString(R.string.rooms_rule_length, it.shortest, it.longest)
+        }
+        rows.firstOrNull { it.interval > 0 }?.let {
+            lines += getString(R.string.rooms_rule_interval, it.interval)
+        }
+        lines += getString(R.string.rooms_members_rule, RoomApi.MIN_CO_APPLICANTS)
+        lines += getString(R.string.rooms_policy)
+        return lines
+    }
+
+    private fun rulesDialog(lines: List<String>) {
+        if (!isAdded) return
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle(R.string.rooms_info)
+            .setMessage(lines.joinToString("\n\n"))
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
     }
 
     override fun bindRow(view: View, item: RoomInfo, position: Int) {
