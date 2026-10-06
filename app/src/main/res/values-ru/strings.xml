@@ -417,6 +417,7 @@
     <string name="server_saved">Сервер сохранён</string>
     <string name="account_session_valid">Вход выполнен</string>
     <string name="account_session_invalid">Выход выполнен</string>
+    <string name="account_print_campus_only">Нужна сеть кампуса</string>
     <string name="account_print_unavailable">Недоступно</string>
     <string name="language_title">Язык</string>
     <string name="language_change">Изменить язык</string>

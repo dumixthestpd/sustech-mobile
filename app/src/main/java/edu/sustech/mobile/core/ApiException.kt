@@ -21,3 +21,32 @@ open class ApiException(
     val refused: Boolean = false,
     val httpStatus: Int? = null,
 ) : Exception(message)
+
+/**
+ * What a service's status line should say when its probe fails.
+ *
+ * A service that only answers on campus reports a plain network error off campus,
+ * which reads as "this service is broken" while it is working perfectly there — so
+ * the two facts are told apart here rather than by the wording of an exception.
+ */
+enum class SessionProbe {
+    /** Signed in and reachable. */
+    OK,
+
+    /** Could not be reached at all: for a campus-only service, that is a location. */
+    UNREACHABLE,
+
+    /** Answered, but refuses to serve this account (405 / similar). */
+    REFUSED,
+
+    /** Answered with a real problem worth its own message. */
+    FAILED,
+}
+
+/** [error] as a status line, per [SessionProbe]. */
+fun sessionProbe(error: Throwable?): SessionProbe = when {
+    error == null -> SessionProbe.OK
+    error is ApiException && (error.offCampus || error.httpStatus == null) -> SessionProbe.UNREACHABLE
+    error is ApiException && error.httpStatus == 405 -> SessionProbe.REFUSED
+    else -> SessionProbe.FAILED
+}

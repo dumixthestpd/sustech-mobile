@@ -19,8 +19,10 @@ import edu.sustech.mobile.core.AppConfig
 import edu.sustech.mobile.core.ApiException
 import edu.sustech.mobile.core.Credentials
 import edu.sustech.mobile.core.Hosts
+import edu.sustech.mobile.core.SessionProbe
 import edu.sustech.mobile.core.friendly
 import edu.sustech.mobile.core.runIo
+import edu.sustech.mobile.core.sessionProbe
 import edu.sustech.mobile.sso.Session
 import edu.sustech.mobile.pms.PmsApi
 import okhttp3.Request
@@ -127,10 +129,13 @@ class AccountFragment : Fragment(R.layout.fragment_account), Refreshable {
             block = { App.api.check() },
             onOk = { printSession?.setText(R.string.account_session_valid) },
             onErr = { error ->
-                if (error is ApiException && error.httpStatus == 405) {
-                    printSession?.setText(R.string.account_print_unavailable)
-                } else {
-                    printSession?.text = error.friendly(requireContext())
+                printSession?.text = when (sessionProbe(error)) {
+                    // The print service is campus-only: not reaching it is a location
+                    // fact, not a broken session — "网络错误" there reads as if printing
+                    // were down while it works perfectly on campus.
+                    SessionProbe.UNREACHABLE -> getString(R.string.account_print_campus_only)
+                    SessionProbe.REFUSED -> getString(R.string.account_print_unavailable)
+                    else -> error.friendly(requireContext())
                 }
             },
         )

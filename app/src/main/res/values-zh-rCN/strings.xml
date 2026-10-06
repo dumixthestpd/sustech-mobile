@@ -412,6 +412,7 @@
     <string name="server_saved">服务器已保存</string>
     <string name="account_session_valid">已登录</string>
     <string name="account_session_invalid">未登录</string>
+    <string name="account_print_campus_only">需连接校园网</string>
     <string name="account_print_unavailable">不可用</string>
     <string name="language_title">语言</string>
     <string name="language_change">更改语言</string>

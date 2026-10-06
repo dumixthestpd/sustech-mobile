@@ -229,11 +229,6 @@ class RoomApi(private val http: OkHttpClient) {
                 val lab = labInfos.optJSONObject(l) ?: continue
                 val labName = lab.optString("labName")
                 val roomInfos = lab.optJSONArray("roomInfos") ?: continue
-                // Equipment lending arrives in the same inventory as rooms: a lab that
-                // holds exactly one device, named after the lab itself. A floor holds
-                // several and is never named after one of them, so this separates them
-                // without a name list to maintain.
-                val single = roomInfos.length() == 1
                 for (r in 0 until roomInfos.length()) {
                     val room = roomInfos.optJSONObject(r) ?: continue
                     val name = room.optString("devName")
@@ -246,7 +241,7 @@ class RoomApi(private val http: OkHttpClient) {
                         minMinutes = room.optInt("minResvTime"),
                         // Populated exactly when the room is taken.
                         free = (room.optJSONArray("resvInfos")?.length() ?: 0) == 0,
-                        lending = single && labName == name,
+                        lending = isLending(labName, name, roomInfos.length()),
                     )
                 }
             }
@@ -538,6 +533,15 @@ class RoomApi(private val http: OkHttpClient) {
         private val CAPACITY_MIN = Regex("（(\\d+)人以上）")
         private val CAPACITY_LABEL = Regex("（[^）]*人[^）]*）")
         private val FLOOR_ORDER = Regex("^(\\D+)")
+
+        /**
+         * Equipment lending arrives in the same flat inventory as rooms and carries no
+         * marker saying so, so it is derived: a lab holding exactly one device, named
+         * after the lab itself. A floor holds several and is never named after one of
+         * them, so this separates them without a name list to maintain.
+         */
+        fun isLending(labName: String, deviceName: String, devicesInLab: Int): Boolean =
+            devicesInLab == 1 && labName == deviceName
 
         /**
          * True when the service's own name says the room starts at 3+ people, which

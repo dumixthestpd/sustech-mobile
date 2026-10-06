@@ -444,6 +444,7 @@
     <string name="server_saved">Server saved</string>
     <string name="account_session_valid">Signed in</string>
     <string name="account_session_invalid">Signed out</string>
+    <string name="account_print_campus_only">Needs the campus network</string>
     <string name="account_print_unavailable">Unavailable</string>
     <string name="language_title">Language</string>
     <string name="language_change">Change language</string>
