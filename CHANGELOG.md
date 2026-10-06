@@ -2,16 +2,20 @@
 
 ## 0.3.28 — 2026-10-06
 
+Everything in this entry is the project's own work unless a line marked *Contributed by*
+names someone else.
+
 **Library discussion rooms**, read and booked in the app; equipment lending handed
 over properly; and four fixes found by running it rather than by reading it.
 
-- **Discussion rooms.** The service, the sign-in chain and the library's rules were worked
-  out on 2026-06-29 and in the weeks after, in the project's Python engine; this is the
-  Android front end for them. Every IC room by floor with its live occupancy, a search box
-  and filter chips (all / free / taken, plus one per floor), then a booking sheet: day,
-  start, length, topic. Which days are bookable is the service's own answer — today is one
-  of them, which the sheet used to omit — and the windows it states are enforced rather
-  than guessed at.
+- **Discussion rooms.** The project's own booking engine, now with a screen. Its service, its
+  sign-in chain and the library's rules were worked out from 2026-06-29 onward, in the Python
+  engine; this is the Android front end for them. Every IC room by floor with its live
+  occupancy, a search box and filter chips (all / free / taken, plus one per floor), then a
+  booking sheet: day, start, length, topic. Which days are bookable is the service's own
+  answer — today is one of them, which the sheet used to omit — and the windows it states are
+  enforced rather than guessed at.
+  <br><sub>The booking engine, its rules and its sign-in chain: [@dumixthestpd](https://github.com/dumixthestpd).</sub>
 - **Co-applicants, named as you type.** A room whose *minimum* capacity is 3+ is
   refused by the service without two co-applicants, so the sheet takes one student id
   per box, asks the service who each one is, and prints the name under the box while

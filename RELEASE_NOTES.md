@@ -9,6 +9,9 @@ consolidated note, so removing intermediate releases loses nothing.
 
 ---
 
+Everything below is the project's own work — every feature, fix and screen — unless a line
+marked *Contributed by* names someone else.
+
 ## New screens
 
 - **Electronic campus card (一卡通)** — balance and recent bills read with your
@@ -30,17 +33,17 @@ consolidated note, so removing intermediate releases loses nothing.
   of four campus shortcuts you configure, starting with the e-card, its QR code,
   printing and the bus. Both preview their real layout in the picker.
   <br><sub>Contributed by [@Shirakawa-Kotone](https://github.com/Shirakawa-Kotone).</sub>
-- **Library discussion rooms** — the booking the project already had, now with a screen.
-  The service, the sign-in chain and the library's rules were worked out on 2026-06-29
-  and in the weeks after (the module in the Python engine), and this is the Android front
-  end for them: every IC room by floor with its live occupancy, a search box and filters,
-  and the booking itself — day, start, length, topic. A room whose minimum capacity is 3+
-  needs two co-applicants, so the sheet takes one student id per box and asks the service
-  who each is; the name appears under the box while you type, and the Book button stays
-  shut until the required number resolve. The library's own rules sit behind an ⓘ, fetched
-  from the page the library publishes, including the one that costs a week's booking ban
-  if a 3+ person room checks in with fewer than three cards. Your bookings list cancels
-  behind a confirm.
+- **Library discussion rooms** — the project's own booking engine, now with a screen. Its
+  service, its sign-in chain and the library's rules were worked out from 2026-06-29 onward
+  in the Python engine; this is the Android front end for them: every IC room by floor with
+  its live occupancy, a search box and filters, and the booking itself — day, start, length,
+  topic. A room whose minimum capacity is 3+ needs two co-applicants, so the sheet takes one
+  student id per box and asks the service who each is; the name appears under the box while
+  you type, and the Book button stays shut until the required number resolve. The library's
+  own rules sit behind an ⓘ, fetched from the page the library publishes, including the one
+  that costs a week's booking ban if a 3+ person room checks in with fewer than three cards.
+  Your bookings list cancels behind a confirm.
+  <br><sub>The booking engine, its rules and its sign-in chain: [@dumixthestpd](https://github.com/dumixthestpd).</sub>
 - **Equipment lending** (the recording studio, the 3D printer, the scanner) arrives in
   the same list as the rooms but books through its own form — a purpose, a date with a
   start and an end, a memo, a captcha — so it is labelled 设备外借 and opens the official
