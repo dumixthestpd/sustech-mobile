@@ -23,7 +23,7 @@ class ServicesTest {
 
     /** The deep-link ids, in catalog order. Changing one is an interface change. */
     private val expectedIds = listOf(
-        "ecard", "pms", "tis", "nces", "blackboard", "library",
+        "ecard", "pms", "tis", "nces", "blackboard", "library", "rooms",
         "booking", "transit", "faculty", "exchange", "cle", "wifi",
     )
 

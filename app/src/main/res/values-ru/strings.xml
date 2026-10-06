@@ -203,6 +203,12 @@
     <string name="service_exchange">Программы обмена</string>
     <string name="service_exchange_summary">Студенческий обмен и обучение за рубежом</string>
     <string name="ws_no_programs">Сейчас программы обмена не указаны.</string>
+    <string name="service_rooms">Комнаты для занятий</string>
+    <string name="service_rooms_summary">Свободные комнаты библиотеки сейчас (нужна сеть кампуса)</string>
+    <string name="rooms_note">Свободно %1$d из %2$d · ваших записей: %3$d</string>
+    <string name="rooms_free">Свободно %1$d/%2$d</string>
+    <string name="rooms_empty">Сервис комнат ничего не вернул.</string>
+    <string name="rooms_loading">Проверяю комнаты…</string>
     <string name="service_cle">Языковая помощь</string>
     <string name="service_cle_summary">Запись на индивидуальные занятия по языку</string>
     <string name="cle_no_reservations">У вас нет записей на консультацию.</string>

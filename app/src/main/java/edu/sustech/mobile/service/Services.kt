@@ -60,6 +60,16 @@ object Services {
         available = true,
     ) { edu.sustech.mobile.ui.library.LibraryFragment() }
 
+    /** The IC library's discussion rooms. Campus network only. */
+    val rooms = ServiceModule(
+        id = "rooms",
+        title = R.string.service_rooms,
+        summary = R.string.service_rooms_summary,
+        icon = R.drawable.ic_grid,
+        navId = R.id.nav_pms,
+        available = true,
+    ) { edu.sustech.mobile.ui.room.RoomFragment() }
+
     val booking = ServiceModule(
         id = "booking",
         title = R.string.service_booking,
@@ -126,7 +136,7 @@ object Services {
     val all: List<ServiceModule> = listOf(
         ecard,
         printing, courses, nces,
-        blackboard, library, booking, transit, faculty, exchange,
+        blackboard, library, rooms, booking, transit, faculty, exchange,
         languageHelp, wifi,
     )
 

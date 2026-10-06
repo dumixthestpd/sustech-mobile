@@ -242,7 +242,9 @@ class RoomApi(private val http: OkHttpClient) {
         val url = HttpUrl.Builder()
             .scheme("https")
             .host(HOST)
-            .addPathSegments(path.trimStart('/'))
+            // Every read lives under /ic-web — without it the service answers its
+            // own HTML error page, which looks like a dead session.
+            .addPathSegments("ic-web/" + path.trimStart('/'))
         params.forEach { url.addQueryParameter(it.first, it.second) }
         val body = get(url.build().toString())
         if (body.optInt("code") == 0) return body
@@ -262,22 +264,22 @@ class RoomApi(private val http: OkHttpClient) {
             .header("User-Agent", CasLogin.UA)
             .header("Accept", "application/json, text/plain, */*")
             .build()
-        val text = try {
+        val body = try {
             http.newCall(request).execute().use { response ->
-                val body = response.body?.string().orEmpty()
-                if (response.code == 403 && body.contains(OFF_CAMPUS_BODY)) {
+                val text = response.body?.string().orEmpty()
+                if (response.code == 403 && text.contains(OFF_CAMPUS_BODY)) {
                     throw ApiException(OFF_CAMPUS_HINT)
                 }
                 if (!response.isSuccessful) {
                     throw ApiException("room: HTTP ${response.code}")
                 }
-                body
+                text
             }
         } catch (e: IOException) {
             throw ApiException(e.message ?: "network error")
         }
         return try {
-            JSONObject(text)
+            JSONObject(body)
         } catch (e: Exception) {
             throw ApiException("room: unexpected reply from the booking service")
         }
