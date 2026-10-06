@@ -110,6 +110,10 @@ consolidated note, so removing intermediate releases loses nothing.
 - Android 8.0 and newer (`minSdk 26`).
 - Not exercised end-to-end yet: Blackboard, course reviews, the campus-code widget's
   live render, and the top-up hand-off (no real payment was ever submitted).
+- **Booking a room has not been sent end-to-end**: the sheet is exercised up to the
+  confirmation, and the write itself was deliberately not submitted (it takes a real
+  room). Everything it sends was read off the service's own page, but the first real
+  booking is worth watching.
 
 ## Upgrading
 
