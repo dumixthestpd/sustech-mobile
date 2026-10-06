@@ -9,6 +9,7 @@ import android.text.TextWatcher
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -23,6 +24,7 @@ import edu.sustech.mobile.core.App
 import edu.sustech.mobile.library.room.RoomApi
 import edu.sustech.mobile.library.room.RoomInfo
 import edu.sustech.mobile.library.room.RoomMember
+import edu.sustech.mobile.library.room.TimeWindow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -79,6 +81,14 @@ class BookDialog : DialogFragment() {
     private var memberLabel: TextView? = null
     private val memberRows = mutableListOf<MemberRow>()
 
+    /** The day's windows as the service stated them; null until it has answered. */
+    private var windows: List<TimeWindow>? = null
+    private lateinit var days: List<Date>
+    private lateinit var lengths: List<Int>
+    private lateinit var daySpinner: Spinner
+    private lateinit var lengthSpinner: Spinner
+    private lateinit var policyLine: TextView
+
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val room = RoomInfo(
             devId = requireArguments().getInt(ARG_DEV),
@@ -96,10 +106,11 @@ class BookDialog : DialogFragment() {
             room.lab,
             room.people,
         ).filter { it.isNotBlank() }.joinToString(" · ")
-        view.findViewById<TextView>(R.id.book_policy).text = getString(R.string.rooms_policy)
+        policyLine = view.findViewById(R.id.book_policy)
+        policyLine.text = getString(R.string.rooms_policy)
 
-        val days = RoomApi.bookableDays()
-        val daySpinner = view.findViewById<Spinner>(R.id.book_day)
+        days = RoomApi.bookableDays()
+        daySpinner = view.findViewById(R.id.book_day)
         daySpinner.adapter = ArrayAdapter(
             requireContext(),
             android.R.layout.simple_spinner_dropdown_item,
@@ -123,13 +134,30 @@ class BookDialog : DialogFragment() {
             ).show()
         }
 
-        val lengths = LENGTHS.filter { it <= RoomApi.MAX_MINUTES }
-        val lengthSpinner = view.findViewById<Spinner>(R.id.book_length)
+        lengths = LENGTHS.filter { it <= RoomApi.MAX_MINUTES }
+        lengthSpinner = view.findViewById(R.id.book_length)
         lengthSpinner.adapter = ArrayAdapter(
             requireContext(),
             android.R.layout.simple_spinner_dropdown_item,
             lengths.map { getString(R.string.rooms_minutes, it) },
         )
+
+        // Which days are bookable is the service's answer, asked per day — today
+        // included, which is why nothing here assumes a 1..2 day window.
+        daySpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, v: View?, position: Int, id: Long) {
+                loadScope(days[position])
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+        }
+        lengthSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, v: View?, position: Int, id: Long) {
+                refreshReady()
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+        }
 
         val topic = view.findViewById<EditText>(R.id.book_topic)
         topic.setText(RoomApi.DEFAULT_TITLE)
@@ -164,11 +192,8 @@ class BookDialog : DialogFragment() {
             .apply {
                 setOnShowListener {
                     getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                        val day = days[daySpinner.selectedItemPosition]
-                        val begin = at(day, startHour, startMinute)
-                        val end = Date(
-                            begin.time + lengths[lengthSpinner.selectedItemPosition] * 60_000L,
-                        )
+                        val (begin, end) = slot() ?: return@setOnClickListener
+                        if (!scopeAllows(begin, end)) return@setOnClickListener
                         val members = readyMembers() ?: return@setOnClickListener
                         confirm(
                             room = room,
@@ -281,7 +306,9 @@ class BookDialog : DialogFragment() {
         val named = memberRows.mapNotNull { it.member }.filter { !it.unavailable }
         val pending = memberRows.any { it.input.text.isNotBlank() && it.member == null }
         val enough = named.size >= RoomApi.MIN_CO_APPLICANTS
-        button.isEnabled = !needsMembers || (enough && !pending)
+        // Two gates: the day has to allow the slot, and a 3+ person room has to have
+        // its co-applicants named.
+        button.isEnabled = scopeAllowsQuietly() && (!needsMembers || (enough && !pending))
         if (!needsMembers) return
         memberLabel?.text = buildString {
             append(getString(R.string.rooms_members_label, RoomApi.MIN_CO_APPLICANTS))
@@ -324,6 +351,82 @@ class BookDialog : DialogFragment() {
             return null
         }
         return members
+    }
+
+    // -- The day's window -----------------------------------------------------
+
+    /** The slot currently picked, or null before the sheet is fully built. */
+    private fun slot(): Pair<Date, Date>? {
+        val day = days.getOrNull(daySpinner.selectedItemPosition) ?: return null
+        val length = lengths.getOrNull(lengthSpinner.selectedItemPosition) ?: return null
+        val begin = at(day, startHour, startMinute)
+        return begin to Date(begin.time + length * 60_000L)
+    }
+
+    /** True when the day's windows allow this slot; says why when they do not. */
+    private fun scopeAllows(begin: Date, end: Date): Boolean {
+        val listed = windows ?: return true
+        if (listed.isEmpty()) {
+            toast(getString(R.string.rooms_day_closed))
+            return false
+        }
+        if (listed.any { !begin.before(it.begin) && !end.after(it.end) }) return true
+        toast(getString(R.string.rooms_slot_outside, listed.joinToString("、") { it.label }))
+        return false
+    }
+
+    /**
+     * The same question, without a message. The service's own answer is the last word:
+     * when it states no scope the booking is not gated on a guess.
+     */
+    private fun scopeAllowsQuietly(): Boolean {
+        val listed = windows ?: return true
+        val (begin, end) = slot() ?: return true
+        if (listed.isEmpty()) return false
+        return listed.any { !begin.before(it.begin) && !end.after(it.end) }
+    }
+
+    /**
+     * Asks the service what [day] allows and moves the pick into the first window when
+     * the current start falls outside every one. **The service decides which days are
+     * bookable** — today included — so its answer, not a guess, gates the button.
+     */
+    private fun loadScope(day: Date) {
+        windows = null
+        refreshReady()
+        lifecycleScope.launch {
+            val found = try {
+                withContext(Dispatchers.IO) { App.rooms.timeScope(day) }
+            } catch (t: Throwable) {
+                null
+            }
+            if (!isAdded) return@launch
+            windows = found
+            val (begin, end) = slot() ?: return@launch
+            if (found != null && found.isNotEmpty() &&
+                found.none { !begin.before(it.begin) && !end.after(it.end) }
+            ) {
+                val calendar = Calendar.getInstance().apply { time = found.first().begin }
+                startHour = calendar.get(Calendar.HOUR_OF_DAY)
+                startMinute = calendar.get(Calendar.MINUTE)
+                showStart()
+            }
+            showWindows()
+            refreshReady()
+        }
+    }
+
+    /** States what the chosen day allows, in the service's own terms. */
+    private fun showWindows() {
+        val listed = windows ?: return
+        policyLine.text = listOf(
+            getString(R.string.rooms_policy),
+            if (listed.isEmpty()) {
+                getString(R.string.rooms_day_closed)
+            } else {
+                getString(R.string.rooms_day_open, listed.joinToString("、") { it.label })
+            },
+        ).joinToString("\n")
     }
 
     // -- The rest -------------------------------------------------------------

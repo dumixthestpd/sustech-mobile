@@ -13,6 +13,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
+import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -43,6 +44,9 @@ data class RoomMember(
     /** The service marks accounts that cannot be booked with (2 = unavailable). */
     val unavailable: Boolean,
 )
+
+/** One window the service allows on a given day. */
+data class TimeWindow(val begin: Date, val end: Date, val label: String)
 
 /** One booking-rule row as the service states it (`borrow/reserve/resvRules`). */
 data class RoomRule(
@@ -254,6 +258,25 @@ class RoomApi(private val http: OkHttpClient) {
                 longest = row.optInt("maxResvTime"),
                 interval = row.optInt("timeInterval"),
             )
+        }
+    }
+
+    /**
+     * The windows the service allows on [day] (`borrow/reserve/timeScope?beginDate=`,
+     * the call its page makes when a date is picked — export "d" of its api module).
+     * **The service decides which days are bookable**: null means it stated no scope
+     * (unknown, so nothing is gated on it), an empty list means it stated none.
+     */
+    fun timeScope(day: Date): List<TimeWindow>? {
+        // `data: null` is the service declining to state a scope, not stating there is
+        // none — its own page renders whatever it gets. So: null = unknown (do not gate
+        // on it), an array = its answer, empty array = it lists nothing that day.
+        val reply = call("/borrow/reserve/timeScope", "beginDate" to SCOPE_DAY.format(day))
+        val data = reply.optJSONArray("data") ?: return null
+        return (0 until data.length()).mapNotNull { data.optJSONObject(it) }.mapNotNull { row ->
+            val begin = scopeStamp(row.optString("beginTime"), day) ?: return@mapNotNull null
+            val end = scopeStamp(row.optString("endTime"), day) ?: return@mapNotNull null
+            TimeWindow(begin, end, "${CLOCK.format(begin)}–${CLOCK.format(end)}")
         }
     }
 
@@ -508,19 +531,63 @@ class RoomApi(private val http: OkHttpClient) {
             compareBy({ FLOOR_ORDER.find(it.lab)?.value.orEmpty() }, { it.name }),
         )
 
-        /** The days the booking sheet offers, starting tomorrow. */
+        /**
+         * The days the sheet offers: **today through [MAX_DAYS_AHEAD] days out**. Today
+         * is offered because the service accepts it — "up to two days ahead" bounds how
+         * far out, not the same day. What each day allows is the service's own answer to
+         * [timeScope], so this list does not decide.
+         */
         fun bookableDays(): List<Date> {
             val calendar = Calendar.getInstance()
             calendar.set(Calendar.HOUR_OF_DAY, 0)
             calendar.set(Calendar.MINUTE, 0)
             calendar.set(Calendar.SECOND, 0)
             calendar.set(Calendar.MILLISECOND, 0)
-            return (1..MAX_DAYS_AHEAD).map { ahead ->
+            return (0..MAX_DAYS_AHEAD).map { ahead ->
                 val day = Calendar.getInstance()
                 day.time = calendar.time
                 day.add(Calendar.DAY_OF_MONTH, ahead)
                 day.time
             }
         }
+
+        /** The service's own date parameter for the day's scope: `beginDate=YYYYMMDD`. */
+        private val SCOPE_DAY = SimpleDateFormat("yyyyMMdd", Locale.US)
+
+        private val CLOCK = SimpleDateFormat("HH:mm", Locale.US)
+
+        /**
+         * A `beginTime`/`endTime` from the scope reply. The service may send a full
+         * datetime or only a clock time, in which case it belongs to [day].
+         */
+        internal fun scopeStamp(value: String, day: Date): Date? {
+            val text = value.trim()
+            if (text.isEmpty()) return null
+            val clean = text.replace('T', ' ').substringBefore('+')
+            for (format in DATE_FORMATS) {
+                try {
+                    return SimpleDateFormat(format, Locale.US).parse(clean)
+                } catch (e: ParseException) {
+                    // Not this one; the clock-time fallback below covers the rest.
+                }
+            }
+            val clock = Regex("(\\d{1,2}):(\\d{2})").find(text) ?: return null
+            val calendar = Calendar.getInstance()
+            calendar.time = day
+            calendar.set(Calendar.HOUR_OF_DAY, clock.groupValues[1].toInt())
+            calendar.set(Calendar.MINUTE, clock.groupValues[2].toInt())
+            calendar.set(Calendar.SECOND, 0)
+            calendar.set(Calendar.MILLISECOND, 0)
+            return calendar.time
+        }
+
+        private val DATE_FORMATS = listOf(
+            "yyyy/MM/dd HH:mm:ss",
+            "yyyy-MM-dd HH:mm:ss",
+            "yyyy/MM/dd HH:mm",
+            "yyyy-MM-dd HH:mm",
+            "yyyyMMdd HH:mm:ss",
+            "yyyyMMdd HH:mm",
+        )
     }
 }

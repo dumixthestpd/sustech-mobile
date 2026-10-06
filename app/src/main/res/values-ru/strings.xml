@@ -255,8 +255,11 @@
     <string name="rooms_rule_scope">Можно записать: %1$s – %2$s</string>
     <string name="rooms_rule_length">Одна сессия: %1$d–%2$d мин</string>
     <string name="rooms_rule_interval">Начало каждые %1$d мин</string>
+    <string name="rooms_day_open">В этот день: %1$s</string>
+    <string name="rooms_day_closed">На этот день сервис не даёт окон записи.</string>
+    <string name="rooms_slot_outside">Это время вне окна дня (%1$s) — ничего не отправлено.</string>
     <string name="rooms_members_rule">Комната с минимумом 3+ человек требует организатора и ещё %1$d участников.</string>
-    <string name="rooms_policy">Библиотека разрешает запись за два дня, не больше двух часов за раз; отмена — не позже чем за десять минут до начала.</string>
+    <string name="rooms_policy">Библиотека разрешает запись не более чем за два дня (включая сегодня), не больше двух часов за раз; отмена — не позже чем за десять минут до начала.</string>
     <string name="service_cle">Языковая помощь</string>
     <string name="service_cle_summary">Запись на индивидуальные занятия по языку</string>
     <string name="cle_no_reservations">У вас нет записей на консультацию.</string>

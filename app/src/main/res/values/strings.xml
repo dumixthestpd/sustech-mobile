@@ -270,8 +270,11 @@
     <string name="rooms_rule_scope">Bookable: %1$s – %2$s</string>
     <string name="rooms_rule_length">One session: %1$d–%2$d minutes</string>
     <string name="rooms_rule_interval">Starts every %1$d minutes</string>
+    <string name="rooms_day_open">That day: %1$s</string>
+    <string name="rooms_day_closed">The service lists no booking window for that day.</string>
+    <string name="rooms_slot_outside">That time is outside the day\'s window (%1$s) — nothing was sent.</string>
     <string name="rooms_members_rule">A room whose minimum capacity is 3+ needs the booker plus %1$d co-applicants.</string>
-    <string name="rooms_policy">The library allows booking two days ahead, two hours per session, and cancelling at least ten minutes before the start.</string>
+    <string name="rooms_policy">The library allows booking up to two days ahead (today included), two hours per session, and cancelling at least ten minutes before the start.</string>
     <string name="service_cle">Language help</string>
     <string name="service_cle_summary">One-on-one language tutoring reservations</string>
     <string name="cle_no_reservations">You have no tutoring reservations.</string>
