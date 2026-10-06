@@ -149,6 +149,73 @@ object CasLogin {
         return ticket.toString()
     }
 
+    /**
+     * Signs in at a CAS URL the service resolved for itself, then follows the
+     * ticket so the service sets its session cookie.
+     *
+     * The IC room booking is why this exists: its authcenter hands out a **per-login**
+     * CAS URL (`/auth/address` → `toLoginPage` → CAS with a one-off service), so the
+     * URL cannot be built here the way [loginForTicket] does.
+     *
+     * @return true when the chain ran to completion (the caller checks its own cookie)
+     */
+    fun loginAtCasUrl(casUrl: String, sid: String, password: String): Boolean {
+        if (sid.isEmpty() || password.isEmpty()) {
+            throw ApiException("No credentials stored", signInRequired = true)
+        }
+        val (landed, html) = fetchFollowing(casUrl)
+        val execution = Regex("name=[\"']execution[\"']\\s+value=[\"']([^\"']+)[\"']")
+            .find(html)?.groupValues?.get(1)
+        if (!landed.orEmpty().contains("cas.sustech.edu.cn")) {
+            // Already had a ticket-granting cookie: CAS skipped its form.
+            return true
+        }
+        if (execution == null) {
+            throw ApiException("CAS did not return an execution token")
+        }
+        val form = FormBody.Builder()
+            .add("username", sid)
+            .add("password", password)
+            .add("execution", execution)
+            .add("_eventId", "submit")
+            .build()
+        try {
+            App.httpFollow.newCall(
+                Request.Builder()
+                    .url(landed!!)
+                    .post(form)
+                    .header("User-Agent", UA)
+                    .build(),
+            ).execute().use { response ->
+                if (response.request.url.toString().contains("cas.sustech.edu.cn")) {
+                    val text = response.body?.string().orEmpty()
+                    val plain = text.replace(Regex("<[^>]+>"), " ")
+                        .replace(Regex("\\s+"), " ").trim().take(160)
+                    throw ApiException("CAS refused the sign-in: $plain", refused = true)
+                }
+            }
+        } catch (e: IOException) {
+            throw ApiException(e.message ?: "network error")
+        }
+        return true
+    }
+
+    /** Follows [url], returning the URL it settled on and that page's body. */
+    private fun fetchFollowing(url: String): Pair<String?, String> {
+        val request = Request.Builder()
+            .url(url)
+            .get()
+            .header("User-Agent", UA)
+            .build()
+        return try {
+            App.httpFollow.newCall(request).execute().use { response ->
+                response.request.url.toString() to response.body?.string().orEmpty()
+            }
+        } catch (e: IOException) {
+            throw ApiException(e.message ?: "network error")
+        }
+    }
+
     private fun fetchExecution(page: String, xhr: Boolean): String? {
         val request = Request.Builder()
             .url(page)

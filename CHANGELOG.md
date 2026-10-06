@@ -85,27 +85,35 @@ branch (0.3.14–0.3.18) with the library-loans and update-detection work below 
 the intermediate versions were never published on their own.
 
 - **Electronic campus card (一卡通) is a service.** Balance and recent bills read
-  from the campus-card API with the stored account, plus in-app recharge.
+  from the campus-card API with the stored account, plus a top-up hand-off that
+  opens WeChat with the amount prefilled (payment completes in WeChat).
+  <br><sub>Contributed by [@Shirakawa-Kotone](https://github.com/Shirakawa-Kotone).</sub>
 - **Two launcher widgets.** One shows the campus-bus ETAs, Blackboard deadlines,
   the next class or the weather — you choose which when you add it. The other is
   a 2×2 grid of four campus shortcuts you configure yourself; it starts out as
   the electronic card, the campus-card QR, printing and the campus bus.
+  <br><sub>Contributed by [@Shirakawa-Kotone](https://github.com/Shirakawa-Kotone).</sub>
 - **Course reviews (牛娃社区).** Search a course, code or teacher and read the
   community's evaluation ratings — a service the catalog previously listed as
   planned.
+  <br><sub>Contributed by [@Shirakawa-Kotone](https://github.com/Shirakawa-Kotone).</sub>
 - **Faculty directory, offline.** A bilingual snapshot of the official public
   staff directory ships in the app, so name/title/department search works with no
   network; opening a person loads only that public profile.
+  <br><sub>Contributed by [@Shirakawa-Kotone](https://github.com/Shirakawa-Kotone).</sub>
 - **Official portals open in-app with the saved account.** Venue booking, exchange
   programmes, language tutoring and Wi-Fi open their real pages inside the app,
   with the stored CAS cookies handed to those pages so CAS-based ones start
   signed in. The exchange platform is the exception — it still shows its own
   login form.
+  <br><sub>Contributed by [@Shirakawa-Kotone](https://github.com/Shirakawa-Kotone).</sub>
 - **Chinese and Russian.** The whole interface is translated, including the names
   the campus-bus and library APIs return, instead of surfacing their English.
+  <br><sub>Contributed by [@Shirakawa-Kotone](https://github.com/Shirakawa-Kotone).</sub>
 - **Sessions are shared and honest.** CAS now accepts an existing SSO session when
   it issues a ticket immediately, one cookie store serves every service, and a
   service is reported unavailable only after its API actually says so.
+  <br><sub>Contributed by [@Shirakawa-Kotone](https://github.com/Shirakawa-Kotone).</sub>
 - **My borrowed books, with due dates and one-tap renew.** The library gains a
   Loans tab: everything you have out, when each book is due, and its renewal
   state. Renewing shows the exact request first and sends only after you confirm

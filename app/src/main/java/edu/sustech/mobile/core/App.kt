@@ -99,6 +99,11 @@ object App {
     /** E-Hall language tutoring; needs the WebView bootstrap before its reads answer. */
     val cle: edu.sustech.mobile.cle.CleApi by lazy { edu.sustech.mobile.cle.CleApi() }
 
+    /** IC library discussion rooms; read-only (booking stays on the official page). */
+    val rooms: edu.sustech.mobile.library.room.RoomApi by lazy {
+        edu.sustech.mobile.library.room.RoomApi(http)
+    }
+
     /** Application context, for callers that need assets or resources. */
     val context: android.content.Context get() = appContext
 
