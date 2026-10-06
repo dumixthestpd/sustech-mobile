@@ -26,8 +26,7 @@ import java.util.Date
  * booker plus two co-applicants, so the sheet asks for their student ids and this
  * screen resolves them before anything is sent.
  *
- * Needs the campus network: off campus the service refuses before any sign-in, and
- * that is reported as a location problem rather than a login one.
+ * Works off campus: library room booking is not campus-only.
  */
 class RoomFragment : ListFragment<RoomInfo>(R.layout.fragment_rooms), BookDialog.Listener {
 
@@ -192,42 +191,23 @@ class RoomFragment : ListFragment<RoomInfo>(R.layout.fragment_rooms), BookDialog
     }
 
     /**
-     * The service's own booking rules, which is what its page shows on entering the
-     * booking site: the window it accepts, the session length, the start interval —
-     * stated by the service, not paraphrased here — plus the library's own wording and
-     * the co-applicant rule.
+     * The library's own rules, fetched from its help page — the same text its website
+     * publishes (`lib-booking-policy`), not this app's summary of it. When the service
+     * declines, the sheet's own short version stands in.
      */
     private fun showRules() {
         viewLifecycleOwner.runIo(
-            block = { App.rooms.rules() },
-            onOk = { rows -> rulesDialog(rulesFrom(rows)) },
-            // A rule block is a courtesy: when it cannot be fetched, say what the
-            // library's wording says rather than reporting a failure.
-            onErr = { rulesDialog(listOf(getString(R.string.rooms_policy))) },
+            block = { App.rooms.policy() },
+            onOk = { text -> rulesDialog(text) },
+            onErr = { rulesDialog(null) },
         )
     }
 
-    private fun rulesFrom(rows: List<RoomRule>): List<String> {
-        val lines = mutableListOf<String>()
-        rows.firstOrNull { it.earliest.isNotBlank() || it.latest.isNotBlank() }?.let {
-            lines += getString(R.string.rooms_rule_scope, it.earliest, it.latest)
-        }
-        rows.firstOrNull { it.longest > 0 }?.let {
-            lines += getString(R.string.rooms_rule_length, it.shortest, it.longest)
-        }
-        rows.firstOrNull { it.interval > 0 }?.let {
-            lines += getString(R.string.rooms_rule_interval, it.interval)
-        }
-        lines += getString(R.string.rooms_members_rule, RoomApi.MIN_CO_APPLICANTS)
-        lines += getString(R.string.rooms_policy)
-        return lines
-    }
-
-    private fun rulesDialog(lines: List<String>) {
+    private fun rulesDialog(policy: String?) {
         if (!isAdded) return
         androidx.appcompat.app.AlertDialog.Builder(requireContext())
             .setTitle(R.string.rooms_info)
-            .setMessage(lines.joinToString("\n\n"))
+            .setMessage(policy ?: getString(R.string.rooms_policy))
             .setPositiveButton(android.R.string.ok, null)
             .show()
     }

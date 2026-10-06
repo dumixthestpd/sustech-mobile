@@ -219,7 +219,8 @@
     <string name="service_exchange_summary">Student exchange and study-abroad listings</string>
     <string name="ws_no_programs">No exchange programmes are listed right now.</string>
     <string name="service_rooms">Discussion rooms</string>
-    <string name="service_rooms_summary">Library rooms free right now (campus network)</string>
+    <string name="service_rooms_summary">Library rooms free right now</string>
+    <string name="rooms_refused">The library\'s booking service refused this request. Try again, and if it repeats check your sign-in on its official page.</string>
     <string name="rooms_note">%1$d of %2$d free · your bookings: %3$d</string>
     <string name="rooms_loading">Checking the rooms…</string>
     <string name="rooms_mine_link">My bookings: %1$d ›</string>
@@ -267,9 +268,6 @@
     <string name="rooms_book_confirm_warning">The room is taken the moment this is sent.</string>
     <string name="rooms_member_needed">This room is %1$s and needs %2$d co-applicants — nothing was sent.</string>
     <string name="rooms_info">Booking rules</string>
-    <string name="rooms_rule_scope">Bookable: %1$s – %2$s</string>
-    <string name="rooms_rule_length">One session: %1$d–%2$d minutes</string>
-    <string name="rooms_rule_interval">Starts every %1$d minutes</string>
     <string name="rooms_day_open">That day: %1$s</string>
     <string name="rooms_day_closed">The service lists no booking window for that day.</string>
     <string name="rooms_slot_outside">That time is outside the day\'s window (%1$s) — nothing was sent.</string>
@@ -277,7 +275,8 @@
     <string name="rooms_lending_body">This is equipment lending, not a room: its booking form asks for a purpose, a date with a start and an end, a memo and a captcha, and only the official page has that form.\n\nThe page opens with your sign-in already in place — pick the lending section there.</string>
     <string name="rooms_lending_open">Open the official page</string>
     <string name="rooms_members_rule">A room whose minimum capacity is 3+ needs the booker plus %1$d co-applicants.</string>
-    <string name="rooms_policy">The library allows booking up to two days ahead (today included), two hours per session, and cancelling at least ten minutes before the start.</string>
+    <string name="rooms_policy">Two days ahead (today included), two hours per session, cancel at least ten minutes before the start. Check in by scanning your campus card at the room\'s screen.</string>
+    <string name="rooms_scan_warning">A 3+ person room needs at least %1$d campus cards scanned at the room\'s screen, or the booker is blocked from booking for a week.</string>
     <string name="service_cle">Language help</string>
     <string name="service_cle_summary">One-on-one language tutoring reservations</string>
     <string name="cle_no_reservations">You have no tutoring reservations.</string>

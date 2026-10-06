@@ -1,5 +1,48 @@
 # Changelog
 
+## 0.3.28 — 2026-10-06
+
+**Library discussion rooms**, read and booked in the app; equipment lending handed
+over properly; and four fixes found by running it rather than by reading it.
+
+- **Discussion rooms.** Every IC room by floor with its live occupancy, a search box
+  and filter chips (all / free / taken, plus one per floor), then a booking sheet:
+  day, start, length, topic. Which days are bookable is the service's own answer —
+  today is one of them, which the sheet used to omit — and the windows it states are
+  enforced rather than guessed at.
+- **Co-applicants, named as you type.** A room whose *minimum* capacity is 3+ is
+  refused by the service without two co-applicants, so the sheet takes one student id
+  per box, asks the service who each one is, and prints the name under the box while
+  you type. The Book button stays shut until the required number resolve — there is
+  no way to press it into a refusal. Rooms named `（1-3人）` ask for nothing.
+- **The library's own rules**, behind an ⓘ on the screen: fetched from the help page
+  the library publishes rather than summarised by this app. It is also where the cost
+  of a missed check-in appears — a 3+ person room needs three campus cards scanned at
+  the room's screen, or the booker is blocked from booking for a week — which the
+  confirm step now states before anything is sent.
+- **Equipment lending is not a room.** The recording studio, the 3D printer and the
+  scanner arrive in the same list as the rooms but book through a different form (a
+  purpose, a date with a start and an end, a memo, and a captcha) on a different
+  endpoint. They are now labelled 设备外借, are never sent a room's payload, and open
+  the official page **already signed in**.
+- **Your bookings**, with cancellation behind a confirm — it takes effect
+  immediately and cannot be undone.
+
+Fixes:
+
+- **The booking page opened on its own "error page!"** — the in-app browser was
+  handing that host the *courses* session, so the page loaded with no booking session
+  at all. It now establishes the booking service's own session first.
+- **Today is bookable.** The sheet offered only tomorrow onwards, a limit read out of
+  the rule text instead of out of the service. Each day's window now comes from the
+  service, and a day it states nothing about is not gated on a guess.
+- **The account screen no longer reports an unreachable print service as a network
+  error.** Printing is campus-only, so not reaching it is a location fact, not a
+  broken session.
+- **Correction: library room booking is not campus-only.** The app said it was — and
+  told you to join the campus Wi-Fi. It works off campus; a refusal from the service
+  is now reported as the service's own words.
+
 ## 0.3.27 — 2026-10-06
 
 Fixes language tutoring, which shipped in 0.3.26 working only while an E-Hall

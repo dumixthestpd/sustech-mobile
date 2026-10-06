@@ -204,7 +204,8 @@
     <string name="service_exchange_summary">Студенческий обмен и обучение за рубежом</string>
     <string name="ws_no_programs">Сейчас программы обмена не указаны.</string>
     <string name="service_rooms">Комнаты для занятий</string>
-    <string name="service_rooms_summary">Свободные комнаты библиотеки сейчас (нужна сеть кампуса)</string>
+    <string name="service_rooms_summary">Свободные комнаты библиотеки сейчас</string>
+    <string name="rooms_refused">Сервис записи библиотеки отклонил запрос. Попробуйте ещё раз, а если повторяется — проверьте вход на официальной странице.</string>
     <string name="rooms_note">Свободно %1$d из %2$d · ваших записей: %3$d</string>
     <string name="rooms_loading">Проверяю комнаты…</string>
     <string name="rooms_mine_link">Мои записи: %1$d ›</string>
@@ -252,9 +253,6 @@
     <string name="rooms_book_confirm_warning">Комната занимается сразу после отправки.</string>
     <string name="rooms_member_needed">Это комната %1$s, нужно %2$d участников — ничего не отправлено.</string>
     <string name="rooms_info">Правила записи</string>
-    <string name="rooms_rule_scope">Можно записать: %1$s – %2$s</string>
-    <string name="rooms_rule_length">Одна сессия: %1$d–%2$d мин</string>
-    <string name="rooms_rule_interval">Начало каждые %1$d мин</string>
     <string name="rooms_day_open">В этот день: %1$s</string>
     <string name="rooms_day_closed">На этот день сервис не даёт окон записи.</string>
     <string name="rooms_slot_outside">Это время вне окна дня (%1$s) — ничего не отправлено.</string>
@@ -262,7 +260,8 @@
     <string name="rooms_lending_body">Это выдача оборудования, а не комната: в форме нужно указать назначение, дату с началом и концом, заметку и капчу — такая форма есть только на официальной странице.\n\nСтраница откроется с уже выполненным входом; выберите там раздел выдачи.</string>
     <string name="rooms_lending_open">Открыть официальную страницу</string>
     <string name="rooms_members_rule">Комната с минимумом 3+ человек требует организатора и ещё %1$d участников.</string>
-    <string name="rooms_policy">Библиотека разрешает запись не более чем за два дня (включая сегодня), не больше двух часов за раз; отмена — не позже чем за десять минут до начала.</string>
+    <string name="rooms_policy">Не более чем за два дня (включая сегодня), не больше двух часов за раз, отмена — не позже чем за десять минут до начала. Отметиться можно, приложив карту у экрана комнаты.</string>
+    <string name="rooms_scan_warning">Для комнаты на 3+ человек у экрана нужно приложить минимум %1$d карты, иначе организатору запрещают запись на неделю.</string>
     <string name="service_cle">Языковая помощь</string>
     <string name="service_cle_summary">Запись на индивидуальные занятия по языку</string>
     <string name="cle_no_reservations">У вас нет записей на консультацию.</string>

@@ -199,7 +199,8 @@
     <string name="service_exchange_summary">学生交换与海外学习信息</string>
     <string name="ws_no_programs">当前没有列出的交换项目。</string>
     <string name="service_rooms">研讨间</string>
-    <string name="service_rooms_summary">图书馆研讨间现在的空闲情况（需校园网）</string>
+    <string name="service_rooms_summary">图书馆研讨间现在的空闲情况</string>
+    <string name="rooms_refused">图书馆预约服务拒绝了这次请求。可以重试；若持续出现，请到官方页面确认登录状态。</string>
     <string name="rooms_note">空闲 %1$d/%2$d · 我的预约 %3$d 条</string>
     <string name="rooms_loading">正在查询研讨间…</string>
     <string name="rooms_mine_link">我的预约 %1$d 条 ›</string>
@@ -247,9 +248,6 @@
     <string name="rooms_book_confirm_warning">发出后房间即被占用。</string>
     <string name="rooms_member_needed">这是 %1$s 的房间，需要 %2$d 位共同申请人，未发送任何请求。</string>
     <string name="rooms_info">预约规则</string>
-    <string name="rooms_rule_scope">可预约时间：%1$s – %2$s</string>
-    <string name="rooms_rule_length">单次时长：%1$d–%2$d 分钟</string>
-    <string name="rooms_rule_interval">时间间隔：%1$d 分钟</string>
     <string name="rooms_day_open">该日可预约：%1$s</string>
     <string name="rooms_day_closed">这一天服务端没有给出可预约时段。</string>
     <string name="rooms_slot_outside">该时间不在当天可预约时段内（%1$s），未发送任何请求。</string>
@@ -257,7 +255,8 @@
     <string name="rooms_lending_body">这是设备外借，不是研讨间：预约要填用途、日期与起止时间、备注，还要输入验证码，只有官方页面有这张表单。\n\n打开的页面已带上你的登录状态，在首页选「设备外借」。</string>
     <string name="rooms_lending_open">打开官方页面</string>
     <string name="rooms_members_rule">最小人数 3 人以上的房间，需发起人再加 %1$d 位共同申请人。</string>
-    <string name="rooms_policy">学校规定：最多可提前两天预约（当天也可以），每场不超过两小时；取消需在开始前十分钟以上。</string>
+    <string name="rooms_policy">最多提前两天（当天也可以），每场不超过两小时，取消需在开始前十分钟以上。到房间门口的屏幕刷校园卡签到。</string>
+    <string name="rooms_scan_warning">3 人以上的房间，门前屏幕至少要刷 %1$d 张校园卡，否则主预约人会被停约一周。</string>
     <string name="service_cle">语言辅导</string>
     <string name="service_cle_summary">一对一语言辅导预约</string>
     <string name="cle_no_reservations">你还没有语言辅导预约。</string>

@@ -60,15 +60,6 @@ data class RoomMember(
 /** One window the service allows on a given day. */
 data class TimeWindow(val begin: Date, val end: Date, val label: String)
 
-/** One booking-rule row as the service states it (`borrow/reserve/resvRules`). */
-data class RoomRule(
-    val earliest: String,
-    val latest: String,
-    val shortest: Int,
-    val longest: Int,
-    val interval: Int,
-)
-
 /** A room reservation this account holds. */
 data class RoomReservation(
     val resvId: Int,
@@ -100,9 +91,9 @@ data class RoomReservation(
  *   3. sign in at **that** CAS URL, and follow the ticket
  *   4. the relay chain's last hop sets `ic-cookie`, which every read then rides
  *
- * Also campus-only: off campus the server answers 403 with a fixed plain-text body
- * before any auth runs, so that is reported as a location problem rather than a
- * login one.
+ * Also **not** campus-only: library room booking works off campus (owner, 2026-10-06).
+ * A 403 with `Access forbidden, please contact administrator.` is the service's own
+ * refusal of that request, reported as such — never as "join the campus network".
  *
  * Booking rules the service enforces (from the library's 讨论间使用办法, shown in the
  * UI rather than guessed at): up to 2 days ahead, at most 2 hours per booking, and a
@@ -253,25 +244,21 @@ class RoomApi(private val http: OkHttpClient) {
     fun count(): Int = call("/reserve/count").optInt("data")
 
     /**
-     * The service's own booking rules for this account (`borrow/reserve/resvRules`) —
-     * the numbers the page's rule block renders. The service is the authority on what
-     * is bookable; an empty list means it had nothing to say, not that there are no
-     * rules, so the caller shows the library's own wording as well.
+     * The library's own policy text, from its help page —
+     * `GET /sysInfo/help?sysType=16&sysKind=4&status=2&sysValue=`, the one sysKind whose
+     * reply is text rather than a banner image. This is what the ⓘ shows: the library's
+     * words, not this app's summary of them. Null when the service declines.
      */
-    fun rules(): List<RoomRule> {
-        // The page calls this with no parameters, and so does this — measured
-        // 2026-10-06: the service answers code 0 with `data: null` for this account,
-        // so an empty list is a real answer, not a failure.
-        val data = call("/borrow/reserve/resvRules").optJSONArray("data") ?: return emptyList()
-        return (0 until data.length()).mapNotNull { data.optJSONObject(it) }.map { row ->
-            RoomRule(
-                earliest = stamp(row.opt("earliestResvTime")),
-                latest = stamp(row.opt("latestResvTime")),
-                shortest = row.optInt("minResvTime"),
-                longest = row.optInt("maxResvTime"),
-                interval = row.optInt("timeInterval"),
-            )
-        }
+    fun policy(): String? {
+        val body = call(
+            "/sysInfo/help",
+            "sysType" to "16",
+            "sysKind" to "4",
+            "status" to "2",
+            "sysValue" to "",
+        )
+        val text = body.optString("data").ifBlank { body.optString("message") }
+        return text.replace("\\r\\n", "\n").replace("\\n", "\n").trim().ifBlank { null }
     }
 
     /**
@@ -455,8 +442,8 @@ class RoomApi(private val http: OkHttpClient) {
         val text = try {
             http.newCall(builder.build()).execute().use { response ->
                 val payload = response.body?.string().orEmpty()
-                if (response.code == 403 && payload.contains(OFF_CAMPUS_BODY)) {
-                    throw ApiException(OFF_CAMPUS_HINT)
+                if (response.code == 403 && payload.contains(REFUSED_BODY)) {
+                    throw ApiException(App.context.getString(R.string.rooms_refused))
                 }
                 if (!response.isSuccessful) {
                     throw ApiException("room: HTTP ${response.code}")
@@ -513,12 +500,21 @@ class RoomApi(private val http: OkHttpClient) {
         /** A 3+ person room needs the booker plus this many co-applicants. */
         const val MIN_CO_APPLICANTS = 2
 
+        /**
+         * A 3+ person room needs this many campus cards scanned at the room's screen to
+         * count as checked in; fewer means a rule violation and a week's booking ban for
+         * the booker (policy 1.4).
+         */
+        const val MIN_SCAN_CARDS = 3
+
         const val DEFAULT_TITLE = "小组讨论"
 
-        private const val OFF_CAMPUS_BODY = "Access forbidden, please contact administrator."
-        const val OFF_CAMPUS_HINT =
-            "The library room service only answers on campus. Connect to campus Wi-Fi or " +
-                "wired, then try again."
+        /**
+         * The service's own refusal, shown as-is. 🔴 This is **not** a location error:
+         * library room booking works off campus (owner, 2026-10-06). Do not tell anyone
+         * to join the campus network for it.
+         */
+        private const val REFUSED_BODY = "Access forbidden, please contact administrator."
 
         private val AUTH_ERRORS = listOf("未登录", "请先登录", "session", "Authorization is")
         private val STAMP = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)

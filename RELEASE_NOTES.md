@@ -1,7 +1,7 @@
 # What's new since v0.3.11
 
 One note for the next release, covering everything that has landed since v0.3.11 —
-including the work that was published and unpublished in between as 0.3.12–0.3.27.
+including the work that was published and unpublished in between as 0.3.12–0.3.28.
 Paste the section below the line as the release body; set the version number yourself.
 
 The per-version history stays in [CHANGELOG.md](CHANGELOG.md); this file is the one
@@ -30,6 +30,18 @@ consolidated note, so removing intermediate releases loses nothing.
   of four campus shortcuts you configure, starting with the e-card, its QR code,
   printing and the bus. Both preview their real layout in the picker.
   <br><sub>Contributed by [@Shirakawa-Kotone](https://github.com/Shirakawa-Kotone).</sub>
+- **Library discussion rooms** — every IC room by floor with its live occupancy, a
+  search box and filters, and the booking itself: day, start, length, topic. A room
+  whose minimum capacity is 3+ needs two co-applicants, so the sheet takes one student
+  id per box and asks the service who each is — the name appears under the box while
+  you type, and the Book button stays shut until the required number resolve. The
+  library's own rules sit behind an ⓘ, fetched from the page the library publishes,
+  including the one that costs a week's booking ban if a 3+ person room checks in with
+  fewer than three cards. Your bookings list cancels behind a confirm.
+- **Equipment lending** (the recording studio, the 3D printer, the scanner) arrives in
+  the same list as the rooms but books through its own form — a purpose, a date with a
+  start and an end, a memo, a captcha — so it is labelled 设备外借 and opens the official
+  page already signed in, instead of being sent a room's booking.
 
 ## Services that used to hand you a browser
 
@@ -77,6 +89,19 @@ consolidated note, so removing intermediate releases loses nothing.
   page. Current builds and offline moments stay silent.
 - **Release APKs are signed with a real release key**, so a new version installs
   over the previous one instead of demanding an uninstall first.
+- **The booking page used to open on its own "error page!"**: the in-app browser was
+  handing that host the *courses* session, so the page loaded with no booking session
+  at all. It now establishes the booking service's own session before loading, and
+  every route that page refuses to render directly is no longer linked.
+- **Today is bookable.** The booking sheet offered only tomorrow onwards — a limit
+  read out of the rule text rather than out of the service. Each day's window now comes
+  from the service itself.
+- **The account screen no longer reports an unreachable print service as a network
+  error**: printing is campus-only, so not reaching it is a location fact, not a broken
+  session.
+- **Correction: library room booking is not campus-only.** The app said it was, and
+  told you to join the campus Wi-Fi. It works off campus; the service's own refusal is
+  reported as its own words.
 
 ## Known limits
 

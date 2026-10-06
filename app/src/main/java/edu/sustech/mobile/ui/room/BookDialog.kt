@@ -453,6 +453,10 @@ class BookDialog : DialogFragment() {
                 members.joinToString("、") { it.name.ifBlank { it.sid } },
             )
         }
+        // The cost of getting this wrong is a week's ban, so it is stated before sending.
+        if (room.needsMembers) {
+            lines += getString(R.string.rooms_scan_warning, RoomApi.MIN_SCAN_CARDS)
+        }
         lines += getString(R.string.rooms_book_confirm_warning)
         AlertDialog.Builder(requireContext())
             .setTitle(R.string.rooms_book_confirm_title)
