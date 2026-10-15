@@ -1,16 +1,29 @@
 package edu.sustech.mobile.ui.booking
 
+import android.app.DatePickerDialog
+import android.app.Dialog
+import android.os.Bundle
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.EditText
+import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.fragment.app.DialogFragment
+import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.RecyclerView
 import edu.sustech.mobile.R
 import edu.sustech.mobile.booking.BookingMeeting
 import edu.sustech.mobile.booking.BookingRoom
+import edu.sustech.mobile.booking.BookingSlot
 import edu.sustech.mobile.core.App
 import edu.sustech.mobile.ui.ListFragment
 import edu.sustech.mobile.ui.ServicePage
+import edu.sustech.mobile.ui.SimpleAdapter
 import edu.sustech.mobile.ui.TabbedServiceFragment
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.time.LocalDate
 
 /**
  * Venue booking, read natively.
@@ -38,6 +51,11 @@ class BookingRoomsFragment : ListFragment<BookingRoom>(R.layout.fragment_booking
 
     @Volatile
     private var query = ""
+    private var all = emptyList<BookingRoom>()
+    private var selectedDate = LocalDate.now()
+    private var selectedFilter = FILTER_ALL
+    private lateinit var summary: TextView
+    private lateinit var date: TextView
 
     override fun rowLayout() = R.layout.item_booking_room
 
@@ -50,6 +68,10 @@ class BookingRoomsFragment : ListFragment<BookingRoom>(R.layout.fragment_booking
     }
 
     override fun onReady(view: View) {
+        summary = view.findViewById(R.id.booking_summary)
+        date = view.findViewById(R.id.booking_date)
+        date.text = selectedDate.toString()
+        date.setOnClickListener { pickDate() }
         val search = view.findViewById<EditText>(R.id.booking_search)
         query = search.text.toString()
         search.setOnEditorActionListener { field, action, _ ->
@@ -60,9 +82,44 @@ class BookingRoomsFragment : ListFragment<BookingRoom>(R.layout.fragment_booking
             }
             isSearch
         }
+        val filters = view.findViewById<com.google.android.material.chip.ChipGroup>(R.id.booking_filters)
+        listOf(
+            R.string.booking_filter_all to FILTER_ALL,
+            R.string.booking_filter_available to FILTER_AVAILABLE,
+            R.string.booking_filter_unavailable to FILTER_UNAVAILABLE,
+        ).forEach { (label, value) ->
+            val chip = com.google.android.material.chip.Chip(requireContext()).apply {
+                id = View.generateViewId()
+                text = getString(label)
+                isCheckable = true
+                tag = value
+                setOnCheckedChangeListener { _, checked -> if (checked) { selectedFilter = value; apply() } }
+            }
+            filters.addView(chip)
+        }
+        filters.check(filters.getChildAt(0).id)
     }
 
     override suspend fun fetch(): List<BookingRoom> = App.booking.rooms(keyword = query)
+
+    override fun onLoaded(rows: List<BookingRoom>) {
+        all = rows
+        apply()
+    }
+
+    private fun apply() {
+        if (!isAdded) return
+        val shown = all.filter { room ->
+            when (selectedFilter) {
+                FILTER_AVAILABLE -> room.available
+                FILTER_UNAVAILABLE -> !room.available
+                else -> true
+            }
+        }
+        adapter.submit(shown)
+        showEmpty(shown.isEmpty(), emptyText())
+        summary.text = getString(R.string.booking_summary, all.count { it.available }, all.size, selectedDate.toString())
+    }
 
     override fun bindRow(view: View, item: BookingRoom, position: Int) {
         view.findViewById<TextView>(R.id.booking_room_name).text = item.name.ifBlank { item.id }
@@ -75,11 +132,33 @@ class BookingRoomsFragment : ListFragment<BookingRoom>(R.layout.fragment_booking
 
         val note = view.findViewById<TextView>(R.id.booking_room_note)
         note.text = when {
+            !item.available -> getString(R.string.booking_room_unavailable)
+            item.bookStart.isNotBlank() && item.bookEnd.isNotBlank() ->
+                getString(R.string.booking_window, item.bookStart.take(5), item.bookEnd.take(5))
             item.approvalRequired -> getString(R.string.booking_needs_approval)
             item.daysAhead > 0 -> getString(R.string.booking_bookable_days, item.daysAhead)
             else -> ""
         }
         note.visibility = if (note.text.isBlank()) View.GONE else View.VISIBLE
+        view.findViewById<TextView>(R.id.booking_room_slots).text = getString(R.string.booking_view_slots)
+        view.setOnClickListener {
+            BookingSlotsDialog.newInstance(item, selectedDate.toString())
+                .show(childFragmentManager, "booking-slots")
+        }
+    }
+
+    private fun pickDate() {
+        DatePickerDialog(requireContext(), { _, year, month, day ->
+            selectedDate = LocalDate.of(year, month + 1, day)
+            date.text = selectedDate.toString()
+            apply()
+        }, selectedDate.year, selectedDate.monthValue - 1, selectedDate.dayOfMonth).show()
+    }
+
+    private companion object {
+        const val FILTER_ALL = "all"
+        const val FILTER_AVAILABLE = "available"
+        const val FILTER_UNAVAILABLE = "unavailable"
     }
 }
 
@@ -107,5 +186,88 @@ class BookingMeetingsFragment : ListFragment<BookingMeeting>(R.layout.fragment_b
         val line = view.findViewById<TextView>(R.id.booking_meeting_when)
         line.text = whenLine
         line.visibility = if (whenLine.isBlank()) View.GONE else View.VISIBLE
+    }
+}
+
+/** Read-only slot map for one venue and date. */
+class BookingSlotsDialog : DialogFragment() {
+
+    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+        val room = BookingRoom(
+            requireArguments().getString(ARG_ID).orEmpty(),
+            requireArguments().getString(ARG_NAME).orEmpty(),
+            requireArguments().getString(ARG_TYPE).orEmpty(),
+            requireArguments().getInt(ARG_CAPACITY),
+            requireArguments().getString(ARG_LOCATION).orEmpty(),
+            requireArguments().getBoolean(ARG_AVAILABLE),
+            requireArguments().getBoolean(ARG_APPROVAL),
+            requireArguments().getInt(ARG_DAYS),
+            requireArguments().getString(ARG_START).orEmpty(),
+            requireArguments().getString(ARG_END).orEmpty(),
+        )
+        val date = requireArguments().getString(ARG_DATE).orEmpty()
+        val view = layoutInflater.inflate(R.layout.dialog_booking_slots, null)
+        val list = view.findViewById<RecyclerView>(R.id.booking_slots_list)
+        val empty = view.findViewById<TextView>(R.id.booking_slots_empty)
+        val progress = view.findViewById<ProgressBar>(R.id.booking_slots_progress)
+        val adapter = SimpleAdapter<BookingSlot>(R.layout.item_booking_slot) { row, slot, _ ->
+            row.findViewById<TextView>(R.id.booking_slot_time).text = "${slot.start}–${slot.end}"
+            val status = row.findViewById<TextView>(R.id.booking_slot_status)
+            status.text = getString(if (slot.available) R.string.booking_slot_available else R.string.booking_slot_unavailable)
+            status.setTextColor(requireContext().getColor(if (slot.available) R.color.ok else R.color.ink_muted))
+            row.findViewById<TextView>(R.id.booking_slot_reason).apply {
+                text = slot.meetingTitle
+                visibility = if (text.isBlank()) View.GONE else View.VISIBLE
+            }
+        }
+        list.adapter = adapter
+        list.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(requireContext())
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle(room.name)
+            .setView(view)
+            .create()
+        lifecycleScope.launch {
+            val result = runCatching { withContext(Dispatchers.IO) { App.booking.roomSlots(room, date) } }
+            if (!isAdded) return@launch
+            progress.visibility = View.GONE
+            result.onSuccess { slots ->
+                adapter.submit(slots)
+                empty.visibility = if (slots.isEmpty()) View.VISIBLE else View.GONE
+            }.onFailure {
+                empty.text = it.message.orEmpty()
+                empty.visibility = View.VISIBLE
+            }
+        }
+        return dialog
+    }
+
+    companion object {
+        private const val ARG_ID = "id"
+        private const val ARG_NAME = "name"
+        private const val ARG_TYPE = "type"
+        private const val ARG_CAPACITY = "capacity"
+        private const val ARG_LOCATION = "location"
+        private const val ARG_AVAILABLE = "available"
+        private const val ARG_APPROVAL = "approval"
+        private const val ARG_DAYS = "days"
+        private const val ARG_START = "start"
+        private const val ARG_END = "end"
+        private const val ARG_DATE = "date"
+
+        fun newInstance(room: BookingRoom, date: String) = BookingSlotsDialog().apply {
+            arguments = Bundle().apply {
+                putString(ARG_ID, room.id)
+                putString(ARG_NAME, room.name)
+                putString(ARG_TYPE, room.type)
+                putInt(ARG_CAPACITY, room.capacity)
+                putString(ARG_LOCATION, room.location)
+                putBoolean(ARG_AVAILABLE, room.available)
+                putBoolean(ARG_APPROVAL, room.approvalRequired)
+                putInt(ARG_DAYS, room.daysAhead)
+                putString(ARG_START, room.bookStart)
+                putString(ARG_END, room.bookEnd)
+                putString(ARG_DATE, date)
+            }
+        }
     }
 }

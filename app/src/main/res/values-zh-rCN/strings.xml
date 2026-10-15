@@ -179,6 +179,15 @@
     <string name="booking_bookable_days">可提前 %1$d 天预约</string>
     <string name="booking_no_meetings">你还没有场地预约。</string>
     <string name="booking_campus_only">查看场地需连接校园网。</string>
+    <string name="booking_summary">%1$d / %2$d 个场地可用 · %3$s</string>
+    <string name="booking_filter_all">全部</string>
+    <string name="booking_filter_available">可用</string>
+    <string name="booking_filter_unavailable">不可用</string>
+    <string name="booking_room_unavailable">场地当前不可用</string>
+    <string name="booking_window">可预约 %1$s–%2$s</string>
+    <string name="booking_view_slots">查看可用 / 不可用时段 ›</string>
+    <string name="booking_slot_available">可用</string>
+    <string name="booking_slot_unavailable">不可用</string>
     <string name="service_transit">校园巴士</string>
     <string name="service_transit_summary">班车线路与实时位置</string>
     <string name="service_nces">课程评价</string>

@@ -11,6 +11,12 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.UUID
 
@@ -24,6 +30,8 @@ data class BookingRoom(
     val available: Boolean,
     val approvalRequired: Boolean,
     val daysAhead: Int,
+    val bookStart: String,
+    val bookEnd: String,
 )
 
 /** One of my reservations. */
@@ -34,6 +42,15 @@ data class BookingMeeting(
     val startAt: String,
     val endAt: String,
     val status: String,
+)
+
+/** One fixed-length interval in a venue's bookable window. */
+data class BookingSlot(
+    val start: String,
+    val end: String,
+    val available: Boolean,
+    val reason: String = "",
+    val meetingTitle: String = "",
 )
 
 /**
@@ -75,6 +92,47 @@ class BookingApi(private val http: OkHttpClient) {
         return (0 until array.length()).mapNotNull { array.optJSONObject(it) }.map(::meeting)
     }
 
+    /** Build a live available/unavailable map for one room and Shanghai day. */
+    fun roomSlots(room: BookingRoom, date: String, slotMinutes: Long = 60): List<BookingSlot> {
+        require(slotMinutes > 0) { "slotMinutes must be positive" }
+        val day = LocalDate.parse(date)
+        val start = parseTime(room.bookStart) ?: return emptyList()
+        val end = parseTime(room.bookEnd) ?: return emptyList()
+        val meetings = roomCalendar(room.id, day)
+        val slots = mutableListOf<BookingSlot>()
+        var cursor = day.atTime(start)
+        val windowEnd = day.atTime(end)
+        while (!cursor.plusMinutes(slotMinutes).isAfter(windowEnd)) {
+            val slotEnd = cursor.plusMinutes(slotMinutes)
+            val overlap = meetings.firstOrNull { item ->
+                val meetingStart = parseDateTime(item.startAt)
+                val meetingEnd = parseDateTime(item.endAt)
+                meetingStart != null && meetingEnd != null &&
+                    meetingStart.isBefore(slotEnd) && meetingEnd.isAfter(cursor)
+            }
+            slots += BookingSlot(
+                start = cursor.toLocalTime().format(CLOCK),
+                end = slotEnd.toLocalTime().format(CLOCK),
+                available = room.available && overlap == null,
+                reason = if (!room.available) "room_unavailable" else if (overlap != null) "occupied" else "",
+                meetingTitle = overlap?.title.orEmpty(),
+            )
+            cursor = slotEnd
+        }
+        return slots
+    }
+
+    private fun roomCalendar(roomId: String, day: LocalDate): List<BookingMeeting> {
+        val response = call(
+            METHOD_ROOM_CALENDAR,
+            JSONObject().put("meetingroomid", roomId)
+                .put("currentdate", "${day}T00:00:00+08:00"),
+            messageType = TYPE_ROOM_CALENDAR,
+        )
+        val array = rowsOf(response)
+        return (0 until array.length()).mapNotNull { array.optJSONObject(it) }.map(::meeting)
+    }
+
     private fun rowsOf(response: JSONObject): JSONArray =
         response.optJSONObject("Data")?.optJSONArray("rows")
             ?: response.optJSONArray("rows")
@@ -89,6 +147,8 @@ class BookingApi(private val http: OkHttpClient) {
         available = raw.optBoolean("IsAvailable"),
         approvalRequired = raw.optBoolean("IsApproval"),
         daysAhead = raw.optInt("NumberOfDaysAhead"),
+        bookStart = timeText(raw.optString("CanBookStartTime")),
+        bookEnd = timeText(raw.optString("CanBookEndTime")),
     )
 
     private fun meeting(raw: JSONObject) = BookingMeeting(
@@ -106,6 +166,25 @@ class BookingApi(private val http: OkHttpClient) {
             if (value.isNotBlank() && value != "null") return value
         }
         return ""
+    }
+
+    private fun timeText(value: String): String =
+        Regex("T(\\d{2}:\\d{2}:\\d{2})").find(value)?.groupValues?.get(1) ?: value
+
+    private fun parseTime(value: String): LocalTime? = runCatching {
+        LocalTime.parse(value.take(8), DateTimeFormatter.ofPattern("HH:mm:ss"))
+    }.getOrNull() ?: runCatching {
+        LocalTime.parse(value.take(5), DateTimeFormatter.ofPattern("HH:mm"))
+    }.getOrNull()
+
+    private fun parseDateTime(value: String): LocalDateTime? {
+        val raw = value.trim()
+        if (raw.isBlank()) return null
+        return runCatching {
+            OffsetDateTime.parse(raw).withOffsetSameInstant(ZoneOffset.ofHours(8)).toLocalDateTime()
+        }.getOrNull() ?: runCatching {
+            LocalDateTime.parse(raw.replace(" ", "T").take(19))
+        }.getOrNull()
     }
 
     /**
@@ -208,9 +287,12 @@ class BookingApi(private val http: OkHttpClient) {
         private const val METHOD_PROFILE = "GetUserProfile"
         private const val METHOD_ROOMS = "GetMeetingRoomAllByCondition"
         private const val METHOD_MY_MEETINGS = "GetMyMeetings"
+        private const val METHOD_ROOM_CALENDAR = "GetMeetingByMeetingRoomList"
         private const val TYPE_PROFILE = 1001
         private const val TYPE_CALL = 1002
+        private const val TYPE_ROOM_CALENDAR = 5001
         private val JSON = "application/json; charset=utf-8".toMediaType()
+        private val CLOCK = DateTimeFormatter.ofPattern("HH:mm")
     }
 }
 
