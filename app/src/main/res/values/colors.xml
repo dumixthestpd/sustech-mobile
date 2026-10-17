@@ -16,4 +16,8 @@
     <color name="booking_slot_available_stroke">#9BCDA6</color>
     <color name="booking_slot_unavailable_bg">#F0F1F3</color>
     <color name="booking_slot_unavailable_stroke">#B9BEC5</color>
+    <color name="booking_slot_reserved_bg">#FFF4D6</color>
+    <color name="booking_slot_reserved_stroke">#E7C56A</color>
+    <color name="booking_slot_in_use_bg">#FDE5E5</color>
+    <color name="booking_slot_in_use_stroke">#E6A2A2</color>
 </resources>

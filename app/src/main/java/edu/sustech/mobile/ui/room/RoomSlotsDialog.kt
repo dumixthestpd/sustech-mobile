@@ -13,12 +13,12 @@ import com.google.android.material.card.MaterialCardView
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import edu.sustech.mobile.R
-import edu.sustech.mobile.booking.BookingSlot
 import edu.sustech.mobile.core.App
 import edu.sustech.mobile.core.friendly
 import edu.sustech.mobile.library.room.RoomApi
 import edu.sustech.mobile.library.room.RoomInfo
-import edu.sustech.mobile.library.room.TimeWindow
+import edu.sustech.mobile.library.room.RoomSlot
+import edu.sustech.mobile.library.room.RoomSlotState
 import edu.sustech.mobile.ui.SimpleAdapter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -28,7 +28,7 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-/** A forward-looking view of the library's date-specific booking windows. */
+/** A real per-room calendar, matching the official research-space page. */
 class RoomSlotsDialog : DialogFragment() {
 
     private lateinit var room: RoomInfo
@@ -38,7 +38,7 @@ class RoomSlotsDialog : DialogFragment() {
     private lateinit var progress: ProgressBar
     private lateinit var note: TextView
     private lateinit var dates: ChipGroup
-    private lateinit var adapter: SimpleAdapter<BookingSlot>
+    private lateinit var adapter: SimpleAdapter<RoomSlot>
     private var selectedDay: Date = daysFallback()
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
@@ -66,29 +66,43 @@ class RoomSlotsDialog : DialogFragment() {
         list.layoutManager = GridLayoutManager(requireContext(), 3)
         adapter = SimpleAdapter(R.layout.item_booking_slot) { row, slot, _ ->
             val card = row as? MaterialCardView
-            val confirmed = slot.reason != FALLBACK_REASON
-            card?.setCardBackgroundColor(
-                requireContext().getColor(
-                    if (confirmed) R.color.booking_slot_available_bg
-                    else R.color.booking_slot_unavailable_bg,
-                ),
-            )
-            card?.strokeColor = requireContext().getColor(
-                if (confirmed) R.color.booking_slot_available_stroke
-                else R.color.booking_slot_unavailable_stroke,
-            )
+            val color = when (slot.state) {
+                RoomSlotState.AVAILABLE -> R.color.booking_slot_available_bg
+                RoomSlotState.RESERVED -> R.color.booking_slot_reserved_bg
+                RoomSlotState.IN_USE -> R.color.booking_slot_in_use_bg
+                RoomSlotState.CLOSED -> R.color.booking_slot_unavailable_bg
+            }
+            val stroke = when (slot.state) {
+                RoomSlotState.AVAILABLE -> R.color.booking_slot_available_stroke
+                RoomSlotState.RESERVED -> R.color.booking_slot_reserved_stroke
+                RoomSlotState.IN_USE -> R.color.booking_slot_in_use_stroke
+                RoomSlotState.CLOSED -> R.color.booking_slot_unavailable_stroke
+            }
+            card?.setCardBackgroundColor(requireContext().getColor(color))
+            card?.strokeColor = requireContext().getColor(stroke)
             card?.strokeWidth = 1
             row.findViewById<TextView>(R.id.booking_slot_time).text = "${slot.start}–${slot.end}"
             row.findViewById<TextView>(R.id.booking_slot_status).apply {
                 text = getString(
-                    if (confirmed) R.string.rooms_slots_available else R.string.rooms_slots_check,
+                    when (slot.state) {
+                        RoomSlotState.AVAILABLE -> R.string.rooms_slots_available
+                        RoomSlotState.RESERVED -> R.string.rooms_slots_reserved
+                        RoomSlotState.IN_USE -> R.string.rooms_slots_in_use
+                        RoomSlotState.CLOSED -> R.string.rooms_slots_closed
+                    },
                 )
-                setTextColor(requireContext().getColor(if (confirmed) R.color.ok else R.color.ink_muted))
+                setTextColor(requireContext().getColor(statusColor(slot.state)))
             }
-            row.findViewById<TextView>(R.id.booking_slot_reason).visibility = View.GONE
+            row.findViewById<TextView>(R.id.booking_slot_reason).apply {
+                text = slot.title
+                visibility = if (text.isBlank()) View.GONE else View.VISIBLE
+            }
+            row.isClickable = slot.state == RoomSlotState.AVAILABLE
             row.setOnClickListener {
-                BookDialog.newInstance(room, selectedDay, slot.start)
-                    .show(parentFragmentManager, "book")
+                if (slot.state == RoomSlotState.AVAILABLE) {
+                    BookDialog.newInstance(room, selectedDay, slot.start)
+                        .show(parentFragmentManager, "book")
+                }
             }
         }
         list.adapter = adapter
@@ -101,6 +115,13 @@ class RoomSlotsDialog : DialogFragment() {
             .setView(view)
             .setNegativeButton(android.R.string.cancel, null)
             .create()
+    }
+
+    private fun statusColor(state: RoomSlotState): Int = when (state) {
+        RoomSlotState.AVAILABLE -> R.color.ok
+        RoomSlotState.RESERVED -> R.color.warn
+        RoomSlotState.IN_USE -> R.color.bad
+        RoomSlotState.CLOSED -> R.color.ink_muted
     }
 
     private fun daysFallback(): Date = Calendar.getInstance().apply {
@@ -132,81 +153,20 @@ class RoomSlotsDialog : DialogFragment() {
         adapter.submit(emptyList())
         lifecycleScope.launch {
             val result = runCatching {
-                withContext(Dispatchers.IO) { App.rooms.timeScope(day) }
+                withContext(Dispatchers.IO) { App.rooms.roomSchedule(room.devId, day, room.labId) }
             }
             if (!isAdded) return@launch
             progress.visibility = View.GONE
-            result.onSuccess { scope ->
-                when {
-                    scope == null -> {
-                        note.text = getString(R.string.rooms_slots_fallback)
-                        adapter.submit(fallbackSlots(selectedDay))
-                        empty.visibility = View.GONE
-                    }
-                    scope.isEmpty() -> showEmpty(R.string.rooms_slots_closed)
-                    else -> {
-                        note.text = getString(
-                            R.string.rooms_slots_note,
-                            scope.joinToString(" · ") { it.label },
-                        )
-                        val slots = makeSlots(scope)
-                        adapter.submit(slots)
-                        empty.text = getString(R.string.rooms_slots_empty)
-                        empty.visibility = if (slots.isEmpty()) View.VISIBLE else View.GONE
-                    }
-                }
+            result.onSuccess { slots ->
+                note.text = getString(R.string.rooms_slots_note)
+                adapter.submit(slots)
+                empty.text = getString(R.string.rooms_slots_empty)
+                empty.visibility = if (slots.isEmpty()) View.VISIBLE else View.GONE
             }.onFailure {
-                note.text = it.friendly(requireContext())
+                note.text = getString(R.string.rooms_slots_error)
                 empty.text = it.friendly(requireContext())
                 empty.visibility = View.VISIBLE
             }
-        }
-    }
-
-    private fun showEmpty(message: Int) {
-        note.text = getString(message)
-        empty.text = getString(message)
-        empty.visibility = View.VISIBLE
-    }
-
-    private fun makeSlots(scope: List<TimeWindow>): List<BookingSlot> {
-        val slots = mutableListOf<BookingSlot>()
-        val step = 60 * 60 * 1000L
-        scope.forEach { window ->
-            var cursor = window.begin.time
-            while (cursor + step <= window.end.time) {
-                val end = cursor + step
-                slots += BookingSlot(
-                    start = CLOCK.format(Date(cursor)),
-                    end = CLOCK.format(Date(end)),
-                    available = true,
-                    reason = "window",
-                    live = false,
-                )
-                cursor = end
-            }
-        }
-        return slots.distinctBy { it.start }
-    }
-
-    /** The service's inventory uses a 07:00–07:00, openLimit=0 sentinel. */
-    private fun fallbackSlots(day: Date): List<BookingSlot> {
-        val start = Calendar.getInstance().apply {
-            time = day
-            set(Calendar.HOUR_OF_DAY, 7)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-        return (0 until 16).map { index ->
-            val begin = start.timeInMillis + index * 60 * 60 * 1000L
-            BookingSlot(
-                start = CLOCK.format(Date(begin)),
-                end = CLOCK.format(Date(begin + 60 * 60 * 1000L)),
-                available = false,
-                reason = FALLBACK_REASON,
-                live = false,
-            )
         }
     }
 
@@ -218,7 +178,6 @@ class RoomSlotsDialog : DialogFragment() {
 
     companion object {
         private val DAY = SimpleDateFormat("M月d日 E", Locale.CHINA)
-        private val CLOCK = SimpleDateFormat("HH:mm", Locale.US)
         private const val ARG_DEV = "dev"
         private const val ARG_NAME = "name"
         private const val ARG_LAB = "lab"
@@ -227,7 +186,6 @@ class RoomSlotsDialog : DialogFragment() {
         private const val ARG_MIN = "min"
         private const val ARG_FREE = "free"
         private const val ARG_LENDING = "lending"
-        private const val FALLBACK_REASON = "scope_unconfirmed"
 
         fun newInstance(room: RoomInfo) = RoomSlotsDialog().apply {
             arguments = Bundle().apply {

@@ -29,6 +29,7 @@ data class RoomInfo(
     val devId: Int,
     val name: String,
     val lab: String,
+    val labId: Int = 0,
     /** The capacity the service put in the name, e.g. `3-6人`; empty when unnamed. */
     val people: String,
     /** True for rooms whose *minimum* capacity is 3+: they need co-applicants. */
@@ -61,6 +62,16 @@ data class RoomMember(
 
 /** One window the service allows on a given day. */
 data class TimeWindow(val begin: Date, val end: Date, val label: String)
+
+enum class RoomSlotState { AVAILABLE, RESERVED, IN_USE, CLOSED }
+
+/** One fixed interval in the official room timeline. */
+data class RoomSlot(
+    val start: String,
+    val end: String,
+    val state: RoomSlotState,
+    val title: String = "",
+)
 
 /** A room reservation this account holds. */
 data class RoomReservation(
@@ -229,6 +240,7 @@ class RoomApi(private val http: OkHttpClient) {
                         devId = room.optInt("devId"),
                         name = name,
                         lab = labName,
+                        labId = lab.optInt("labId"),
                         people = peopleLabel(name),
                         needsMembers = needsCoApplicants(name),
                         minMinutes = room.optInt("minResvTime"),
@@ -294,6 +306,185 @@ class RoomApi(private val http: OkHttpClient) {
             val end = scopeStamp(row.optString("endTime"), day) ?: return@mapNotNull null
             TimeWindow(begin, end, "${CLOCK.format(begin)}–${CLOCK.format(end)}")
         }
+    }
+
+    /**
+     * The same per-room calendar used by the official research-space page:
+     * `/borrow/reserve/roomInfo` returns the room's opening windows and future
+     * reservations for the requested day. Unlike the home inventory, this is
+     * date-specific and is the source for the look-ahead timeline.
+     */
+    fun roomSchedule(devId: Int, day: Date, labId: Int = 0): List<RoomSlot> {
+        // The deployed IC front end has used both the single-room `devIds` form
+        // and the older `roomIds`/hyphenated-date form. Try the official form
+        // first, then the compatible variants so a server rollout cannot turn a
+        // real calendar into a misleading all-gray fallback.
+        val idParams = listOf(
+            "devIds" to devId.toString(),
+            "roomIds" to devId.toString(),
+            "" to "", // the list endpoint uses the kind/lab selectors instead
+        )
+        val dateParams = listOf(SCOPE_DAY.format(day), DAY.format(day), SLASH_DAY.format(day))
+        val selectors = listOf(
+            listOf("labIds" to (if (labId > 0) labId.toString() else "4")),
+            listOf("kindIds" to "4"),
+            listOf("labIds" to (if (labId > 0) labId.toString() else "4"), "kindId" to ""),
+            listOf("kindIds" to "4", "labId" to ""),
+            listOf("labIds" to (if (labId > 0) labId.toString() else "4"), "kindId" to "4"),
+            listOf("kindIds" to "4", "labId" to "4"),
+            emptyList(),
+        )
+        var lastError: ApiException? = null
+        val reply = selectors.asSequence().flatMap { selector ->
+            idParams.asSequence().flatMap { id ->
+                dateParams.asSequence().map { date -> Triple(selector, id, date) }
+            }
+        }.mapNotNull { (selector, id, date) ->
+            try {
+                val params = mutableListOf(
+                    "sysKind" to RESEARCH_ROOMS.toString(),
+                    "classKind" to RESEARCH_ROOMS.toString(),
+                    "resvDates" to date,
+                    "page" to "1",
+                    "pageSize" to "10",
+                )
+                if (id.first.isNotEmpty()) params += id
+                params += selector
+                call("/borrow/reserve/roomInfo", *params.toTypedArray())
+            } catch (error: ApiException) {
+                lastError = error
+                null
+            }
+        }.firstOrNull()
+        val room = reply?.let { body ->
+            val rows = body.optJSONArray("data") ?: body.optJSONObject("data")?.let {
+                JSONArray().apply { put(it) }
+            } ?: JSONArray()
+            (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+                .firstOrNull { it.optInt("devId") == devId }
+                ?: rows.optJSONObject(0)
+        } ?: if (SCOPE_DAY.format(day) == SCOPE_DAY.format(Date())) {
+            // The inventory endpoint is live, but it has no date selector. It is
+            // safe only for today; never reuse today's reservations for tomorrow.
+            inventoryRoom(devId, day)
+        } else {
+            null
+        }
+        if (room == null) throw (lastError ?: ApiException("room: no calendar reply"))
+
+        val windows = room.optJSONArray("openTimes")?.let { open ->
+            (0 until open.length()).mapNotNull { index ->
+                val item = open.optJSONObject(index) ?: return@mapNotNull null
+                val begin = clockOnDay(item.optString("openStartTime"), day)
+                val end = clockOnDay(item.optString("openEndTime"), day)
+                if (begin != null && end != null && end.after(begin)) begin to end else null
+            }
+        }.orEmpty().ifEmpty {
+            val begin = clockOnDay(room.optString("openStart"), day)
+            val end = clockOnDay(room.optString("openEnd"), day)
+            if (begin != null && end != null && end.after(begin)) listOf(begin to end) else emptyList()
+        }
+        if (windows.isEmpty()) return emptyList()
+
+        val reservations = (room.optJSONArray("resvInfo") ?: room.optJSONArray("resvInfos"))?.let { items ->
+            (0 until items.length()).mapNotNull { index ->
+                val item = items.optJSONObject(index) ?: return@mapNotNull null
+                val begin = dateValue(item.opt("startTime").takeUnless { it == JSONObject.NULL }
+                    ?: item.opt("resvBeginTime"), day) ?: return@mapNotNull null
+                val end = dateValue(item.opt("endTime").takeUnless { it == JSONObject.NULL }
+                    ?: item.opt("resvEndTime"), day) ?: return@mapNotNull null
+                if (item.optInt("resvStatus") and 128 != 0) return@mapNotNull null
+                val now = Date()
+                ReservationWindow(
+                    begin = begin,
+                    end = end,
+                    title = item.optString("title").ifBlank { item.optString("testName") },
+                    inUse = item.optInt("resvStatus") and 4 != 0 &&
+                        now.time >= begin.time && now.time < end.time,
+                )
+            }
+        }.orEmpty()
+
+        val step = 30 * 60 * 1000L
+        val first = windows.minOf { it.first.time }
+        val last = windows.maxOf { it.second.time }
+        val slots = mutableListOf<RoomSlot>()
+        var cursor = first
+        while (cursor + step <= last) {
+            val end = cursor + step
+            val open = windows.any { cursor >= it.first.time && end <= it.second.time }
+            val reservation = reservations.firstOrNull {
+                it.begin.time < end && it.end.time > cursor
+            }
+            slots += RoomSlot(
+                start = CLOCK.format(Date(cursor)),
+                end = CLOCK.format(Date(end)),
+                state = when {
+                    !open -> RoomSlotState.CLOSED
+                    reservation?.inUse == true -> RoomSlotState.IN_USE
+                    reservation != null -> RoomSlotState.RESERVED
+                    else -> RoomSlotState.AVAILABLE
+                },
+                title = reservation?.title.orEmpty(),
+            )
+            cursor = end
+        }
+        return slots
+    }
+
+    /** The inventory service carries the same room window plus the live records. */
+    private fun inventoryRoom(devId: Int, day: Date): JSONObject? {
+        val reply = call(
+            "/roomDevice/roomInfos",
+            "classKind" to RESEARCH_ROOMS.toString(),
+            "kindId" to "",
+            "labId" to "",
+            "resvDates" to SCOPE_DAY.format(day),
+        )
+        val groups = reply.optJSONArray("data") ?: return null
+        for (groupIndex in 0 until groups.length()) {
+            val labInfos = groups.optJSONObject(groupIndex)?.optJSONArray("labInfos") ?: continue
+            for (labIndex in 0 until labInfos.length()) {
+                val rooms = labInfos.optJSONObject(labIndex)?.optJSONArray("roomInfos") ?: continue
+                for (roomIndex in 0 until rooms.length()) {
+                    val room = rooms.optJSONObject(roomIndex) ?: continue
+                    if (room.optInt("devId") == devId) return room
+                }
+            }
+        }
+        return null
+    }
+
+    private data class ReservationWindow(
+        val begin: Date,
+        val end: Date,
+        val title: String,
+        val inUse: Boolean,
+    )
+
+    private fun dateValue(value: Any?, day: Date): Date? {
+        val millis = when (value) {
+            is Number -> value.toLong()
+            is String -> value.trim().toLongOrNull()
+            else -> null
+        }
+        if (millis != null && millis > 1_000_000_000_000L) return Date(millis)
+        return clockOnDay(value?.toString().orEmpty(), day)
+    }
+
+    private fun clockOnDay(value: String, day: Date): Date? {
+        val text = value.trim().replace('T', ' ').substringAfterLast(' ')
+            .substringBefore('+').substringBefore('.')
+        val parts = text.split(":")
+        val hour = parts.getOrNull(0)?.toIntOrNull() ?: return null
+        val minute = parts.getOrNull(1)?.toIntOrNull() ?: return null
+        return Calendar.getInstance().apply {
+            time = day
+            set(Calendar.HOUR_OF_DAY, hour)
+            set(Calendar.MINUTE, minute)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.time
     }
 
     /**
@@ -596,6 +787,8 @@ class RoomApi(private val http: OkHttpClient) {
 
         /** The service's own date parameter for the day's scope: `beginDate=YYYYMMDD`. */
         private val SCOPE_DAY = SimpleDateFormat("yyyyMMdd", Locale.US)
+        private val DAY = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+        private val SLASH_DAY = SimpleDateFormat("yyyy/MM/dd", Locale.US)
 
         private val CLOCK = SimpleDateFormat("HH:mm", Locale.US)
 
