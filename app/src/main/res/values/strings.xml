@@ -239,6 +239,17 @@
     <string name="rooms_mine_link">My bookings: %1$d ›</string>
     <string name="rooms_free_now">Free</string>
     <string name="rooms_taken_now">Taken</string>
+    <string name="rooms_schedule_view">View future slots ›</string>
+    <string name="rooms_slots_title">Future booking windows</string>
+    <string name="rooms_slots_today">Today</string>
+    <string name="rooms_slots_tomorrow">Tomorrow</string>
+    <string name="rooms_slots_available">Bookable window</string>
+    <string name="rooms_slots_check">Confirm on submit</string>
+    <string name="rooms_slots_note">The service allows bookings: %1$s. It does not expose live future occupancy; tap a slot to start booking.</string>
+    <string name="rooms_slots_fallback">The service did not return a window for this day. These are candidate hours; the service confirms them when submitted.</string>
+    <string name="rooms_slots_unknown">The service did not return a booking window for this day.</string>
+    <string name="rooms_slots_closed">There are no booking windows on this day.</string>
+    <string name="rooms_slots_empty">No complete one-hour slots are listed.</string>
     <string name="rooms_mine_empty">No room bookings.</string>
     <string name="rooms_mine_note">%1$d bookings</string>
     <string name="rooms_reservation_when">%1$s – %2$s</string>

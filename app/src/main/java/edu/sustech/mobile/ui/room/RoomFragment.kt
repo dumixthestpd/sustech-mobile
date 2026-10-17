@@ -254,6 +254,11 @@ class RoomFragment : ListFragment<RoomInfo>(R.layout.fragment_rooms), BookDialog
                 if (item.free) R.color.ok else R.color.ink_muted,
             ),
         )
+        val schedule = view.findViewById<TextView>(R.id.room_schedule)
+        schedule.visibility = if (item.lending) View.GONE else View.VISIBLE
+        schedule.setOnClickListener {
+            RoomSlotsDialog.newInstance(item).show(childFragmentManager, "room-slots")
+        }
         view.setOnClickListener {
             // Equipment lending is not a room and takes a different form — never the
             // room sheet.

@@ -41,6 +41,17 @@
                 android:textSize="11sp"
                 android:textColor="?android:attr/textColorSecondary"
                 android:maxLines="2" />
+
+            <TextView
+                android:id="@+id/room_schedule"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="end"
+                android:text="@string/rooms_schedule_view"
+                android:textColor="@color/brand"
+                android:textSize="11sp"
+                android:textStyle="bold" />
         </LinearLayout>
 
         <TextView
@@ -51,4 +62,5 @@
             android:textSize="12sp"
             android:textStyle="bold" />
     </LinearLayout>
+
 </com.google.android.material.card.MaterialCardView>

@@ -117,11 +117,22 @@ class BookDialog : DialogFragment() {
             days.map { DAY.format(it) },
         )
 
+        val initialDay = requireArguments().getLong(ARG_INITIAL_DAY, Long.MIN_VALUE)
+        val initialDayIndex = days.indexOfFirst { it.time == initialDay }
+        if (initialDayIndex >= 0) daySpinner.setSelection(initialDayIndex)
+
         // Default to the next half hour from now.
         val now = Calendar.getInstance()
-        startHour = now.get(Calendar.HOUR_OF_DAY)
-        startMinute = if (now.get(Calendar.MINUTE) < 30) 30 else 0
-        if (startMinute == 0) startHour = (startHour + 1) % 24
+        val initialStart = requireArguments().getString(ARG_INITIAL_START).orEmpty()
+        val initialClock = initialStart.split(":")
+        if (initialClock.size == 2 && initialClock[0].toIntOrNull() != null && initialClock[1].toIntOrNull() != null) {
+            startHour = initialClock[0].toInt()
+            startMinute = initialClock[1].toInt()
+        } else {
+            startHour = now.get(Calendar.HOUR_OF_DAY)
+            startMinute = if (now.get(Calendar.MINUTE) < 30) 30 else 0
+            if (startMinute == 0) startHour = (startHour + 1) % 24
+        }
         startButton = view.findViewById(R.id.book_start)
         showStart()
         startButton.setOnClickListener {
@@ -498,6 +509,8 @@ class BookDialog : DialogFragment() {
         private const val ARG_PEOPLE = "people"
         private const val ARG_NEEDS = "needsMembers"
         private const val ARG_MIN = "minMinutes"
+        private const val ARG_INITIAL_DAY = "initialDay"
+        private const val ARG_INITIAL_START = "initialStart"
 
         private val LENGTHS = listOf(30, 60, 90, 120)
 
@@ -512,7 +525,11 @@ class BookDialog : DialogFragment() {
         private val DAY = SimpleDateFormat("yyyy-MM-dd EEE", Locale.US)
         private val SLOT = SimpleDateFormat("HH:mm", Locale.US)
 
-        fun newInstance(room: RoomInfo): BookDialog = BookDialog().apply {
+        fun newInstance(
+            room: RoomInfo,
+            initialDay: Date? = null,
+            initialStart: String? = null,
+        ): BookDialog = BookDialog().apply {
             arguments = Bundle().apply {
                 putInt(ARG_DEV, room.devId)
                 putString(ARG_NAME, room.name)
@@ -520,6 +537,8 @@ class BookDialog : DialogFragment() {
                 putString(ARG_PEOPLE, room.people)
                 putBoolean(ARG_NEEDS, room.needsMembers)
                 putInt(ARG_MIN, room.minMinutes)
+                if (initialDay != null) putLong(ARG_INITIAL_DAY, initialDay.time)
+                if (!initialStart.isNullOrBlank()) putString(ARG_INITIAL_START, initialStart)
             }
         }
     }
