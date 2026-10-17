@@ -227,7 +227,7 @@
     <string name="rooms_slots_reserved">已预约</string>
     <string name="rooms_slots_in_use">使用中</string>
     <string name="rooms_slots_check">提交时确认</string>
-    <string name="rooms_slots_note">实时日历：绿色空闲，黄色已预约，红色使用中，灰色不可预约。</string>
+    <string name="rooms_slots_note">开放时段为绿色；服务返回预约记录时，黄色为已预约、红色为使用中，灰色为不可预约。</string>
     <string name="rooms_slots_fallback">服务端暂未返回当天窗口，以下为可尝试的时段；最终以提交时确认结果为准。</string>
     <string name="rooms_slots_unknown">服务端暂时没有返回这一天的预约窗口。</string>
     <string name="rooms_slots_closed">这一天没有可预约窗口。</string>

@@ -247,7 +247,7 @@
     <string name="rooms_slots_reserved">Booked</string>
     <string name="rooms_slots_in_use">In use</string>
     <string name="rooms_slots_check">Confirm on submit</string>
-    <string name="rooms_slots_note">Live calendar: green is free, yellow is booked, red is in use, gray is closed.</string>
+    <string name="rooms_slots_note">Open windows are green; returned reservations are yellow (booked) or red (in use), and gray is closed.</string>
     <string name="rooms_slots_fallback">The service did not return a window for this day. These are candidate hours; the service confirms them when submitted.</string>
     <string name="rooms_slots_unknown">The service did not return a booking window for this day.</string>
     <string name="rooms_slots_closed">There are no booking windows on this day.</string>

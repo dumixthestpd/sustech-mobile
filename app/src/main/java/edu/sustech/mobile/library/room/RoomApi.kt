@@ -315,62 +315,41 @@ class RoomApi(private val http: OkHttpClient) {
      * date-specific and is the source for the look-ahead timeline.
      */
     fun roomSchedule(devId: Int, day: Date, labId: Int = 0): List<RoomSlot> {
-        // The deployed IC front end has used both the single-room `devIds` form
-        // and the older `roomIds`/hyphenated-date form. Try the official form
-        // first, then the compatible variants so a server rollout cannot turn a
-        // real calendar into a misleading all-gray fallback.
-        val idParams = listOf(
-            "devIds" to devId.toString(),
-            "roomIds" to devId.toString(),
-            "" to "", // the list endpoint uses the kind/lab selectors instead
-        )
-        val dateParams = listOf(SCOPE_DAY.format(day), DAY.format(day), SLASH_DAY.format(day))
-        val selectors = listOf(
-            listOf("labIds" to (if (labId > 0) labId.toString() else "4")),
-            listOf("kindIds" to "4"),
-            listOf("labIds" to (if (labId > 0) labId.toString() else "4"), "kindId" to ""),
-            listOf("kindIds" to "4", "labId" to ""),
-            listOf("labIds" to (if (labId > 0) labId.toString() else "4"), "kindId" to "4"),
-            listOf("kindIds" to "4", "labId" to "4"),
-            emptyList(),
-        )
-        var lastError: ApiException? = null
-        val reply = selectors.asSequence().flatMap { selector ->
-            idParams.asSequence().flatMap { id ->
-                dateParams.asSequence().map { date -> Triple(selector, id, date) }
-            }
-        }.mapNotNull { (selector, id, date) ->
-            try {
-                val params = mutableListOf(
-                    "sysKind" to RESEARCH_ROOMS.toString(),
-                    "classKind" to RESEARCH_ROOMS.toString(),
-                    "resvDates" to date,
-                    "page" to "1",
-                    "pageSize" to "10",
-                )
-                if (id.first.isNotEmpty()) params += id
-                params += selector
-                call("/borrow/reserve/roomInfo", *params.toTypedArray())
-            } catch (error: ApiException) {
-                lastError = error
-                null
-            }
-        }.firstOrNull()
-        val room = reply?.let { body ->
+        // This is the request made by the official detail page after it stores
+        // the selected room in `devIds`.
+        fun roomFrom(body: JSONObject): JSONObject? {
             val rows = body.optJSONArray("data") ?: body.optJSONObject("data")?.let {
                 JSONArray().apply { put(it) }
             } ?: JSONArray()
-            (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
+            return (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
                 .firstOrNull { it.optInt("devId") == devId }
-                ?: rows.optJSONObject(0)
-        } ?: if (SCOPE_DAY.format(day) == SCOPE_DAY.format(Date())) {
-            // The inventory endpoint is live, but it has no date selector. It is
-            // safe only for today; never reuse today's reservations for tomorrow.
-            inventoryRoom(devId, day)
-        } else {
-            null
         }
-        if (room == null) throw (lastError ?: ApiException("room: no calendar reply"))
+        val officialParams = arrayOf(
+            "sysKind" to RESEARCH_ROOMS.toString(),
+            "resvDates" to SCOPE_DAY.format(day),
+            "page" to "1",
+            "pageSize" to "10",
+            "labIds" to (if (labId > 0) labId.toString() else "4"),
+            "kindId" to "",
+            "devIds" to devId.toString(),
+        )
+        val room = try {
+            roomFrom(call("/borrow/reserve/roomInfo", *officialParams))
+        } catch (_: ApiException) {
+            null
+        } ?: runCatching { inventoryRoom(devId, day) }.getOrNull() ?: run {
+            // Some deployments expose the opening scope but reject the room
+            // detail query. Keep the calendar useful without inventing booked
+            // records: open windows are green, outside windows remain gray.
+            val scope = runCatching { timeScope(day) }.getOrNull()
+            JSONObject().put("openTimes", JSONArray().apply {
+                scope.orEmpty().forEach { window ->
+                    put(JSONObject()
+                        .put("openStartTime", CLOCK.format(window.begin))
+                        .put("openEndTime", CLOCK.format(window.end)))
+                }
+            })
+        }
 
         val windows = room.optJSONArray("openTimes")?.let { open ->
             (0 until open.length()).mapNotNull { index ->
@@ -437,8 +416,8 @@ class RoomApi(private val http: OkHttpClient) {
         val reply = call(
             "/roomDevice/roomInfos",
             "classKind" to RESEARCH_ROOMS.toString(),
-            "kindId" to "",
-            "labId" to "",
+            "kindId" to "4",
+            "labId" to "4",
             "resvDates" to SCOPE_DAY.format(day),
         )
         val groups = reply.optJSONArray("data") ?: return null
@@ -787,8 +766,6 @@ class RoomApi(private val http: OkHttpClient) {
 
         /** The service's own date parameter for the day's scope: `beginDate=YYYYMMDD`. */
         private val SCOPE_DAY = SimpleDateFormat("yyyyMMdd", Locale.US)
-        private val DAY = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-        private val SLASH_DAY = SimpleDateFormat("yyyy/MM/dd", Locale.US)
 
         private val CLOCK = SimpleDateFormat("HH:mm", Locale.US)
 
