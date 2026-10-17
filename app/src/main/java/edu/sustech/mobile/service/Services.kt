@@ -60,7 +60,7 @@ object Services {
         available = true,
     ) { edu.sustech.mobile.ui.library.LibraryFragment() }
 
-    /** The IC library's discussion rooms. Campus network only. */
+    /** The IC library's discussion rooms; the official service is not campus-network-only. */
     val rooms = ServiceModule(
         id = "rooms",
         title = R.string.service_rooms,

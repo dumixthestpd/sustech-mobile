@@ -309,14 +309,15 @@ class RoomApi(private val http: OkHttpClient) {
     }
 
     /**
-     * The same per-room calendar used by the official research-space page:
-     * `/borrow/reserve/roomInfo` returns the room's opening windows and future
-     * reservations for the requested day. Unlike the home inventory, this is
-     * date-specific and is the source for the look-ahead timeline.
+     * The same per-room calendar used by the official research-space page.
+     * The official page calls `GET /reserve` with `resvDates=YYYYMMDD` and the
+     * selected room in `devIds`; inventory and time-scope endpoints are not
+     * substitutes because neither carries this room's future reservations.
      */
     fun roomSchedule(devId: Int, day: Date, labId: Int = 0): List<RoomSlot> {
-        // This is the request made by the official detail page after it stores
-        // the selected room in `devIds`.
+        if (labId <= 0) {
+            throw ApiException("room: selected room is missing its floor id")
+        }
         fun roomFrom(body: JSONObject): JSONObject? {
             val rows = body.optJSONArray("data") ?: body.optJSONObject("data")?.let {
                 JSONArray().apply { put(it) }
@@ -329,27 +330,12 @@ class RoomApi(private val http: OkHttpClient) {
             "resvDates" to SCOPE_DAY.format(day),
             "page" to "1",
             "pageSize" to "10",
-            "labIds" to (if (labId > 0) labId.toString() else "4"),
+            "labIds" to labId.toString(),
             "kindId" to "",
             "devIds" to devId.toString(),
         )
-        val room = try {
-            roomFrom(call("/borrow/reserve/roomInfo", *officialParams))
-        } catch (_: ApiException) {
-            null
-        } ?: runCatching { inventoryRoom(devId, day) }.getOrNull() ?: run {
-            // Some deployments expose the opening scope but reject the room
-            // detail query. Keep the calendar useful without inventing booked
-            // records: open windows are green, outside windows remain gray.
-            val scope = runCatching { timeScope(day) }.getOrNull()
-            JSONObject().put("openTimes", JSONArray().apply {
-                scope.orEmpty().forEach { window ->
-                    put(JSONObject()
-                        .put("openStartTime", CLOCK.format(window.begin))
-                        .put("openEndTime", CLOCK.format(window.end)))
-                }
-            })
-        }
+        val room = roomFrom(call("/reserve", *officialParams))
+            ?: throw ApiException("room: the calendar returned no data for this room")
 
         val windows = room.optJSONArray("openTimes")?.let { open ->
             (0 until open.length()).mapNotNull { index ->
@@ -409,29 +395,6 @@ class RoomApi(private val http: OkHttpClient) {
             cursor = end
         }
         return slots
-    }
-
-    /** The inventory service carries the same room window plus the live records. */
-    private fun inventoryRoom(devId: Int, day: Date): JSONObject? {
-        val reply = call(
-            "/roomDevice/roomInfos",
-            "classKind" to RESEARCH_ROOMS.toString(),
-            "kindId" to "4",
-            "labId" to "4",
-            "resvDates" to SCOPE_DAY.format(day),
-        )
-        val groups = reply.optJSONArray("data") ?: return null
-        for (groupIndex in 0 until groups.length()) {
-            val labInfos = groups.optJSONObject(groupIndex)?.optJSONArray("labInfos") ?: continue
-            for (labIndex in 0 until labInfos.length()) {
-                val rooms = labInfos.optJSONObject(labIndex)?.optJSONArray("roomInfos") ?: continue
-                for (roomIndex in 0 until rooms.length()) {
-                    val room = rooms.optJSONObject(roomIndex) ?: continue
-                    if (room.optInt("devId") == devId) return room
-                }
-            }
-        }
-        return null
     }
 
     private data class ReservationWindow(
