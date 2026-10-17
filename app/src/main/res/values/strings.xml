@@ -198,7 +198,11 @@
     <string name="booking_needs_approval">Needs approval</string>
     <string name="booking_bookable_days">Bookable %1$d days ahead</string>
     <string name="booking_no_meetings">You have no venue bookings.</string>
-    <string name="booking_campus_only">Reading venues needs the campus network.</string>
+    <string name="booking_online_note">Booking data loads from the public E-Hall service; your school account may be required.</string>
+    <string name="booking_sign_in_required">Sign in again to load booking data.</string>
+    <string name="booking_endpoint_not_found">The booking service rejected this request. Refresh or sign in again.</string>
+    <string name="booking_slots_unavailable">Time slots could not be loaded. Refresh or sign in again.</string>
+    <string name="booking_slots_estimated">Live conflicts could not be read; statuses show the room bookable window.</string>
     <string name="booking_summary">%1$d of %2$d venues available · %3$s</string>
     <string name="booking_filter_all">All</string>
     <string name="booking_filter_available">Available</string>

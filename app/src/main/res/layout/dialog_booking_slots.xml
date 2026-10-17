@@ -12,6 +12,18 @@
         android:layout_gravity="center"
         android:layout_margin="20dp" />
 
+    <TextView
+        android:id="@+id/booking_slots_notice"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="8dp"
+        android:textColor="@color/ink_muted"
+        android:textSize="12sp"
+        android:text="@string/booking_slots_estimated"
+        android:visibility="gone" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/booking_slots_list"
         android:layout_width="match_parent"

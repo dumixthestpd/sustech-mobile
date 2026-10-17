@@ -183,7 +183,11 @@
     <string name="booking_needs_approval">Требуется согласование</string>
     <string name="booking_bookable_days">Бронирование за %1$d дней</string>
     <string name="booking_no_meetings">У вас нет броней.</string>
-    <string name="booking_campus_only">Просмотр помещений доступен из кампусной сети.</string>
+    <string name="booking_online_note">Данные бронирования загружаются из публичного сервиса E-Hall; может потребоваться вход в аккаунт.</string>
+    <string name="booking_sign_in_required">Войдите снова, чтобы загрузить данные бронирования.</string>
+    <string name="booking_endpoint_not_found">Сервис бронирования отклонил запрос. Обновите экран или войдите снова.</string>
+    <string name="booking_slots_unavailable">Не удалось загрузить интервалы. Обновите экран или войдите снова.</string>
+    <string name="booking_slots_estimated">Не удалось прочитать текущие конфликты; статус отражает окно бронирования помещения.</string>
     <string name="service_transit">Транспорт кампуса</string>
     <string name="service_transit_summary">Маршруты и автобусы в реальном времени</string>
     <string name="service_nces">Отзывы о курсах</string>

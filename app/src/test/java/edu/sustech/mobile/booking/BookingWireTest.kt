@@ -18,17 +18,17 @@ class BookingWireTest {
     @Test
     fun `envelope wraps the data with its message type and id`() {
         assertEquals(
-            """{"MessageType":1002,"MessageID":"abc-123","Data":{"page":1,"rows":5}}""",
-            BookingWire.envelope("""{"page":1,"rows":5}""", 1002, "abc-123"),
+            """{"MessageType":5004,"MessageID":"abc-123","Data":{"limit":5,"offset":0}}""",
+            BookingWire.envelope("""{"limit":5,"offset":0}""", 5004, "abc-123"),
         )
     }
 
     @Test
-    fun `profile and call envelopes differ only in the type`() {
+    fun `profile and web call envelopes use the current message types`() {
         val profile = BookingWire.envelope("""{"Url":"x","St":"t"}""", 1001, "id")
-        val call = BookingWire.envelope("""{"Url":"x","St":"t"}""", 1002, "id")
+        val call = BookingWire.envelope("""{"Url":"x","St":"t"}""", 5005, "id")
         assertTrue(profile.contains("\"MessageType\":1001"))
-        assertTrue(call.contains("\"MessageType\":1002"))
+        assertTrue(call.contains("\"MessageType\":5005"))
     }
 
     @Test

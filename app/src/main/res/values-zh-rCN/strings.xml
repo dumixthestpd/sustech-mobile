@@ -178,7 +178,11 @@
     <string name="booking_needs_approval">需要审批</string>
     <string name="booking_bookable_days">可提前 %1$d 天预约</string>
     <string name="booking_no_meetings">你还没有场地预约。</string>
-    <string name="booking_campus_only">查看场地需连接校园网。</string>
+    <string name="booking_online_note">预约数据通过公开的 E-Hall 服务加载；可能需要学校账号登录。</string>
+    <string name="booking_sign_in_required">请重新登录后加载预约数据。</string>
+    <string name="booking_endpoint_not_found">预约服务拒绝了当前请求，请刷新或重新登录。</string>
+    <string name="booking_slots_unavailable">暂时无法加载时间段，请刷新或重新登录。</string>
+    <string name="booking_slots_estimated">暂时无法读取实时占用；状态按场地可预约时段显示。</string>
     <string name="booking_summary">%1$d / %2$d 个场地可用 · %3$s</string>
     <string name="booking_filter_all">全部</string>
     <string name="booking_filter_available">可用</string>

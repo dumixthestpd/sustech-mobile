@@ -16,6 +16,8 @@ import edu.sustech.mobile.booking.BookingMeeting
 import edu.sustech.mobile.booking.BookingRoom
 import edu.sustech.mobile.booking.BookingSlot
 import edu.sustech.mobile.core.App
+import edu.sustech.mobile.core.ApiException
+import edu.sustech.mobile.core.friendly
 import edu.sustech.mobile.ui.ListFragment
 import edu.sustech.mobile.ui.ServicePage
 import edu.sustech.mobile.ui.SimpleAdapter
@@ -42,7 +44,7 @@ class BookingFragment : TabbedServiceFragment(R.layout.fragment_tabs) {
     )
 
     override fun onServiceViewReady(view: View) {
-        banner(getString(R.string.booking_campus_only), null)
+        banner(getString(R.string.booking_online_note), null)
     }
 }
 
@@ -65,6 +67,14 @@ class BookingRoomsFragment : ListFragment<BookingRoom>(R.layout.fragment_booking
         getString(R.string.booking_no_rooms)
     } else {
         getString(R.string.booking_no_rooms_match, query)
+    }
+
+    override fun errorText(error: Throwable): String = when {
+        error is ApiException && error.httpStatus == 404 ->
+            getString(R.string.booking_endpoint_not_found)
+        error is ApiException && error.signInRequired ->
+            getString(R.string.booking_sign_in_required)
+        else -> super.errorText(error)
     }
 
     override fun onReady(view: View) {
@@ -209,6 +219,7 @@ class BookingSlotsDialog : DialogFragment() {
         val view = layoutInflater.inflate(R.layout.dialog_booking_slots, null)
         val list = view.findViewById<RecyclerView>(R.id.booking_slots_list)
         val empty = view.findViewById<TextView>(R.id.booking_slots_empty)
+        val notice = view.findViewById<TextView>(R.id.booking_slots_notice)
         val progress = view.findViewById<ProgressBar>(R.id.booking_slots_progress)
         val adapter = SimpleAdapter<BookingSlot>(R.layout.item_booking_slot) { row, slot, _ ->
             row.findViewById<TextView>(R.id.booking_slot_time).text = "${slot.start}–${slot.end}"
@@ -232,9 +243,14 @@ class BookingSlotsDialog : DialogFragment() {
             progress.visibility = View.GONE
             result.onSuccess { slots ->
                 adapter.submit(slots)
+                notice.visibility = if (slots.any { !it.live }) View.VISIBLE else View.GONE
                 empty.visibility = if (slots.isEmpty()) View.VISIBLE else View.GONE
             }.onFailure {
-                empty.text = it.message.orEmpty()
+                empty.text = if (it is ApiException && it.httpStatus == 404) {
+                    getString(R.string.booking_slots_unavailable)
+                } else {
+                    it.friendly(requireContext())
+                }
                 empty.visibility = View.VISIBLE
             }
         }
