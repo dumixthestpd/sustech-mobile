@@ -46,6 +46,7 @@ class RoomSlotsDialog : DialogFragment() {
             devId = requireArguments().getInt(ARG_DEV),
             name = requireArguments().getString(ARG_NAME).orEmpty(),
             lab = requireArguments().getString(ARG_LAB).orEmpty(),
+            labId = requireArguments().getInt(ARG_LAB_ID),
             people = requireArguments().getString(ARG_PEOPLE).orEmpty(),
             needsMembers = requireArguments().getBoolean(ARG_NEEDS),
             minMinutes = requireArguments().getInt(ARG_MIN),
@@ -181,6 +182,7 @@ class RoomSlotsDialog : DialogFragment() {
         private const val ARG_DEV = "dev"
         private const val ARG_NAME = "name"
         private const val ARG_LAB = "lab"
+        private const val ARG_LAB_ID = "lab_id"
         private const val ARG_PEOPLE = "people"
         private const val ARG_NEEDS = "needs"
         private const val ARG_MIN = "min"
@@ -192,6 +194,7 @@ class RoomSlotsDialog : DialogFragment() {
                 putInt(ARG_DEV, room.devId)
                 putString(ARG_NAME, room.name)
                 putString(ARG_LAB, room.lab)
+                putInt(ARG_LAB_ID, room.labId)
                 putString(ARG_PEOPLE, room.people)
                 putBoolean(ARG_NEEDS, room.needsMembers)
                 putInt(ARG_MIN, room.minMinutes)
