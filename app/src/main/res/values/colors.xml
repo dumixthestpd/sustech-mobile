@@ -12,4 +12,8 @@
     <color name="warn">#E65100</color>
     <color name="bad">#C62828</color>
     <color name="white">#FFFFFF</color>
+    <color name="booking_slot_available_bg">#E7F5EB</color>
+    <color name="booking_slot_available_stroke">#9BCDA6</color>
+    <color name="booking_slot_unavailable_bg">#F0F1F3</color>
+    <color name="booking_slot_unavailable_stroke">#B9BEC5</color>
 </resources>

@@ -3,38 +3,41 @@
     style="@style/CardBase"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginStart="4dp"
-    android:layout_marginEnd="4dp"
-    android:layout_marginBottom="6dp">
+    android:layout_margin="3dp"
+    android:minHeight="68dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:padding="12dp">
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="8dp">
 
         <TextView
             android:id="@+id/booking_slot_time"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:gravity="center"
             android:textColor="@color/ink"
-            android:textSize="15sp"
+            android:textSize="13sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/booking_slot_status"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:gravity="center"
+            android:layout_marginTop="3dp"
             android:textSize="13sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/booking_slot_reason"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:gravity="center"
+            android:maxLines="1"
+            android:ellipsize="end"
             android:textColor="@color/ink_muted"
             android:textSize="12sp"
             android:visibility="gone" />

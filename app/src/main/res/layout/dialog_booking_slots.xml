@@ -27,7 +27,7 @@
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/booking_slots_list"
         android:layout_width="match_parent"
-        android:layout_height="320dp"
+        android:layout_height="350dp"
         android:clipToPadding="false"
         android:paddingBottom="8dp" />
 

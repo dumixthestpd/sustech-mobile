@@ -22,6 +22,7 @@ import edu.sustech.mobile.ui.ListFragment
 import edu.sustech.mobile.ui.ServicePage
 import edu.sustech.mobile.ui.SimpleAdapter
 import edu.sustech.mobile.ui.TabbedServiceFragment
+import com.google.android.material.card.MaterialCardView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -222,17 +223,30 @@ class BookingSlotsDialog : DialogFragment() {
         val notice = view.findViewById<TextView>(R.id.booking_slots_notice)
         val progress = view.findViewById<ProgressBar>(R.id.booking_slots_progress)
         val adapter = SimpleAdapter<BookingSlot>(R.layout.item_booking_slot) { row, slot, _ ->
+            val card = row as? MaterialCardView
+            card?.setCardBackgroundColor(
+                requireContext().getColor(
+                    if (slot.available) R.color.booking_slot_available_bg
+                    else R.color.booking_slot_unavailable_bg,
+                ),
+            )
+            card?.strokeColor = requireContext().getColor(
+                if (slot.available) R.color.booking_slot_available_stroke
+                else R.color.booking_slot_unavailable_stroke,
+            )
+            card?.strokeWidth = 1
             row.findViewById<TextView>(R.id.booking_slot_time).text = "${slot.start}–${slot.end}"
             val status = row.findViewById<TextView>(R.id.booking_slot_status)
             status.text = getString(if (slot.available) R.string.booking_slot_available else R.string.booking_slot_unavailable)
             status.setTextColor(requireContext().getColor(if (slot.available) R.color.ok else R.color.ink_muted))
+            row.contentDescription = "${slot.start}–${slot.end}, ${status.text}"
             row.findViewById<TextView>(R.id.booking_slot_reason).apply {
                 text = slot.meetingTitle
                 visibility = if (text.isBlank()) View.GONE else View.VISIBLE
             }
         }
         list.adapter = adapter
-        list.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(requireContext())
+        list.layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 3)
         val dialog = androidx.appcompat.app.AlertDialog.Builder(requireContext())
             .setTitle(room.name)
             .setView(view)
