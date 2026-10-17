@@ -28,6 +28,12 @@ class MyRoomsFragment : ListFragment<RoomReservation>(R.layout.fragment_rooms) {
 
     override fun onReady(view: View) {
         note = view.findViewById(R.id.rooms_note)
+        // This reuses the room screen shell, but reservations do not need its
+        // search/filter controls or the rules shortcut.
+        view.findViewById<View>(R.id.rooms_search).visibility = View.GONE
+        view.findViewById<View>(R.id.rooms_filter_scroll).visibility = View.GONE
+        view.findViewById<View>(R.id.rooms_info).visibility = View.GONE
+        view.findViewById<View>(R.id.rooms_mine).visibility = View.GONE
     }
 
     override suspend fun fetch(): List<RoomReservation> = App.rooms.reservations()

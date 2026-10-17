@@ -3,6 +3,9 @@ package edu.sustech.mobile.ui.room
 import android.view.View
 import android.widget.EditText
 import android.widget.TextView
+import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.GridLayoutManager
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import edu.sustech.mobile.R
@@ -52,6 +55,12 @@ class RoomFragment : ListFragment<RoomInfo>(R.layout.fragment_rooms), BookDialog
     override fun emptyText() = getString(R.string.rooms_no_match)
 
     override fun onReady(view: View) {
+        // Rooms are a board, not a feed: two columns make the current state
+        // scannable without taking away the tap-to-book affordance.
+        list.layoutManager = GridLayoutManager(
+            requireContext(),
+            if (resources.configuration.screenWidthDp >= 600) 3 else 2,
+        )
         note = view.findViewById(R.id.rooms_note)
         mine = view.findViewById(R.id.rooms_mine)
         search = view.findViewById(R.id.rooms_search)
@@ -212,6 +221,18 @@ class RoomFragment : ListFragment<RoomInfo>(R.layout.fragment_rooms), BookDialog
     }
 
     override fun bindRow(view: View, item: RoomInfo, position: Int) {
+        val card = view as? MaterialCardView
+        val free = ContextCompat.getColor(
+            requireContext(),
+            if (item.free) R.color.booking_slot_available_bg else R.color.booking_slot_unavailable_bg,
+        )
+        val stroke = ContextCompat.getColor(
+            requireContext(),
+            if (item.free) R.color.booking_slot_available_stroke else R.color.booking_slot_unavailable_stroke,
+        )
+        card?.setCardBackgroundColor(free)
+        card?.strokeColor = stroke
+        card?.strokeWidth = resources.getDimensionPixelSize(R.dimen.room_card_stroke)
         view.findViewById<TextView>(R.id.room_name).text = item.name
         view.findViewById<TextView>(R.id.room_where).text = listOf(
             item.lab,
@@ -223,8 +244,15 @@ class RoomFragment : ListFragment<RoomInfo>(R.layout.fragment_rooms), BookDialog
                 else -> ""
             },
         ).filter { it.isNotBlank() }.joinToString(" · ")
-        view.findViewById<TextView>(R.id.room_status).text = getString(
+        val status = view.findViewById<TextView>(R.id.room_status)
+        status.text = getString(
             if (item.free) R.string.rooms_free_now else R.string.rooms_taken_now,
+        )
+        status.setTextColor(
+            ContextCompat.getColor(
+                requireContext(),
+                if (item.free) R.color.ok else R.color.ink_muted,
+            ),
         )
         view.setOnClickListener {
             // Equipment lending is not a room and takes a different form — never the
