@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.3.29 — 2026-10-28
+
+**Printing works again** after the print site changed how it signs in, and the
+discussion rooms gained an availability grid.
+
+- **Printing was failing on every session-backed call.** The print site's
+  2026-09-23 build replaced the desktop print page — the one the app signed in
+  through — with a help page, so a sign-in landed on a page that sets no session:
+  queue, scans, usage and upload all answered `code 4 无效会话，未登录` while the
+  printer list, which needs no session, kept working. The app now takes the site's
+  own sign-in chain (its authcenter, then CAS, then the relay hop that sets the
+  session), and the one plain-HTTP hop that chain has is permitted for that host
+  only. Verified on a device: upload, queue, delete.
+- **Off campus, printing says the campus network is required.** The print host
+  answers its campus-only page with HTTP 200 rather than 403, which the app read
+  as an expired session and answered with "sign in again" — a sign-in that can
+  never help.
+- **A failed print session now says what the server said**, in the app log,
+  instead of only "session expired" on the screen.
+- **Discussion rooms: availability grid.** A room's future windows come from the
+  service's own calendar query — open windows, returned reservations and closed
+  hours told apart, today and tomorrow included — plus the fixes found while
+  making it work off campus.
+
 ## 0.3.28 — 2026-10-06
 
 

@@ -54,14 +54,6 @@ object Session {
         Hosts.CAMPUS_CARD + "/epay/j_spring_cas_security_check"
 
     /**
-     * The print site itself. Visiting it through CAS is what the website does,
-     * and the print back end links the CAS identity to the print account (it
-     * creates one on first visit) — which is how the Python client's refresh
-     * works too. The site's own RSA password login is kept as a fallback.
-     */
-    private const val PRINT_SERVICE = Hosts.PMS + "/client/new/cprintPc/"
-
-    /**
      * Signs in and reports the strongest signal seen.
      *
      * The course probe goes first and normally settles the question on its own:
@@ -185,10 +177,17 @@ object Session {
     }
 
     fun reloginPrint(): Boolean {
-        if (reloginInFlight) return false
+        if (reloginInFlight) {
+            Log.w(TAG, "print re-login skipped: another re-login is running")
+            return false
+        }
         reloginInFlight = true
         return try {
-            printAccess() == Access.ACCEPTED
+            val access = printAccess()
+            // The screen can only say "session expired"; the log has to say what
+            // the server said, or a report of a dead print session is unreadable.
+            Log.i(TAG, "print re-login $access${lastReason("printing")?.let { " · $it" } ?: ""}")
+            access == Access.ACCEPTED
         } finally {
             reloginInFlight = false
         }
@@ -248,21 +247,29 @@ object Session {
 
     private fun printAccess(): Access {
         if (printSessionAlive()) return Access.ACCEPTED
-        if (!Credentials.configured) return Access.REFUSED
+        if (!Credentials.configured) {
+            Log.w(TAG, "print re-login skipped: no stored credentials")
+            return Access.REFUSED
+        }
 
         var refused = false
-        // 1) CAS — the path the browser takes, and the one the real server
-        //    accepts. It also works for accounts with no print password yet.
-        //    Skipped for a local test server, which has no CAS in front of it.
+        // 1) SSO — the path the site's own client takes (its authcenter, then
+        //    CAS), and the one the back end links to the print account. Skipped
+        //    for a local test server, which has no authcenter in front of it.
         if (!AppConfig.isLocalHost(Hosts.host(AppConfig.baseUrl))) {
             try {
-                CasLogin.login(PRINT_SERVICE, Credentials.sid, Credentials.password, xhr = false)
+                PmsAuth.ssoLogin(
+                    Credentials.sid,
+                    Credentials.password,
+                    Hosts.PMS + PmsAuth.MOBILE_PAGE,
+                )
                 Cache.invalidate("pms.")
                 if (printSessionAlive()) return Access.ACCEPTED
-                note("printing", "CAS sign-in did not produce a print session")
+                note("printing", "SSO sign-in did not produce a print session")
             } catch (e: ApiException) {
                 if (e.refused) refused = true
                 note("printing", e.message.orEmpty())
+                Log.w(TAG, "printing: SSO sign-in failed — ${e.message}")
             }
         }
         // 2) The print system's own RSA password login.
@@ -285,6 +292,9 @@ object Session {
         App.api.checkSession()
         true
     } catch (e: ApiException) {
+        // The server's own words, kept: "无效会话，未登录" from code 4 means the
+        // session is really gone; anything else here is a different fault.
+        Log.w(TAG, "print session probe: ${e.message}")
         false
     }
 

@@ -10,4 +10,13 @@
         <domain includeSubdomains="false">127.0.0.1</domain>
         <domain includeSubdomains="false">localhost</domain>
     </domain-config>
+
+    <!-- 🔴 The print site's own SSO chain has one plain-HTTP hop: its authcenter
+         answers `redirectUrl=http://pms.sustech.edu.cn/api/client/Auth/SSOLogin`
+         (measured 2026-10-28), and blocking it means no print session can ever be
+         established. Only this one host is exempt; every /api call the app makes
+         is still HTTPS. -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">pms.sustech.edu.cn</domain>
+    </domain-config>
 </network-security-config>

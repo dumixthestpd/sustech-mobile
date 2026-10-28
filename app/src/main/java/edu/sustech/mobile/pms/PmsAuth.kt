@@ -4,6 +4,8 @@ import android.util.Base64
 import edu.sustech.mobile.core.ApiException
 import edu.sustech.mobile.core.App
 import edu.sustech.mobile.core.AppConfig
+import edu.sustech.mobile.sso.CasLogin
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -28,6 +30,57 @@ import javax.crypto.Cipher
  * sees a password.
  */
 object PmsAuth {
+
+    /**
+     * The page the print site's own client returns to after SSO (its mobile
+     * index) — the value the site passes as `backurl` when it signs in.
+     */
+    const val MOBILE_PAGE = "/client/new/cprintMobile/index.html"
+
+    /**
+     * The sign-in the print site itself now uses.
+     *
+     * 🔴 The desktop print page this used to front with CAS
+     * (`/client/new/cprintPc/`) is a **help page** since the site's 2026-09-23
+     * build (measured 2026-10-28), so a CAS sign-in aimed at it lands on a page
+     * that sets no session — every session-backed call then answers
+     * `code 4 无效会话，未登录` while the public station list keeps working.
+     * The current chain is the mobile client's:
+     *
+     *   1. `GET /api/client/Auth/SSoPage?backurl=…` → the authcenter URL
+     *      (`<host>/authcenter/toLoginPage?redirectUrl=…/Auth/SSOLogin&targetPageUrl=…`)
+     *   2. that URL redirects to CAS carrying a one-off service URL
+     *   3. signing in there runs the relay chain, whose last hop sets the print
+     *      session cookie
+     *
+     * Same shape as the library's discussion-room sign-in, so it goes through
+     * [CasLogin.loginAtCasUrl] rather than a service URL this class builds.
+     */
+    fun ssoLogin(username: String, password: String, backurl: String): Boolean {
+        val base = AppConfig.baseUrl
+        val url = (base + "/api/client/Auth/SSoPage").toHttpUrlOrNull()
+            ?.newBuilder()
+            ?.addQueryParameter("backurl", backurl)
+            ?.build()
+            ?: throw ApiException("Bad print server URL: $base")
+        val body = send(
+            Request.Builder()
+                .url(url)
+                .get()
+                .header("X-Requested-With", "XMLHttpRequest")
+                .header("Referer", base + MOBILE_PAGE)
+                .build(),
+        )
+        val code = body.optInt("code", -1)
+        if (code != 0) {
+            throw ApiException("${body.optString("message", "SSoPage failed")} (code=$code)")
+        }
+        val entry = body.optString("result", "")
+        if (!entry.contains("toLoginPage")) {
+            throw ApiException("SSoPage returned no sign-in address: ${entry.take(120)}")
+        }
+        return CasLogin.loginAtCasUrl(entry, username, password)
+    }
 
     /**
      * Posts the four-step password login and returns the account's display
@@ -98,7 +151,11 @@ object PmsAuth {
 
     private fun send(request: Request): JSONObject = App.http.newCall(request).execute().use { response ->
         val text = response.body?.string().orEmpty()
-        if (response.code == 403 || text.startsWith("Access forbidden")) {
+        // Out of the campus network the print host answers 403, or HTTP 200 with
+        // its campus-only page — both are the location, never the account.
+        if (response.code == 403 || text.startsWith("Access forbidden") ||
+            PmsWire.html(text) == PmsWire.Html.ACCESS_NOTICE
+        ) {
             throw ApiException("Off campus (HTTP ${response.code})", offCampus = true)
         }
         try {

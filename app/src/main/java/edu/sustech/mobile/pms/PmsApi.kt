@@ -21,11 +21,10 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 /**
- * Server phrases that mean "your session is gone" rather than "your request was
- * wrong". They arrive inside a normal error envelope, so they have to be
- * recognised and turned into a silent re-login — never shown as a network error.
+ * Print-server answers that are pages rather than data are classified in
+ * [PmsWire]: the campus-only gateway page (a location fact) must never be
+ * reported as an expired session.
  */
-private val STALE_MARKERS = listOf("请用户重新登录", "重新登录", "无效会话", "未登录", "请登录", "用户未登录")
 
 /**
  * PMS failures are [edu.sustech.mobile.core.ApiException]s; the alias keeps the
@@ -252,14 +251,16 @@ class PmsApi(
             if (confirmQueued(file.name, before)) {
                 return "uploaded — confirmed in the print queue"
             }
+            val page = nonJson(answer)
             throw PmsException(
-                "HTTP ${answer.code} and the job never reached the queue: ${snippet(answer.text)}",
+                "The job never reached the queue — ${page.message}",
+                signInRequired = page.signInRequired,
             )
         }
         val code = json.optInt("code", -1)
         if (code != 0) {
             val message = json.optString("message", "code=$code")
-            if (STALE_MARKERS.any { message.contains(it) }) {
+            if (PmsWire.isStale(message)) {
                 throw PmsException("Print session expired", signInRequired = true)
             }
             throw PmsException("$message (HTTP ${answer.code})")
@@ -290,14 +291,41 @@ class PmsApi(
     }
 
     /**
+     * A page where data was expected — classified rather than assumed.
+     *
+     * Only a sign-in page says the session is gone; anything else is a server
+     * page and is reported as the page it is, because "session expired" sends
+     * the user to a sign-in that cannot fix it.
+     */
+    private fun nonJson(answer: HttpAnswer): PmsException =
+        when (PmsWire.html(answer.text)) {
+            PmsWire.Html.SIGN_IN_PAGE -> PmsException(
+                "Session gone (the print host served a sign-in page)",
+                signInRequired = true,
+            )
+            else -> PmsException(
+                "The print host answered with a page instead of data " +
+                    "(HTTP ${answer.code}): ${snippet(answer.text)}",
+            )
+        }
+
+    /**
      * Runs [block], and when the failure is "the session is gone" signs in
      * again with the stored school account and retries once. Every expiry is
      * therefore invisible to the screen: no user-visible sign-in prompts.
      */
-    private fun <T> withRelogin(block: () -> T): T = try {
-        block()
-    } catch (e: ApiException) {
-        if (e.signInRequired && Session.reloginPrint()) block() else throw e
+    private fun <T> withRelogin(block: () -> T): T {
+        val first = try {
+            return block()
+        } catch (e: ApiException) {
+            e
+        }
+        if (!first.signInRequired) throw first
+        if (Session.reloginPrint()) return block()
+        throw PmsException(
+            "Print session not restored — ${first.message}",
+            signInRequired = true,
+        )
     }
 
     // -- Transport ------------------------------------------------------------
@@ -314,14 +342,13 @@ class PmsApi(
             .header("Referer", baseUrl() + "/client/new/cprintPc/")
             .build()
         val answer = execute(request)
-        val json = parseOrNull(answer.text)
-            ?: throw PmsException("Non-JSON response — session gone", signInRequired = true)
+        val json = parseOrNull(answer.text) ?: throw nonJson(answer)
         val code = json.optInt("code", -1)
         if (code != 0) {
             val message = json.optString("message", "code=$code")
             // 无效会话 / 未登录 arrive as a normal error envelope but mean the
             // session is gone, which the caller must handle as a re-login.
-            if (STALE_MARKERS.any { message.contains(it) }) {
+            if (PmsWire.isStale(message)) {
                 throw PmsException("Print session expired", signInRequired = true)
             }
             throw PmsException(message)
@@ -338,11 +365,17 @@ class PmsApi(
             .header("Referer", baseUrl() + "/client/new/cprintPc/")
             .build()
         val answer = execute(request)
-        val json = parseOrNull(answer.text)
-            ?: throw PmsException("Non-JSON response — session gone", signInRequired = true)
+        val json = parseOrNull(answer.text) ?: throw nonJson(answer)
         if (throwOnError && json.optInt("code", -1) != 0) {
             val code = json.optInt("code", -1)
-            throw PmsException(json.optString("message", "code=$code"))
+            val message = json.optString("message", "code=$code")
+            // Auth/Check answers code 4 "无效会话，未登录" for a dead session — the
+            // same envelope shape as an ordinary refusal, so the stale marker is
+            // what separates "sign in again" from "this request was wrong".
+            if (PmsWire.isStale(message)) {
+                throw PmsException("Print session expired", signInRequired = true)
+            }
+            throw PmsException(message)
         }
         return json
     }
@@ -366,6 +399,13 @@ class PmsApi(
         try {
             http.newCall(request).execute().use { response ->
                 val text = response.body?.string().orEmpty()
+                // The campus-only gateway answers **HTTP 200 with a page**, so it
+                // has to be recognised before the status checks: 200 would
+                // otherwise reach the JSON parse and be reported as a dead
+                // session — a sign-in that can never help. Measured 2026-10-28.
+                if (PmsWire.html(text) == PmsWire.Html.ACCESS_NOTICE) {
+                    throw PmsException("Off campus (the print host's campus-only page)", offCampus = true)
+                }
                 if (response.code in 300..399) {
                     // Redirects are answers, not detours. A ticket redirect means
                     // the session is gone; an http:// target is the server's own
