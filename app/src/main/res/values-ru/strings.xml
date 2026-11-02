@@ -469,4 +469,26 @@
     <string name="ecard_diag_no_match">нет совпадений</string>
     <string name="ecard_diag_not_installed">❌ не установлено</string>
     <string name="ecard_diag_fallback">WeChat и WeCom не открывают ссылку напрямую. Ссылка отправлена в WeChat. Откройте сообщение там; сумма уже указана.</string>
+    <!-- Blackboard materials: tree, in-app preview, share from memory -->
+    <string name="bb_contents">Содержимое</string>
+    <string name="bb_contents_empty">В этой папке нет элементов.</string>
+    <string name="bb_item_loading">Загрузка…</string>
+    <string name="bb_item_files">Файлы</string>
+    <string name="bb_item_no_files">У этого элемента нет файлов.</string>
+    <string name="bb_kind_folder">Папка</string>
+    <string name="bb_kind_file">Файл</string>
+    <string name="bb_kind_assignment">Задание</string>
+    <string name="bb_kind_link">Ссылка</string>
+    <string name="bb_kind_video">Видео</string>
+    <string name="bb_kind_unknown">Элемент</string>
+    <string name="bb_preview">Просмотр</string>
+    <string name="bb_preview_unsupported">Этот тип файла нельзя открыть в приложении. Используйте «Поделиться».</string>
+    <string name="bb_share">Поделиться</string>
+    <string name="bb_share_with">Поделиться файлом через</string>
+    <string name="bb_open_with">Открыть в другом приложении</string>
+    <string name="bb_page_of">страница %1$d / %2$d</string>
+    <string name="bb_page_prev">Назад</string>
+    <string name="bb_page_next">Вперёд</string>
+    <string name="bb_pdf_failed">Не удалось отобразить файл: %1$s</string>
+    <string name="bb_gone">Файл больше не в памяти. Откройте его снова из курса.</string>
 </resources>

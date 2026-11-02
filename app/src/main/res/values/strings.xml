@@ -524,4 +524,26 @@
     <string name="ecard_diag_no_match">no match</string>
     <string name="ecard_diag_not_installed">❌ not installed</string>
     <string name="ecard_diag_fallback">Neither WeChat nor WeCom accepts the link directly. The link was shared to WeChat instead. Open the message there; the amount is filled in.</string>
+    <!-- Blackboard materials: tree, in-app preview, share from memory -->
+    <string name="bb_contents">Contents</string>
+    <string name="bb_contents_empty">This folder has no items.</string>
+    <string name="bb_item_loading">Loading item…</string>
+    <string name="bb_item_files">Files</string>
+    <string name="bb_item_no_files">This item has no files.</string>
+    <string name="bb_kind_folder">Folder</string>
+    <string name="bb_kind_file">File</string>
+    <string name="bb_kind_assignment">Assignment</string>
+    <string name="bb_kind_link">Link</string>
+    <string name="bb_kind_video">Video</string>
+    <string name="bb_kind_unknown">Item</string>
+    <string name="bb_preview">Preview</string>
+    <string name="bb_preview_unsupported">This file type cannot be previewed here. Use Share to open it in another app.</string>
+    <string name="bb_share">Share</string>
+    <string name="bb_share_with">Share this file with</string>
+    <string name="bb_open_with">Open in another app</string>
+    <string name="bb_page_of">page %1$d / %2$d</string>
+    <string name="bb_page_prev">Previous</string>
+    <string name="bb_page_next">Next</string>
+    <string name="bb_pdf_failed">This file could not be rendered: %1$s</string>
+    <string name="bb_gone">This file is no longer in memory. Open it again from the course.</string>
 </resources>

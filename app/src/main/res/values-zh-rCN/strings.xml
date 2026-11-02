@@ -487,4 +487,26 @@
     <string name="ecard_diag_no_match">无匹配项</string>
     <string name="ecard_diag_not_installed">❌ 未安装</string>
     <string name="ecard_diag_fallback">微信和企业微信都无法直接打开此链接。已改为分享到微信；请在微信中打开刚发送的消息，金额已预填。</string>
+    <!-- Blackboard materials: tree, in-app preview, share from memory -->
+    <string name="bb_contents">课程内容</string>
+    <string name="bb_contents_empty">此文件夹没有内容。</string>
+    <string name="bb_item_loading">正在读取…</string>
+    <string name="bb_item_files">文件</string>
+    <string name="bb_item_no_files">此项没有附件。</string>
+    <string name="bb_kind_folder">文件夹</string>
+    <string name="bb_kind_file">文件</string>
+    <string name="bb_kind_assignment">作业</string>
+    <string name="bb_kind_link">链接</string>
+    <string name="bb_kind_video">视频</string>
+    <string name="bb_kind_unknown">项目</string>
+    <string name="bb_preview">预览</string>
+    <string name="bb_preview_unsupported">此文件类型无法在应用内预览。请用「分享」在其他应用中打开。</string>
+    <string name="bb_share">分享</string>
+    <string name="bb_share_with">分享此文件到</string>
+    <string name="bb_open_with">用其他应用打开</string>
+    <string name="bb_page_of">第 %1$d 页 / 共 %2$d 页</string>
+    <string name="bb_page_prev">上一页</string>
+    <string name="bb_page_next">下一页</string>
+    <string name="bb_pdf_failed">无法渲染此文件：%1$s</string>
+    <string name="bb_gone">此文件已不在内存中。请从课程重新打开。</string>
 </resources>

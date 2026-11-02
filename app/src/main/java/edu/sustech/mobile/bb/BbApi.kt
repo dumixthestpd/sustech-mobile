@@ -1,5 +1,6 @@
 package edu.sustech.mobile.bb
 
+import android.util.Log
 import edu.sustech.mobile.core.ApiException
 import edu.sustech.mobile.core.Cache
 import edu.sustech.mobile.core.Hosts
@@ -32,6 +33,12 @@ import java.time.format.DateTimeFormatter
  * silent re-login instead of an error screen.
  */
 class BbApi(private val http: OkHttpClient) {
+
+    /** Same cookie jar, redirects followed — only for one attachment hop. */
+    private val httpFollow: OkHttpClient by lazy { http.newBuilder().followRedirects(true).build() }
+
+    /** Ceiling for one attachment: a lab manual is ~2–30 MB. */
+    private val maxAttachmentBytes = 128L * 1024 * 1024
 
     /** One enrolled course, as the app displays it. */
     data class Course(
@@ -151,7 +158,10 @@ class BbApi(private val http: OkHttpClient) {
     /** True when a live session answers — the Account tab's session probe. */
     fun isSignedIn(): Boolean = runCatching {
         getJson("/learn/api/public/v1/users/me?_fields=id").has("id")
-    }.isSuccess
+    }.getOrElse { error ->
+        Log.w("BbApi", "session probe failed: ${error.message}")
+        false
+    }
 
     /**
      * Retries once after a silent CAS re-login when BB answers 401 — the same
@@ -166,6 +176,133 @@ class BbApi(private val http: OkHttpClient) {
         block()
     } catch (e: ApiException) {
         if (allowRelogin && e.signInRequired && Session.reloginBb()) block() else throw e
+    }
+
+    /**
+     * One content item with its files — what the item screen renders.
+     *
+     * Attachments are a separate call and may legitimately be absent (a folder,
+     * an inline-only page): that is an answer, not an error.
+     */
+    data class ItemDetail(
+        val title: String,
+        val kind: BbItem.Kind,
+        val bodyText: String,
+        val attachments: List<BbAttachment>,
+    )
+
+    /** One level of a course's content tree, cached per `(course, parent)`. */
+    fun contents(courseId: String, parentId: String? = null, allowRelogin: Boolean = true): List<BbItem> =
+        Cache.get("bb.tree.${BbWire.coreId(courseId)}.${parentId ?: "root"}", Cache.TTL_LIST) {
+            withRelogin(allowRelogin) { contentsUncached(courseId, parentId) }
+        }
+
+    private fun contentsUncached(courseId: String, parentId: String?): List<BbItem> {
+        val bid = BbWire.bracket(courseId)
+        val fields = "?_fields=id,title,contentHandler,hasChildren,availability&limit=200"
+        var path = "/learn/api/public/v1/courses/$bid/contents" +
+            (parentId?.let { "/${BbWire.bracket(it)}/children" } ?: "") + fields
+        val out = ArrayList<BbItem>()
+        val seen = HashSet<String>()
+        repeat(30) {
+            if (!seen.add(path)) throw ApiException("Blackboard pagination looped")
+            val page = getJson(path)
+            out += BbWire.contents(page)
+            val next = BbWire.nextPage(page) ?: return out
+            path = when {
+                next.startsWith("/") -> next
+                next.startsWith(Hosts.BLACKBOARD) -> next.removePrefix(Hosts.BLACKBOARD)
+                else -> throw ApiException("Blackboard pagination left the host")
+            }
+        }
+        throw ApiException("Blackboard pagination exceeded 30 pages")
+    }
+
+    /** One item: title, kind, flattened body, and every attachment. */
+    fun item(courseId: String, contentId: String, allowRelogin: Boolean = true): ItemDetail =
+        Cache.get("bb.item.${BbWire.coreId(courseId)}.${BbWire.coreId(contentId)}", Cache.TTL_LIST) {
+            withRelogin(allowRelogin) {
+                val bid = BbWire.bracket(courseId)
+                val cid = BbWire.bracket(contentId)
+                val json = getJson(
+                    "/learn/api/public/v1/courses/$bid/contents/$cid?_fields=id,title,body,contentHandler,hasChildren",
+                )
+                val body = json.optString("body")
+                val attachments = runCatching {
+                    BbWire.attachments(
+                        getJson("/learn/api/public/v1/courses/$bid/contents/$cid/attachments?_fields=id,fileName,mimeType"),
+                    )
+                }.getOrDefault(emptyList())
+                ItemDetail(
+                    title = json.optString("title").ifEmpty { "(untitled)" },
+                    kind = BbWire.kindOf(json.optJSONObject("contentHandler")?.optString("id").orEmpty()),
+                    bodyText = BbWire.bodyText(body),
+                    attachments = attachments,
+                )
+            }
+        }
+
+    /**
+     * The bytes of one attachment.
+     *
+     * [App.http] does not follow redirects on purpose (a 302 to CAS means the
+     * session died), so the hop is handled here: CAS → sign-in required, any
+     * other 302 → one follow with the shared cookie jar.
+     */
+    fun download(
+        courseId: String,
+        contentId: String,
+        attachmentId: String,
+        allowRelogin: Boolean = true,
+    ): ByteArray = withRelogin(allowRelogin) {
+        fetchBytes(
+            "/learn/api/public/v1/courses/${BbWire.bracket(courseId)}/contents/" +
+                "${BbWire.bracket(contentId)}/attachments/$attachmentId/download",
+        )
+    }
+
+    /** Inline files a document body points at (`bbcswebdav/…`, root-relative). */
+    fun downloadInline(path: String): ByteArray = fetchBytes("/" + path.trimStart('/'))
+
+    private fun fetchBytes(path: String): ByteArray {
+        val url = if (path.startsWith("http")) path else Hosts.BLACKBOARD + path
+        val request = Request.Builder().url(url).get().header("User-Agent", CasLogin.UA).build()
+        val first = try {
+            http.newCall(request).execute()
+        } catch (e: IOException) {
+            throw ApiException(e.message ?: "network error")
+        }
+        first.use {
+            if (it.code in intArrayOf(301, 302, 303, 307, 308)) {
+                val location = it.header("Location").orEmpty()
+                if (location.contains("cas.sustech.edu.cn")) {
+                    throw ApiException("Blackboard session expired", signInRequired = true)
+                }
+                val resolved = if (location.startsWith("http")) location else Hosts.BLACKBOARD + location
+                val second = try {
+                    httpFollow.newCall(
+                        Request.Builder().url(resolved).get().header("User-Agent", CasLogin.UA).build(),
+                    ).execute()
+                } catch (e: IOException) {
+                    throw ApiException(e.message ?: "network error")
+                }
+                second.use { return readBytesOnce(it) }
+            }
+            if (it.code == 401) throw ApiException("Blackboard session expired", signInRequired = true)
+            if (it.code >= 400) throw ApiException("Blackboard answered HTTP ${it.code}")
+            return readBytesOnce(it)
+        }
+    }
+
+    /** An OkHttp body is single-use: read it once, then measure what you read. */
+    private fun readBytesOnce(response: okhttp3.Response): ByteArray {
+        val body = response.body ?: throw ApiException("Blackboard sent an empty file")
+        val declared = body.contentLength()
+        if (declared > maxAttachmentBytes) throw ApiException("That file is too large to open in the app")
+        val bytes = body.bytes()
+        if (bytes.isEmpty()) throw ApiException("Blackboard sent an empty file")
+        if (bytes.size > maxAttachmentBytes) throw ApiException("That file is too large to open in the app")
+        return bytes
     }
 
     // -- Transport ------------------------------------------------------------

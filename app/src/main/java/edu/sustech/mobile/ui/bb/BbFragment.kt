@@ -68,6 +68,15 @@ class BbCoursesFragment : ListFragment<BbApi.Course>(R.layout.fragment_list) {
             item.term,
             item.lastAccessed,
         ).filter { it.isNotEmpty() }.joinToString(" · ")
+        view.setOnClickListener {
+            parentFragmentManager.beginTransaction()
+                .replace(
+                    R.id.service_container,
+                    BbContentsFragment.newInstance(item.id, item.name),
+                )
+                .addToBackStack("bb_course_${item.id}")
+                .commit()
+        }
     }
 }
 

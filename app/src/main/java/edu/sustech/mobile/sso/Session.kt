@@ -237,6 +237,7 @@ object Session {
                 xhr = false, submitValue = "提交")
             App.bb.isSignedIn()
         } catch (e: ApiException) {
+            Log.w(TAG, "bb re-login failed: ${e.message}")
             false
         } finally {
             reloginInFlight = false

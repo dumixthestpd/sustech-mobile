@@ -69,6 +69,21 @@
             android:label="@string/portal_web_title" />
 
         <activity
+            android:name=".ui.bb.PdfReaderActivity"
+            android:exported="false"
+            android:label="@string/bb_preview"
+            android:configChanges="orientation|screenSize|keyboardHidden|screenLayout" />
+
+        <!-- Serves in-memory attachments to the apps this one shares to. Not
+             exported: the only way in is a one-shot read grant on an intent we
+             sent, which is what makes "share without saving" possible. -->
+        <provider
+            android:name=".core.memory.MemoryDocumentProvider"
+            android:authorities="edu.sustech.mobile.memory"
+            android:exported="false"
+            android:grantUriPermissions="true" />
+
+        <activity
             android:name=".ui.pms.UploadActivity"
             android:exported="false"
             android:label="@string/upload_title" />
