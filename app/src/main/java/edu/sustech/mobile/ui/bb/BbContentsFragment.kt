@@ -2,10 +2,14 @@ package edu.sustech.mobile.ui.bb
 
 import android.os.Bundle
 import android.view.View
+import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import edu.sustech.mobile.R
+import edu.sustech.mobile.bb.BbApi
 import edu.sustech.mobile.bb.BbItem
 import edu.sustech.mobile.core.App
+import edu.sustech.mobile.core.runIo
 import edu.sustech.mobile.ui.ListFragment
 
 /**
@@ -13,9 +17,11 @@ import edu.sustech.mobile.ui.ListFragment
  *
  * Folders descend, files open the item screen. Each level is its own fragment on
  * the back stack, so the toolbar back arrow and the system back gesture both do
- * the obvious thing.
+ * the obvious thing. The course's own level also shows that course's
+ * announcements above the items — they are what the site calls notifications,
+ * and they belong to the course rather than to the tree.
  */
-class BbContentsFragment : ListFragment<BbItem>(R.layout.fragment_list) {
+class BbContentsFragment : ListFragment<BbItem>(R.layout.fragment_bb_contents) {
 
     private val courseId: String get() = requireArguments().getString(ARG_COURSE).orEmpty()
     private val courseName: String get() = requireArguments().getString(ARG_COURSE_NAME).orEmpty()
@@ -28,6 +34,8 @@ class BbContentsFragment : ListFragment<BbItem>(R.layout.fragment_list) {
     override fun emptyText() = getString(R.string.bb_contents_empty)
 
     override suspend fun fetch(): List<BbItem> = App.bb.contents(courseId, parentId)
+
+    override fun onReady(view: View) = loadNotices(view)
 
     override fun bindRow(view: View, item: BbItem, position: Int) {
         view.findViewById<TextView>(R.id.course_code).text = kindLabel(item.kind)
@@ -47,6 +55,49 @@ class BbContentsFragment : ListFragment<BbItem>(R.layout.fragment_list) {
         }
     }
 
+    /**
+     * Announcements, above the items on the course's own level.
+     *
+     * A failure here is not an error state: the tree is why this screen exists,
+     * so a course whose announcements cannot be read still lists its folders
+     * instead of showing a banner over them.
+     */
+    private fun loadNotices(view: View) {
+        if (parentId != null) return
+        val header = view.findViewById<TextView>(R.id.bb_notice_header)
+        val container = view.findViewById<LinearLayout>(R.id.bb_notice_list)
+        viewLifecycleOwner.runIo(
+            block = { App.bb.announcements(courseId) },
+            onOk = { notices ->
+                if (!isAdded) return@runIo
+                container.removeAllViews()
+                if (notices.isEmpty()) {
+                    header.visibility = View.GONE
+                    return@runIo
+                }
+                header.visibility = View.VISIBLE
+                header.text = getString(R.string.bb_notice_count, notices.size)
+                notices.take(MAX_NOTICES).forEach { notice ->
+                    val row = layoutInflater.inflate(R.layout.item_tis_course, container, false)
+                    row.findViewById<TextView>(R.id.course_code).text = notice.date
+                    row.findViewById<TextView>(R.id.course_name).text = notice.title
+                    row.findViewById<TextView>(R.id.course_meta).text =
+                        getString(R.string.bb_kind_notice)
+                    row.setOnClickListener { showNotice(notice) }
+                    container.addView(row)
+                }
+            },
+        )
+    }
+
+    private fun showNotice(notice: BbApi.Notice) {
+        AlertDialog.Builder(requireContext())
+            .setTitle(notice.title)
+            .setMessage(notice.body.ifEmpty { getString(R.string.bb_item_no_files) })
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
+
     private fun kindLabel(kind: BbItem.Kind): String = when (kind) {
         BbItem.Kind.FOLDER -> getString(R.string.bb_kind_folder)
         BbItem.Kind.DOCUMENT, BbItem.Kind.FILE -> getString(R.string.bb_kind_file)
@@ -60,6 +111,7 @@ class BbContentsFragment : ListFragment<BbItem>(R.layout.fragment_list) {
         private const val ARG_COURSE = "courseId"
         private const val ARG_COURSE_NAME = "courseName"
         private const val ARG_PARENT = "parentId"
+        private const val MAX_NOTICES = 3
 
         fun newInstance(
             courseId: String,

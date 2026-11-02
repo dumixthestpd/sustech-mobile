@@ -218,6 +218,33 @@ class BbApi(private val http: OkHttpClient) {
         throw ApiException("Blackboard pagination exceeded 30 pages")
     }
 
+    /** One course announcement — what Blackboard calls a notification. */
+    data class Notice(val title: String, val date: String, val body: String)
+
+    /**
+     * A course's announcements, newest first.
+     *
+     * They are read from the course's own announcements collection rather than
+     * from the content tree: an announcement is not a content item, and treating
+     * it as one would put unopenable rows among the folders.
+     */
+    fun announcements(courseId: String, allowRelogin: Boolean = true): List<Notice> =
+        Cache.get("bb.notices.${BbWire.coreId(courseId)}", Cache.TTL_LIST) {
+            withRelogin(allowRelogin) {
+                val results = getJson(
+                    "/learn/api/public/v1/courses/${BbWire.bracket(courseId)}/announcements?limit=20",
+                ).optJSONArray("results") ?: return@withRelogin emptyList()
+                (0 until results.length()).mapNotNull { i ->
+                    val item = results.optJSONObject(i) ?: return@mapNotNull null
+                    Notice(
+                        title = item.optString("title").ifEmpty { "(untitled)" },
+                        date = item.optString("created").take(10),
+                        body = BbWire.bodyText(item.optString("body"), limit = 4000),
+                    )
+                }
+            }
+        }
+
     /** One item: title, kind, flattened body, and every attachment. */
     fun item(courseId: String, contentId: String, allowRelogin: Boolean = true): ItemDetail =
         Cache.get("bb.item.${BbWire.coreId(courseId)}.${BbWire.coreId(contentId)}", Cache.TTL_LIST) {

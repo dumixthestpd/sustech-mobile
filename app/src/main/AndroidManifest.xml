@@ -69,7 +69,7 @@
             android:label="@string/portal_web_title" />
 
         <activity
-            android:name=".ui.bb.PdfReaderActivity"
+            android:name=".ui.bb.MaterialReaderActivity"
             android:exported="false"
             android:label="@string/bb_preview"
             android:configChanges="orientation|screenSize|keyboardHidden|screenLayout" />

@@ -546,4 +546,13 @@
     <string name="bb_page_next">Next</string>
     <string name="bb_pdf_failed">This file could not be rendered: %1$s</string>
     <string name="bb_gone">This file is no longer in memory. Open it again from the course.</string>
+    <string name="bb_notice_count">Notices · %1$d</string>
+    <string name="bb_kind_notice">Notice</string>
+    <string name="bb_doc_empty">This document has no readable text.</string>
+    <string name="bb_doc_text_only">Text only. The original layout, images and tables are not shown; Share opens it in a word processor.</string>
+    <string name="bb_file_pdf">PDF</string>
+    <string name="bb_file_word">Word document</string>
+    <string name="bb_file_image">Image</string>
+    <string name="bb_file_text">Text</string>
+    <string name="bb_file_other">File</string>
 </resources>

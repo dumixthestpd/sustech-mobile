@@ -47,4 +47,16 @@ object ShareIntent {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
     }
+
+    /**
+     * The chooser both screens show.
+     *
+     * Targets are left exactly as the system ranks them. Filtering the Windows
+     * bridges out of a _share_ was tried and reverted: on WSA they are the only
+     * receivers for a .docx, so the chooser closed instantly and the tap looked
+     * dead. Accidentally opening Office happened on paths that are now gone —
+     * a file row opens the in-app reader, and there is no "open with" button.
+     */
+    fun chooser(context: Context, target: Intent, title: CharSequence): Intent =
+        Intent.createChooser(target, title)
 }

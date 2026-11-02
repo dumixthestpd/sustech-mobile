@@ -491,4 +491,13 @@
     <string name="bb_page_next">Вперёд</string>
     <string name="bb_pdf_failed">Не удалось отобразить файл: %1$s</string>
     <string name="bb_gone">Файл больше не в памяти. Откройте его снова из курса.</string>
+    <string name="bb_notice_count">Объявления · %1$d</string>
+    <string name="bb_kind_notice">Объявление</string>
+    <string name="bb_doc_empty">В документе нет читаемого текста.</string>
+    <string name="bb_doc_text_only">Только текст. Оформление, изображения и таблицы не показаны; «Поделиться» откроет файл в редакторе.</string>
+    <string name="bb_file_pdf">PDF</string>
+    <string name="bb_file_word">Документ Word</string>
+    <string name="bb_file_image">Изображение</string>
+    <string name="bb_file_text">Текст</string>
+    <string name="bb_file_other">Файл</string>
 </resources>

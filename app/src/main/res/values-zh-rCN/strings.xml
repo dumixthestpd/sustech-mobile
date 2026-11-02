@@ -509,4 +509,13 @@
     <string name="bb_page_next">下一页</string>
     <string name="bb_pdf_failed">无法渲染此文件：%1$s</string>
     <string name="bb_gone">此文件已不在内存中。请从课程重新打开。</string>
+    <string name="bb_notice_count">通知 · %1$d</string>
+    <string name="bb_kind_notice">通知</string>
+    <string name="bb_doc_empty">此文档没有可读文本。</string>
+    <string name="bb_doc_text_only">仅显示文本。原文的排版、图片与表格不会显示；用「分享」可在字处理软件中打开。</string>
+    <string name="bb_file_pdf">PDF</string>
+    <string name="bb_file_word">Word 文档</string>
+    <string name="bb_file_image">图片</string>
+    <string name="bb_file_text">文本</string>
+    <string name="bb_file_other">文件</string>
 </resources>

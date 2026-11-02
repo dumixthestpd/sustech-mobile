@@ -48,15 +48,6 @@
                 android:minWidth="0dp"
                 android:text="@string/bb_share"
                 android:textColor="@color/brand" />
-
-            <Button
-                android:id="@+id/bb_file_open"
-                style="?android:attr/borderlessButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:minWidth="0dp"
-                android:text="@string/bb_open_with"
-                android:textColor="@color/brand" />
         </LinearLayout>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>
