@@ -85,8 +85,21 @@
 
         <activity
             android:name=".ui.pms.UploadActivity"
-            android:exported="false"
-            android:label="@string/upload_title" />
+            android:exported="true"
+            android:label="@string/service_pms">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/jpeg" />
+                <data android:mimeType="image/png" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="application/msword" />
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+                <data android:mimeType="application/vnd.ms-excel" />
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+            </intent-filter>
+        </activity>
 
         <!-- Home-screen widget: config activity must be exported so the
              launcher can start it when the user drops the widget. -->
