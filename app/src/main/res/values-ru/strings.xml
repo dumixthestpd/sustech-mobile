@@ -500,4 +500,16 @@
     <string name="bb_file_image">Изображение</string>
     <string name="bb_file_text">Текст</string>
     <string name="bb_file_other">Файл</string>
+    <string name="upload_too_large">Файл слишком большой для отправки на принтер (предел 200 МБ).</string>
+    <string name="bb_submit_title">Сдача работы</string>
+    <string name="bb_submit_choose">Выберите файл для сдачи</string>
+    <string name="bb_submit_go">Отправить</string>
+    <string name="bb_submit_confirm">Отправить %1$s на «%2$s»? Отправленную попытку отозвать нельзя.</string>
+    <string name="bb_submit_doing">Отправка…</string>
+    <string name="bb_submit_ok">Отправлено. У задания теперь %1$d попытка(и).</string>
+    <string name="bb_submit_unconfirmed">Сервер ответил %1$d, но число попыток не изменилось. Проверьте страницу курса, прежде чем повторять.</string>
+    <string name="bb_submit_failed">Не удалось отправить: %1$s</string>
+    <string name="bb_attempts_none">Ещё не отправлено.</string>
+    <string name="bb_attempts_some">Отправлено %1$d раз(а).</string>
+    <string name="bb_attempts_unknown">Проверка прошлых попыток…</string>
 </resources>

@@ -1,5 +1,6 @@
 package edu.sustech.mobile.ui.pms
 
+import android.content.ClipData
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -76,24 +77,55 @@ class UploadActivity : AppCompatActivity() {
         handleIncomingShare(intent)
     }
 
+    private companion object {
+        /** 200 MB: a print job past this is not something the queue would take. */
+        const val MAX_SHARE_BYTES = 200L * 1024 * 1024
+    }
+
     private fun spinnerAdapter(labels: List<String>) =
         ArrayAdapter(this, android.R.layout.simple_spinner_item, labels)
             .apply { setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
 
-    /** SAF hands back a content:// URI — the multipart body needs a real file. */
+    /**
+     * SAF hands back a content:// URI — the multipart body needs a real file.
+     *
+     * This activity is exported (it answers the share sheet), so the name and
+     * the size come from another app: the name is reduced to a bare file name so
+     * a `../` in it cannot write outside the cache, and the copy stops at
+     * [MAX_SHARE_BYTES] so a stranger cannot fill the device.
+     */
     private fun copyToCache(uri: Uri) {
         try {
-            val name = displayName(uri) ?: "upload.bin"
+            val name = safeName(displayName(uri))
             val target = File(cacheDir, name)
             contentResolver.openInputStream(uri).use { input ->
                 requireNotNull(input) { "no stream" }
-                target.outputStream().use { output -> input.copyTo(output) }
+                var copied = 0L
+                target.outputStream().use { output ->
+                    val buffer = ByteArray(64 * 1024)
+                    while (true) {
+                        val read = input.read(buffer)
+                        if (read <= 0) break
+                        copied += read
+                        if (copied > MAX_SHARE_BYTES) throw IllegalStateException("too large")
+                        output.write(buffer, 0, read)
+                    }
+                }
             }
             picked = target
             findViewById<TextView>(R.id.file_name).text = name
+        } catch (e: IllegalStateException) {
+            picked = null
+            Toast.makeText(this, R.string.upload_too_large, Toast.LENGTH_LONG).show()
         } catch (e: Exception) {
             Toast.makeText(this, R.string.pick_error, Toast.LENGTH_LONG).show()
         }
+    }
+
+    /** A display name from a foreign app, reduced to one harmless file name. */
+    private fun safeName(raw: String?): String {
+        val base = raw.orEmpty().substringAfterLast('/').substringAfterLast('\\').trim()
+        return if (base.isEmpty() || base == "." || base == "..") "upload.bin" else base
     }
 
     private fun displayName(uri: Uri): String? {
@@ -111,7 +143,7 @@ class UploadActivity : AppCompatActivity() {
         } else {
             @Suppress("DEPRECATION")
             intent.getParcelableExtra(Intent.EXTRA_STREAM) as? Uri
-        } ?: return
+        } ?: intent.clipData?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.uri ?: return
         copyToCache(uri)
     }
 

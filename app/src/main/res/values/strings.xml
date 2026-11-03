@@ -555,4 +555,16 @@
     <string name="bb_file_image">Image</string>
     <string name="bb_file_text">Text</string>
     <string name="bb_file_other">File</string>
+    <string name="upload_too_large">That file is too large to send to the printer (limit 200 MB).</string>
+    <string name="bb_submit_title">Submission</string>
+    <string name="bb_submit_choose">Choose a file to submit</string>
+    <string name="bb_submit_go">Submit</string>
+    <string name="bb_submit_confirm">Submit %1$s to %2$s? A submitted attempt cannot be withdrawn.</string>
+    <string name="bb_submit_doing">Submitting…</string>
+    <string name="bb_submit_ok">Submitted. This assignment now has %1$d attempt(s).</string>
+    <string name="bb_submit_unconfirmed">The server answered %1$d but the attempt count did not change. Check the course page before trying again.</string>
+    <string name="bb_submit_failed">Submission failed: %1$s</string>
+    <string name="bb_attempts_none">Not submitted yet.</string>
+    <string name="bb_attempts_some">Submitted %1$d time(s).</string>
+    <string name="bb_attempts_unknown">Checking previous attempts…</string>
 </resources>

@@ -518,4 +518,16 @@
     <string name="bb_file_image">图片</string>
     <string name="bb_file_text">文本</string>
     <string name="bb_file_other">文件</string>
+    <string name="upload_too_large">文件太大，无法发送到打印机（上限 200 MB）。</string>
+    <string name="bb_submit_title">作业提交</string>
+    <string name="bb_submit_choose">选择要提交的文件</string>
+    <string name="bb_submit_go">提交</string>
+    <string name="bb_submit_confirm">将 %1$s 提交到「%2$s」？提交后无法撤回。</string>
+    <string name="bb_submit_doing">正在提交…</string>
+    <string name="bb_submit_ok">已提交。该作业现有 %1$d 次提交。</string>
+    <string name="bb_submit_unconfirmed">服务器返回 %1$d，但提交次数没有变化。请先到课程页确认，再决定是否重试。</string>
+    <string name="bb_submit_failed">提交失败：%1$s</string>
+    <string name="bb_attempts_none">尚未提交。</string>
+    <string name="bb_attempts_some">已提交 %1$d 次。</string>
+    <string name="bb_attempts_unknown">正在查询已有提交…</string>
 </resources>
