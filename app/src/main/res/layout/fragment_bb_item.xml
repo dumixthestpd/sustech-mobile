@@ -59,6 +59,42 @@
             android:layout_height="wrap_content"
             android:orientation="vertical" />
 
+        <LinearLayout
+            android:id="@+id/bb_submit_section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="16dp"
+            android:paddingTop="18dp"
+            android:paddingEnd="16dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/bb_submit_title"
+                android:textColor="@color/ink_muted"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/bb_submit_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="@color/ink"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/bb_submit_pick"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:text="@string/bb_submit_choose"
+                android:textColor="@color/brand" />
+        </LinearLayout>
+
         <TextView
             android:id="@+id/bb_item_empty"
             android:layout_width="match_parent"

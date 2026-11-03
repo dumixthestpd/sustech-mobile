@@ -2,12 +2,16 @@ package edu.sustech.mobile.bb
 
 import android.util.Log
 import edu.sustech.mobile.core.ApiException
+import edu.sustech.mobile.core.memory.MemoryFile
 import edu.sustech.mobile.core.Cache
 import edu.sustech.mobile.core.Hosts
 import edu.sustech.mobile.sso.CasLogin
 import edu.sustech.mobile.sso.Session
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.IOException
 import java.time.Instant
@@ -332,7 +336,107 @@ class BbApi(private val http: OkHttpClient) {
         return bytes
     }
 
+    // -- Submission -----------------------------------------------------------
+
+    /**
+     * The assignment upload form, exactly as BB renders it.
+     *
+     * The nonce in it is session-bound and changes on every GET, so the form is
+     * fetched immediately before it is used and never reused.
+     */
+    fun submissionForm(courseId: String, contentId: String, allowRelogin: Boolean = true): BbSubmit.Form =
+        withRelogin(allowRelogin) {
+            val html = getHtml(
+                "/webapps/assignment/uploadAssignment?action=newAttempt" +
+                    "&content_id=${BbWire.bracket(contentId)}&course_id=${BbWire.bracket(courseId)}",
+            )
+            val form = BbSubmit.parse(html)
+            if (!BbSubmit.isUsable(form)) {
+                throw ApiException("Blackboard did not return a usable submission form")
+            }
+            form
+        }
+
+    /** How many attempts this account already has on [contentId]'s column. */
+    fun attemptCount(courseId: String, contentId: String, allowRelogin: Boolean = true): Int =
+        withRelogin(allowRelogin) {
+            val me = getJson("/learn/api/public/v1/users/me?_fields=id").optString("id")
+            val want = BbWire.coreId(contentId)
+            val columns = getJson(
+                "/learn/api/public/v1/courses/${BbWire.bracket(courseId)}" +
+                    "/gradebook/columns?_fields=id,contentId&limit=200",
+            ).optJSONArray("results") ?: return@withRelogin 0
+            var columnId: String? = null
+            for (i in 0 until columns.length()) {
+                val column = columns.optJSONObject(i) ?: continue
+                if (BbWire.coreId(column.optString("contentId")) == want) {
+                    columnId = column.optString("id")
+                    break
+                }
+            }
+            val column = columnId ?: return@withRelogin 0
+            val attempts = runCatching {
+                getJson(
+                    "/learn/api/public/v1/courses/${BbWire.bracket(courseId)}" +
+                        "/gradebook/columns/$column/attempts?limit=50",
+                ).optJSONArray("results")
+            }.getOrNull() ?: return@withRelogin 0
+            (0 until attempts.length()).count { attempts.optJSONObject(it)?.optString("userId") == me }
+        }
+
+    /**
+     * Posts one submission. **There is no retry and no redirect follow**: BB has
+     * no way to withdraw an attempt, so a second POST after an ambiguous answer
+     * could create exactly the mess this app must never make. The caller reports
+     * the status and re-reads [attemptCount] to find out what actually happened.
+     */
+    fun postSubmission(
+        form: BbSubmit.Form,
+        file: MemoryFile,
+        courseId: String,
+        contentId: String,
+    ): Int {
+        val staged = BbSubmit.stage(form, file.name)
+        val body = MultipartBody.Builder().setType(MultipartBody.FORM)
+        staged.fields.forEach { (name, value) -> body.addFormDataPart(name, value) }
+        body.addFormDataPart(
+            staged.filePart,
+            file.name,
+            file.bytes.toRequestBody("application/octet-stream".toMediaTypeOrNull()),
+        )
+        val referer = Hosts.BLACKBOARD + "/webapps/assignment/uploadAssignment?content_id=" +
+            "${BbWire.bracket(contentId)}&course_id=${BbWire.bracket(courseId)}&mode=view"
+        val request = Request.Builder()
+            .url(Hosts.BLACKBOARD + "/webapps/assignment/uploadAssignment?action=submit")
+            .post(body.build())
+            .header("User-Agent", CasLogin.UA)
+            .header("Referer", referer)
+            .build()
+        return try {
+            http.newCall(request).execute().use { it.code }
+        } catch (e: IOException) {
+            throw ApiException(e.message ?: "network error")
+        }
+    }
+
     // -- Transport ------------------------------------------------------------
+
+    /** HTML body of a Blackboard page (the upload form is not JSON). */
+    private fun getHtml(path: String): String {
+        val request = Request.Builder()
+            .url(Hosts.BLACKBOARD + path)
+            .get()
+            .header("User-Agent", CasLogin.UA)
+            .build()
+        val (code, text) = try {
+            http.newCall(request).execute().use { it.code to it.body?.string().orEmpty() }
+        } catch (e: IOException) {
+            throw ApiException(e.message ?: "network error")
+        }
+        if (code == 401) throw ApiException("Blackboard session expired", signInRequired = true)
+        if (code >= 400) throw ApiException("Blackboard answered HTTP $code")
+        return text
+    }
 
     private fun getJson(path: String): JSONObject {
         val request = Request.Builder()

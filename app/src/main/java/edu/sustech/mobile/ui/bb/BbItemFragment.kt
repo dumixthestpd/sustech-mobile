@@ -1,23 +1,31 @@
 package edu.sustech.mobile.ui.bb
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import edu.sustech.mobile.R
 import edu.sustech.mobile.bb.BbAttachment
 import edu.sustech.mobile.bb.BbDoc
+import edu.sustech.mobile.bb.BbFiles
 import edu.sustech.mobile.bb.BbItem
 import edu.sustech.mobile.bb.BbMaterial
 import edu.sustech.mobile.core.App
 import edu.sustech.mobile.core.friendly
 import edu.sustech.mobile.core.memory.MemoryFile
+import edu.sustech.mobile.core.memory.MemoryStore
 import edu.sustech.mobile.core.memory.ShareIntent
 import edu.sustech.mobile.core.runIo
+import java.io.ByteArrayOutputStream
+import java.io.IOException
 
 /**
  * One content item: what it is, and every file it carries.
@@ -32,6 +40,15 @@ class BbItemFragment : Fragment(R.layout.fragment_bb_item) {
     private val courseName: String get() = requireArguments().getString(ARG_COURSE_NAME).orEmpty()
     private val contentId: String get() = requireArguments().getString(ARG_CONTENT).orEmpty()
 
+    private lateinit var submitSection: View
+    private lateinit var submitStatus: TextView
+    private var itemTitle: String = ""
+
+    /** The one file the user picked for submission; never written to storage. */
+    private val pickFile = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) readChosen(uri)
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val title = view.findViewById<TextView>(R.id.bb_item_title)
@@ -40,6 +57,10 @@ class BbItemFragment : Fragment(R.layout.fragment_bb_item) {
         val files = view.findViewById<LinearLayout>(R.id.bb_item_files)
         val empty = view.findViewById<TextView>(R.id.bb_item_empty)
         val label = view.findViewById<TextView>(R.id.bb_item_files_label)
+        submitSection = view.findViewById(R.id.bb_submit_section)
+        submitStatus = view.findViewById(R.id.bb_submit_status)
+        submitSection.visibility = View.GONE
+        view.findViewById<View>(R.id.bb_submit_pick).setOnClickListener { pickFile.launch(arrayOf("*/*")) }
 
         title.text = ""
         meta.text = courseName
@@ -54,6 +75,8 @@ class BbItemFragment : Fragment(R.layout.fragment_bb_item) {
             onOk = { detail ->
                 if (!isAdded) return@runIo
                 title.text = detail.title
+                itemTitle = detail.title
+                if (detail.kind == BbItem.Kind.ASSIGNMENT) bindSubmission() else submitSection.visibility = View.GONE
                 meta.text = listOf(courseName, kindLabel(detail.kind)).filter { it.isNotEmpty() }
                     .joinToString(" · ")
                 body.text = detail.bodyText
@@ -75,6 +98,107 @@ class BbItemFragment : Fragment(R.layout.fragment_bb_item) {
             },
         )
     }
+
+    /**
+     * The submission card, only on an assignment.
+     *
+     * Submitting is the one irreversible write in this app — BB has no way to
+     * withdraw an attempt — so the count is read first and shown, and the button
+     * goes through a confirmation that says so in those words.
+     */
+    private fun bindSubmission() {
+        submitSection.visibility = View.VISIBLE
+        submitStatus.text = getString(R.string.bb_attempts_unknown)
+        runIo(
+            block = { App.bb.attemptCount(courseId, contentId) },
+            onOk = { count ->
+                if (!isAdded) return@runIo
+                submitStatus.text = if (count > 0) {
+                    getString(R.string.bb_attempts_some, count)
+                } else {
+                    getString(R.string.bb_attempts_none)
+                }
+            },
+        )
+    }
+
+    private fun readChosen(uri: Uri) {
+        val context = requireContext()
+        runIo(
+            block = {
+                val name = displayName(uri) ?: "submission.bin"
+                val input = context.contentResolver.openInputStream(uri)
+                    ?: throw IOException("this file cannot be read")
+                val bytes = input.use { stream ->
+                    val out = ByteArrayOutputStream()
+                    val buffer = ByteArray(64 * 1024)
+                    var total = 0L
+                    while (true) {
+                        val read = stream.read(buffer)
+                        if (read <= 0) break
+                        total += read
+                        if (total > MAX_SUBMIT_BYTES) throw IOException("too large")
+                        out.write(buffer, 0, read)
+                    }
+                    out.toByteArray()
+                }
+                Triple(name.substringAfterLast('/'), bytes, BbFiles.mimeOf(name, bytes))
+            },
+            onOk = { (name, bytes, mime) ->
+                if (!isAdded) return@runIo
+                val file = MemoryStore.put(
+                    "bb:submit:$contentId:${System.currentTimeMillis()}",
+                    name,
+                    mime,
+                    bytes,
+                )
+                AlertDialog.Builder(context)
+                    .setTitle(getString(R.string.bb_submit_title))
+                    .setMessage(getString(R.string.bb_submit_confirm, file.name, itemTitle))
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .setPositiveButton(R.string.bb_submit_go) { _, _ -> submit(file) }
+                    .show()
+            },
+            onErr = { error ->
+                if (isAdded) submitStatus.text = getString(R.string.bb_submit_failed, error.friendly(context))
+            },
+        )
+    }
+
+    private fun submit(file: MemoryFile) {
+        val context = requireContext()
+        submitStatus.text = getString(R.string.bb_submit_doing)
+        runIo(
+            block = {
+                val form = App.bb.submissionForm(courseId, contentId)
+                // One POST, never retried: see [BbApi.postSubmission].
+                val code = App.bb.postSubmission(form, file, courseId, contentId)
+                val after = runCatching { App.bb.attemptCount(courseId, contentId) }.getOrDefault(-1)
+                code to after
+            },
+            onOk = { (code, after) ->
+                if (!isAdded) return@runIo
+                submitStatus.text = when {
+                    after > 0 -> getString(R.string.bb_submit_ok, after)
+                    // The POST went out but the count did not move: report the
+                    // server's own answer instead of claiming success.
+                    else -> getString(R.string.bb_submit_unconfirmed, code)
+                }
+            },
+            onErr = { error ->
+                if (!isAdded) return@runIo
+                submitStatus.text = getString(R.string.bb_submit_failed, error.friendly(context))
+            },
+        )
+    }
+
+    private fun displayName(uri: Uri): String? =
+        runCatching {
+            requireContext().contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (index >= 0 && cursor.moveToFirst()) cursor.getString(index) else null
+            }
+        }.getOrNull() ?: uri.lastPathSegment
 
     private fun bindFile(attachment: BbAttachment): View {
         val row = LayoutInflater.from(requireContext())
@@ -151,6 +275,8 @@ class BbItemFragment : Fragment(R.layout.fragment_bb_item) {
     }
 
     companion object {
+        /** A submission bigger than this is not what the course expects. */
+        private const val MAX_SUBMIT_BYTES = 200L * 1024 * 1024
         private const val ARG_COURSE = "courseId"
         private const val ARG_COURSE_NAME = "courseName"
         private const val ARG_CONTENT = "contentId"
