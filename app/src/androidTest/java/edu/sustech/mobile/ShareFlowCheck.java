@@ -125,9 +125,10 @@ public class ShareFlowCheck extends Instrumentation {
 
             Intent clipOnly = ShareIntent.INSTANCE.send(getTargetContext(), file);
             clipOnly.removeExtra(Intent.EXTRA_STREAM);
-            clipOnly.setClass(getTargetContext(), UploadActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            getTargetContext().startActivity(clipOnly);
+            clipOnly.setClass(upload, UploadActivity.class).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            runOnMainSync(() -> upload.startActivity(clipOnly));
             awaitText("Course handout.pdf");
+            screenshot("09-clipdata-receipt.png");
             result.putString("stream", "PASS: two-page PDF navigation, DOCX and image previews; Mobile provider bytes; chooser; external read + seek + SHA256; BB and external-provider to PMS; missing-file selection reset; ClipData-only receipt. No upload. Screenshots: " + output);
             finish(Activity.RESULT_OK, result);
         } catch (Throwable error) {
