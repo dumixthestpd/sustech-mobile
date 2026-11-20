@@ -9,6 +9,15 @@
         android:orientation="vertical"
         android:padding="16dp">
 
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:text="@string/upload_title"
+            android:textColor="@color/ink"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
         <com.google.android.material.card.MaterialCardView
             style="@style/CardBase"
             android:layout_width="match_parent"

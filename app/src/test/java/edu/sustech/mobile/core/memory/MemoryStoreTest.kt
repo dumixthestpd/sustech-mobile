@@ -46,6 +46,19 @@ class MemoryStoreTest {
     }
 
     @Test
+    fun `an oversized attachment stays readable by the share receiver`() {
+        MemoryStore.put("old", "old.pdf", "application/pdf", bytes(1))
+        val file = MemoryStore.put("large", "large.pdf", "application/pdf", bytes(49 * 1024 * 1024))
+        assertTrue(MemoryStore.byToken(file.token) === file)
+        assertNull(MemoryStore.find("old"))
+        assertEquals(1, MemoryStore.size())
+        // It remains eligible for eviction once a different file is opened.
+        MemoryStore.put("new", "new.pdf", "application/pdf", bytes(1))
+        assertNull(MemoryStore.byToken(file.token))
+        assertEquals(1L, MemoryStore.totalBytes())
+    }
+
+    @Test
     fun `clear empties both maps and the byte count`() {
         MemoryStore.put("k", "a.pdf", "application/pdf", bytes(10))
         MemoryStore.clear()

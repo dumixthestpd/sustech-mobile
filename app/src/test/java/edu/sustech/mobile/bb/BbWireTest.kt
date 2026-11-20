@@ -50,6 +50,17 @@ class BbWireTest {
     }
 
     @Test
+    fun `generic BB headers do not suppress a PDF or Office share target`() {
+        assertEquals("application/pdf", BbFiles.attachmentMime("manual.pdf", "application/octet-stream", ByteArray(0)))
+        assertEquals("application/pdf", BbFiles.attachmentMime("xid-12", "application/octet-stream", "%PDF-1.4".toByteArray()))
+        val docx = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        assertEquals(docx, BbFiles.attachmentMime("manual.docx", "application/zip", byteArrayOf(0x50, 0x4b, 0, 0)))
+        assertEquals("xid-12.docx", BbFiles.withExtension("xid-12", BbFiles.attachmentMime("xid-12", docx, byteArrayOf(0x50, 0x4b, 0, 0))))
+        assertEquals("application/vnd.ms-excel", BbFiles.mimeOf("table.xls", ByteArray(0)))
+        assertEquals("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", BbFiles.mimeOf("table.xlsx", ByteArray(0)))
+    }
+
+    @Test
     fun `an extensionless name gains one from its bytes`() {
         val pdf = "%PDF-1.6".toByteArray()
         assertEquals("xid-12345.pdf", BbFiles.withExtension("xid-12345", BbFiles.mimeOf("xid-12345", pdf)))

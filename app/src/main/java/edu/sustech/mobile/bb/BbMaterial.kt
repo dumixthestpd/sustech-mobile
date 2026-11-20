@@ -21,12 +21,8 @@ object BbMaterial {
         synchronized(lock) {
             MemoryStore.find(key)?.let { return it }
             val bytes = App.bb.download(courseId, contentId, attachment.id)
-            val named = BbFiles.withExtension(attachment.name, BbFiles.mimeOf(attachment.name, bytes))
-            val mime = if (attachment.mime.startsWith("application/") || attachment.mime.startsWith("image/")) {
-                attachment.mime
-            } else {
-                BbFiles.mimeOf(named, bytes)
-            }
+            val mime = BbFiles.attachmentMime(attachment.name, attachment.mime, bytes)
+            val named = BbFiles.withExtension(attachment.name, mime)
             return MemoryStore.put(key, named, mime, bytes)
         }
     }

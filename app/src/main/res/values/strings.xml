@@ -430,6 +430,8 @@
     <string name="usage_settle_manual">staff</string>
     <string name="date_hint">YYYY-MM-DD</string>
     <string name="upload_title">Cloud print upload</string>
+    <string name="upload_share_target">Upload to PMS</string>
+    <string name="upload_reading">Opening file…</string>
     <string name="upload_pick">Choose file</string>
     <string name="upload_no_file">No file selected</string>
     <string name="upload_color">Color</string>

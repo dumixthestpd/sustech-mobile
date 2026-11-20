@@ -36,6 +36,25 @@ python3 tools/drive_ui.py --scenario pms-smoke    # also: shell, pms-upload, tis
 
 `tis-live` runs against the real TIS with your stored account.
 
+The release-only device check uses synthetic attachments and the real Mobile content provider:
+
+```bash
+./gradlew testDebugUnitTest assembleRelease assembleReleaseAndroidTest
+adb install -r app/build/outputs/apk/release/app-release.apk
+adb install -r app/build/outputs/apk/androidTest/release/app-release-androidTest.apk
+adb shell am instrument -w edu.sustech.mobile.test/edu.sustech.mobile.ShareFlowCheck
+```
+
+It requires the small local `edu.sustech.sink` ShareSink receiver and `edu.sustech.probe` ShareProbe
+sender installed on the device. Their
+source and build tools are at `D:/dumix/projects/wsa-share-probe` on the development machine.
+The check covers PDF, DOCX and image previews, reads the Mobile provider, shares through Android's
+chooser to the external receiver (including SHA-256 and seek checks), and chooses **Upload to PMS**
+with the same BB file, an external-provider share, a missing-file reset, and ClipData-only receipt.
+It never logs in or uploads. It writes screenshots under the app's external
+`files/share-check` directory: inspect them, then delete them after review. The instrumentation APK
+is a test companion and must never be attached to a public release.
+
 **Before publishing a release, install it and exercise the screens you changed on a device or on
 Windows Subsystem for Android.** Unit tests and a green `assembleDebug` do not prove the app runs:
 v0.3.22 shipped with the entire Loans tab dead — every fetch failed — because that code had never

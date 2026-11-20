@@ -7,7 +7,8 @@ A clean Android app for SUSTech campus services. Anywhere, anytime.
 - **Printing** (`pms`) — 联创 cloud print: upload with all five options, queue + delete, scans, usage report, stations
 - **Courses & grades** (`tis`) — this week's timetable on its real period grid, enrolled courses, grades + GPA, exams
 - **Course reviews** (牛娃社区) — search a course, code or teacher and read the community's evaluation ratings
-- **Blackboard** (`bb`) — enrolled courses and the assignments coming due
+- **Blackboard** (`bb`) — course materials and notices, in-app PDF/image/Word-text previews,
+  file sharing to other apps, assignment deadlines and submissions
 - **Campus card** (一卡通) — balance and recent bills, with in-app recharge
 - **Library** — how many people are inside each library, where a book is (floor, shelf, availability), and **your borrowed books with due dates and renewal**
 - **Transit** — the campus shuttle: every stop as a *place*, nearest first; pick a direction and see the buses on the way, live
@@ -42,6 +43,22 @@ Your CAS credentials are **stored on your device**. Sessions renew themselves si
 
 Printing needs the campus network (or a VPN back to campus) — PMS answers 403 from outside. You can
 check your account state in the Account tab.
+
+## Share course materials and print files
+
+In Blackboard, open a course's materials and tap **Share** beside an attachment, or share it from
+its preview. Choose a receiving app in Android's share sheet. It receives the actual file, with
+its name and type, rather than a Blackboard link that would require your account. BB downloads and
+previews stay in memory; the receiving app may keep its own copy.
+
+For printing, choose **Upload to PMS** in the share sheet. This also works when sharing a file
+from another phone app. SUSTech Mobile opens the print-upload screen with that file selected; choose
+the print settings and tap **Upload to print queue** when ready. Sharing alone does not upload it.
+The upload screen uses a private temporary copy, limited to 200 MB, and PMS still requires campus
+network access. The receiver currently accepts one PDF, Word, Excel, JPEG, PNG or plain-text file
+at a time; other attachment types can still be shared to compatible apps.
+
+BB materials and incoming print sharing are included in v0.3.30 and later.
 
 ## Build and test
 

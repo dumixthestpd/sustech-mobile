@@ -2,7 +2,7 @@ package edu.sustech.mobile.core.memory
 
 import android.content.Context
 import android.os.Handler
-import android.os.Looper
+import android.os.HandlerThread
 import android.os.ParcelFileDescriptor
 import android.os.ProxyFileDescriptorCallback
 import android.os.storage.StorageManager
@@ -16,6 +16,16 @@ import android.os.storage.StorageManager
  * real file. Requires API 26 (`minSdk` is 26).
  */
 object MemoryFd {
+
+    // Rendering/closing a PDF can hold the reader lock while waiting for file
+    // callbacks. The activity's main thread may be closing that same reader
+    // during recreation: callbacks must therefore run independently of it.
+    private val callbacks: Handler by lazy {
+        HandlerThread("memory-file-reads").let { thread ->
+            thread.start()
+            Handler(thread.looper)
+        }
+    }
 
     fun open(
         context: Context,
@@ -39,7 +49,7 @@ object MemoryFd {
             .openProxyFileDescriptor(
                 ParcelFileDescriptor.parseMode("r"),
                 callback,
-                Handler(Looper.getMainLooper()),
+                callbacks,
             )
     }
 }

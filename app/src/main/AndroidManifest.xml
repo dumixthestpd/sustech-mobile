@@ -86,7 +86,7 @@
         <activity
             android:name=".ui.pms.UploadActivity"
             android:exported="true"
-            android:label="@string/service_pms">
+            android:label="@string/upload_share_target">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />

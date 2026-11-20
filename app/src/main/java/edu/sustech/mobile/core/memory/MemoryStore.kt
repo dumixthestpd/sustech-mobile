@@ -36,7 +36,9 @@ object MemoryStore {
         byToken[file.token] = file
         total += bytes.size
         while (total > CAP_BYTES) {
-            val victim = byKey.entries.firstOrNull { (pins[it.value.token] ?: 0) == 0 } ?: break
+            val victim = byKey.entries.firstOrNull {
+                it.value !== file && (pins[it.value.token] ?: 0) == 0
+            } ?: break
             byKey.remove(victim.key)
             forget(victim.value)
         }

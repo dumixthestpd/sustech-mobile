@@ -401,6 +401,8 @@
     <string name="usage_settle_self">自助</string>
     <string name="usage_settle_manual">人工</string>
     <string name="upload_title">云打印上传</string>
+    <string name="upload_share_target">上传到 PMS 云打印</string>
+    <string name="upload_reading">正在打开文件…</string>
     <string name="upload_pick">选择文件</string>
     <string name="upload_no_file">未选择文件</string>
     <string name="upload_color">颜色</string>

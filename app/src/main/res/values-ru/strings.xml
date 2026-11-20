@@ -383,6 +383,8 @@
     <string name="usage_settle_self">самообслуживание</string>
     <string name="usage_settle_manual">сотрудник</string>
     <string name="upload_title">Загрузка для печати</string>
+    <string name="upload_share_target">Загрузить в PMS</string>
+    <string name="upload_reading">Открытие файла…</string>
     <string name="upload_pick">Выбрать файл</string>
     <string name="upload_no_file">Файл не выбран</string>
     <string name="upload_color">Цвет</string>

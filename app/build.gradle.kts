@@ -40,14 +40,17 @@ android {
         applicationId = "edu.sustech.mobile"
         minSdk = 26
         targetSdk = 34
-        versionCode = 32
-        versionName = "0.3.29"
+        versionCode = 33
+        versionName = "0.3.30"
+        testInstrumentationRunner = "edu.sustech.mobile.ShareFlowCheck"
         buildConfigField("String", "DEFAULT_SERVER_URL", "\"$defaultServerUrl\"")
     }
 
     buildFeatures {
         buildConfig = true
     }
+
+    testBuildType = "release"
 
     buildTypes {
         release {

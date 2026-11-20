@@ -105,6 +105,8 @@ object BbFiles {
             "jpg", "jpeg" -> "image/jpeg"
             "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             "doc" -> "application/msword"
+            "xls" -> "application/vnd.ms-excel"
+            "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             "pptx" -> "application/vnd.openxmlformats-officedocument.presentationml.presentation"
             "ppt" -> "application/vnd.ms-powerpoint"
             "zip" -> "application/zip"
@@ -112,7 +114,19 @@ object BbFiles {
             else -> sniff(bytes)
         }
 
-    /** The bytes decide when the name lies or carries no extension. */
+    /** Generic BB download headers must not hide printable files from the chooser. */
+    fun attachmentMime(name: String, declared: String, bytes: ByteArray): String {
+        val named = mimeOf(name, ByteArray(0))
+        if (named != "application/octet-stream") return named
+        val sniffed = sniff(bytes)
+        if (sniffed != "application/octet-stream" && sniffed != "application/zip") return sniffed
+        val header = declared.substringBefore(';').trim().lowercase()
+        if (header != "application/octet-stream" && header != "application/zip" &&
+            (header.startsWith("application/") || header.startsWith("image/") || header.startsWith("text/"))) return header
+        return sniffed
+    }
+
+    /** Recognizable bytes supply a type when the filename has no useful extension. */
     fun sniff(bytes: ByteArray): String = when {
         bytes.size >= 4 && bytes[0] == 0x25.toByte() && bytes[1] == 0x50.toByte() &&
             bytes[2] == 0x44.toByte() && bytes[3] == 0x46.toByte() -> "application/pdf"
@@ -131,6 +145,12 @@ object BbFiles {
             "image/jpeg" -> "jpg"
             "application/zip" -> "zip"
             "text/plain" -> "txt"
+            "application/msword" -> "doc"
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document" -> "docx"
+            "application/vnd.ms-excel" -> "xls"
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" -> "xlsx"
+            "application/vnd.ms-powerpoint" -> "ppt"
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation" -> "pptx"
             else -> "bin"
         }
         return "$name.$ext"

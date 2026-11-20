@@ -1,6 +1,5 @@
 package edu.sustech.mobile.ui.pms
 
-import android.content.ClipData
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -22,6 +21,7 @@ import edu.sustech.mobile.core.friendly
 import edu.sustech.mobile.core.runIo
 import edu.sustech.mobile.pms.ColorMode
 import edu.sustech.mobile.pms.Duplex
+import edu.sustech.mobile.pms.IncomingPrintFile
 import edu.sustech.mobile.pms.Paper
 import edu.sustech.mobile.pms.UploadOptions
 import java.io.File
@@ -33,6 +33,7 @@ import java.io.File
 class UploadActivity : AppCompatActivity() {
 
     private var picked: File? = null
+    private var selectionVersion = 0
 
     private val picker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) copyToCache(uri)
@@ -46,6 +47,7 @@ class UploadActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         App.init(applicationContext)
         setContentView(R.layout.activity_upload)
+        title = getString(R.string.upload_title)
 
         val colorSpinner = findViewById<Spinner>(R.id.spinner_color)
         colorSpinner.adapter = spinnerAdapter(listOf(getString(R.string.upload_color_bw), getString(R.string.upload_color_color)))
@@ -77,55 +79,45 @@ class UploadActivity : AppCompatActivity() {
         handleIncomingShare(intent)
     }
 
-    private companion object {
-        /** 200 MB: a print job past this is not something the queue would take. */
-        const val MAX_SHARE_BYTES = 200L * 1024 * 1024
-    }
-
     private fun spinnerAdapter(labels: List<String>) =
         ArrayAdapter(this, android.R.layout.simple_spinner_item, labels)
             .apply { setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
 
-    /**
-     * SAF hands back a content:// URI — the multipart body needs a real file.
-     *
-     * This activity is exported (it answers the share sheet), so the name and
-     * the size come from another app: the name is reduced to a bare file name so
-     * a `../` in it cannot write outside the cache, and the copy stops at
-     * [MAX_SHARE_BYTES] so a stranger cannot fill the device.
-     */
+    /** Copy off the main thread; a failed replacement must never upload the old file. */
     private fun copyToCache(uri: Uri) {
-        try {
-            val name = safeName(displayName(uri))
-            val target = File(cacheDir, name)
-            contentResolver.openInputStream(uri).use { input ->
-                requireNotNull(input) { "no stream" }
-                var copied = 0L
-                target.outputStream().use { output ->
-                    val buffer = ByteArray(64 * 1024)
-                    while (true) {
-                        val read = input.read(buffer)
-                        if (read <= 0) break
-                        copied += read
-                        if (copied > MAX_SHARE_BYTES) throw IllegalStateException("too large")
-                        output.write(buffer, 0, read)
-                    }
+        val version = ++selectionVersion
+        picked = null
+        findViewById<TextView>(R.id.file_name).setText(R.string.upload_reading)
+        setSelectionEnabled(false)
+        runIo(
+            block = {
+                IncomingPrintFile.copy(cacheDir, displayName(uri)) {
+                    contentResolver.openInputStream(uri)
                 }
-            }
-            picked = target
-            findViewById<TextView>(R.id.file_name).text = name
-        } catch (e: IllegalStateException) {
-            picked = null
-            Toast.makeText(this, R.string.upload_too_large, Toast.LENGTH_LONG).show()
-        } catch (e: Exception) {
-            Toast.makeText(this, R.string.pick_error, Toast.LENGTH_LONG).show()
-        }
+            },
+            onOk = { target ->
+                if (version == selectionVersion) {
+                    picked = target
+                    findViewById<TextView>(R.id.file_name).text = target.name
+                    setSelectionEnabled(true)
+                } else {
+                    IncomingPrintFile.discard(target)
+                }
+            },
+            onErr = { error ->
+                if (version == selectionVersion) {
+                    findViewById<TextView>(R.id.file_name).setText(R.string.upload_no_file)
+                    setSelectionEnabled(true)
+                    val message = if (error is IncomingPrintFile.TooLarge) R.string.upload_too_large else R.string.pick_error
+                    Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+                }
+            },
+        )
     }
 
-    /** A display name from a foreign app, reduced to one harmless file name. */
-    private fun safeName(raw: String?): String {
-        val base = raw.orEmpty().substringAfterLast('/').substringAfterLast('\\').trim()
-        return if (base.isEmpty() || base == "." || base == "..") "upload.bin" else base
+    private fun setSelectionEnabled(enabled: Boolean) {
+        findViewById<MaterialButton>(R.id.btn_pick).isEnabled = enabled
+        findViewById<MaterialButton>(R.id.btn_upload).isEnabled = enabled
     }
 
     private fun displayName(uri: Uri): String? {
@@ -138,12 +130,22 @@ class UploadActivity : AppCompatActivity() {
 
     private fun handleIncomingShare(intent: Intent?) {
         if (intent?.action != Intent.ACTION_SEND) return
-        val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
-        } else {
-            @Suppress("DEPRECATION")
-            intent.getParcelableExtra(Intent.EXTRA_STREAM) as? Uri
-        } ?: intent.clipData?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.uri ?: return
+        val uri = runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                intent.getParcelableExtra(Intent.EXTRA_STREAM) as? Uri
+            } ?: intent.clipData?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.uri
+        }.getOrNull()
+        if (uri == null) {
+            ++selectionVersion
+            picked = null
+            findViewById<TextView>(R.id.file_name).setText(R.string.upload_no_file)
+            setSelectionEnabled(true)
+            Toast.makeText(this, R.string.pick_error, Toast.LENGTH_LONG).show()
+            return
+        }
         copyToCache(uri)
     }
 
@@ -167,6 +169,7 @@ class UploadActivity : AppCompatActivity() {
         progress.visibility = View.VISIBLE
         progress.progress = 0
         button.isEnabled = false
+        findViewById<MaterialButton>(R.id.btn_pick).isEnabled = false
         button.setText(R.string.upload_running)
 
         runIo(
@@ -179,6 +182,7 @@ class UploadActivity : AppCompatActivity() {
             onOk = {
                 progress.visibility = View.GONE
                 button.isEnabled = true
+                findViewById<MaterialButton>(R.id.btn_pick).isEnabled = true
                 button.setText(R.string.upload_submit)
                 Toast.makeText(this, getString(R.string.upload_ok, file.name), Toast.LENGTH_LONG).show()
                 finish()
@@ -186,6 +190,7 @@ class UploadActivity : AppCompatActivity() {
             onErr = { error ->
                 progress.visibility = View.GONE
                 button.isEnabled = true
+                findViewById<MaterialButton>(R.id.btn_pick).isEnabled = true
                 button.setText(R.string.upload_submit)
                 Toast.makeText(this, getString(R.string.upload_failed, error.friendly(this)), Toast.LENGTH_LONG).show()
             },

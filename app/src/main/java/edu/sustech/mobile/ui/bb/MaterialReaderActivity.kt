@@ -79,6 +79,9 @@ class MaterialReaderActivity : AppCompatActivity() {
             fail(getString(R.string.bb_gone))
             return
         }
+        // Keep the URI readable while this preview (and its share chooser) is
+        // open, even if another screen downloads more attachments.
+        MemoryStore.pin(f.token)
         // Share stays usable even when reading fails: an app that can open this
         // type may still be the better place for it.
         when {
@@ -212,6 +215,7 @@ class MaterialReaderActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         synchronized(renderLock) { closeQuietly() }
+        file?.let { MemoryStore.unpin(it.token) }
         super.onDestroy()
     }
 

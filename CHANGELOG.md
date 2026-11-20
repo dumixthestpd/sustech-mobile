@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.3.30 — 2026-11-20
+
+- **Blackboard materials.** Browse course content and notices, preview PDFs, images and Word text,
+  and share the original attachment to another app without saving the BB download to storage.
+- **Share into printing.** Android's **Upload to PMS** target opens the print-upload screen with
+  the received file selected. The incoming-share feature was contributed by
+  [@yusancky](https://github.com/dumixthestpd/sustech-mobile/commit/3650b4b735d88318ab008fc449d2c8839d368e46).
+  It accepts a single supported document or image, using either the shared stream or ClipData.
+- **Reliable handoffs.** Keep large BB attachments available to recipients, and keep previews
+  pinned in memory. Read incoming print files off the UI thread, isolate same-named copies,
+  remove partial copies on failure, and clear the previous selection if a new file cannot be read.
+  Generic download types no longer hide PDF, Word and Excel targets from the share sheet.
+  File callbacks run off the UI thread so changing screens while a PDF is being read cannot
+  block its handoff to printing.
+- **Blackboard assignments.** Attach a file from the phone and submit an assignment.
+- **Android CI.** Unit tests and a downloadable debug-build artifact on GitHub Actions, contributed
+  by [@yusancky](https://github.com/dumixthestpd/sustech-mobile/pull/2).
+
 ## 0.3.29 — 2026-10-28
 
 **Printing works again** after the print site changed how it signs in, and the
