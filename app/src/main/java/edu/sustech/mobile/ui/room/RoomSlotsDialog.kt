@@ -23,10 +23,8 @@ import edu.sustech.mobile.ui.SimpleAdapter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
-import java.util.Locale
 
 /** A real per-room calendar, matching the official research-space page. */
 class RoomSlotsDialog : DialogFragment() {
@@ -40,8 +38,11 @@ class RoomSlotsDialog : DialogFragment() {
     private lateinit var dates: ChipGroup
     private lateinit var adapter: SimpleAdapter<RoomSlot>
     private var selectedDay: Date = daysFallback()
+    private var loadGeneration = 0
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+        if (savedInstanceState?.containsKey("selectedDay") == true) selectedDay = Date(savedInstanceState.getLong("selectedDay"))
+        else if (requireArguments().containsKey("initialDay")) selectedDay = Date(requireArguments().getLong("initialDay"))
         room = RoomInfo(
             devId = requireArguments().getInt(ARG_DEV),
             name = requireArguments().getString(ARG_NAME).orEmpty(),
@@ -100,16 +101,16 @@ class RoomSlotsDialog : DialogFragment() {
             }
             row.isClickable = slot.state == RoomSlotState.AVAILABLE
             row.setOnClickListener {
-                if (slot.state == RoomSlotState.AVAILABLE) {
+                if (slot.state == RoomSlotState.AVAILABLE && RoomApi.bookableDays().any { it.time == selectedDay.time }) {
                     BookDialog.newInstance(room, selectedDay, slot.start)
                         .show(parentFragmentManager, "book")
                 }
             }
         }
         list.adapter = adapter
-        days = RoomApi.bookableDays()
+        days = (RoomApi.bookableDays() + selectedDay).distinctBy { it.time }.sortedBy { it.time }
         buildDates()
-        loadDay(days.firstOrNull())
+        loadDay(selectedDay)
 
         return androidx.appcompat.app.AlertDialog.Builder(requireContext())
             .setTitle(R.string.rooms_slots_title)
@@ -125,7 +126,7 @@ class RoomSlotsDialog : DialogFragment() {
         RoomSlotState.CLOSED -> R.color.ink_muted
     }
 
-    private fun daysFallback(): Date = Calendar.getInstance().apply {
+    private fun daysFallback(): Date = Calendar.getInstance(java.util.TimeZone.getTimeZone("Asia/Shanghai")).apply {
         set(Calendar.HOUR_OF_DAY, 0)
         set(Calendar.MINUTE, 0)
         set(Calendar.SECOND, 0)
@@ -134,20 +135,21 @@ class RoomSlotsDialog : DialogFragment() {
 
     private fun buildDates() {
         dates.removeAllViews()
-        days.forEachIndexed { index, day ->
+        days.forEach { day ->
             val chip = Chip(requireContext()).apply {
                 id = View.generateViewId()
-                text = dateLabel(day, index)
+                text = dateLabel(day)
                 isCheckable = true
                 setOnClickListener { loadDay(day) }
             }
             dates.addView(chip)
         }
-        dates.getChildAt(0)?.let { dates.check(it.id) }
+        dates.getChildAt(days.indexOfFirst { it.time == selectedDay.time }.coerceAtLeast(0))?.let { dates.check(it.id) }
     }
 
     private fun loadDay(day: Date?) {
         if (day == null) return
+        val generation = ++loadGeneration
         selectedDay = day
         progress.visibility = View.VISIBLE
         empty.visibility = View.GONE
@@ -157,9 +159,10 @@ class RoomSlotsDialog : DialogFragment() {
                 withContext(Dispatchers.IO) { App.rooms.roomSchedule(room.devId, day, room.labId) }
             }
             if (!isAdded) return@launch
+            if (generation != loadGeneration) return@launch
             progress.visibility = View.GONE
             result.onSuccess { slots ->
-                note.text = getString(R.string.rooms_slots_note)
+                note.text = getString(if (RoomApi.bookableDays().any { it.time == day.time }) R.string.rooms_slots_note else R.string.rooms_interval_future_closed)
                 adapter.submit(slots)
                 empty.text = getString(R.string.rooms_slots_empty)
                 empty.visibility = if (slots.isEmpty()) View.VISIBLE else View.GONE
@@ -171,14 +174,22 @@ class RoomSlotsDialog : DialogFragment() {
         }
     }
 
-    private fun dateLabel(day: Date, index: Int): String = when (index) {
-        0 -> getString(R.string.rooms_slots_today)
-        1 -> getString(R.string.rooms_slots_tomorrow)
-        else -> DAY.format(day)
+    override fun onSaveInstanceState(state: Bundle) {
+        super.onSaveInstanceState(state)
+        state.putLong("selectedDay", selectedDay.time)
+    }
+
+    private fun dateLabel(day: Date): String {
+        val zone = java.time.ZoneId.of("Asia/Shanghai")
+        val date = day.toInstant().atZone(zone).toLocalDate()
+        return when (date) {
+            java.time.LocalDate.now(zone) -> getString(R.string.rooms_slots_today)
+            java.time.LocalDate.now(zone).plusDays(1) -> getString(R.string.rooms_slots_tomorrow)
+            else -> date.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd EEE", resources.configuration.locales[0]))
+        }
     }
 
     companion object {
-        private val DAY = SimpleDateFormat("M月d日 E", Locale.CHINA)
         private const val ARG_DEV = "dev"
         private const val ARG_NAME = "name"
         private const val ARG_LAB = "lab"
@@ -189,8 +200,9 @@ class RoomSlotsDialog : DialogFragment() {
         private const val ARG_FREE = "free"
         private const val ARG_LENDING = "lending"
 
-        fun newInstance(room: RoomInfo) = RoomSlotsDialog().apply {
+        fun newInstance(room: RoomInfo, initialDay: Date? = null) = RoomSlotsDialog().apply {
             arguments = Bundle().apply {
+                if (initialDay != null) putLong("initialDay", initialDay.time)
                 putInt(ARG_DEV, room.devId)
                 putString(ARG_NAME, room.name)
                 putString(ARG_LAB, room.lab)

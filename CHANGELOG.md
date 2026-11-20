@@ -2,6 +2,11 @@
 
 ## Unreleased — 0.3.31-dev
 
+- Search the complete WS exchange catalog by project/university/region; combine year, region,
+  project type and application eligibility filters, reset them, and retain choices when navigating.
+- Find discussion rooms for a chosen future date and continuous time interval, combining floor
+  and text filters. Query date calendars together by floor with paced requests; missing data remains
+  unconfirmed. Carry the selected date/time into the calendar and booking sheet.
 - Show bus directions and their immediate next stops before any arrivals load. Switch between
   directions or the two nearest places directly from the bus screen; discard superseded responses.
 - Open a Blackboard deadline's actual content item, retaining its course/content identity. Keep

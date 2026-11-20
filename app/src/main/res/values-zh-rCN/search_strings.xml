@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ws_search_hint">搜索项目、学校或地区</string>
+    <string name="ws_search_count">显示 %1$d / %2$d 个项目</string>
+    <string name="ws_year_all">全部年份</string>
+    <string name="ws_region_all">全部地区</string>
+    <string name="ws_type_all">全部类型</string>
+    <string name="ws_eligible_only">仅可申请</string>
+    <string name="filters_clear">重置筛选</string>
+    <string name="rooms_find_interval">按时段找空闲</string>
+    <string name="rooms_target_day">查询日期</string>
+    <string name="rooms_floor_all">全部楼层／场馆</string>
+    <string name="rooms_interval_from">开始 %1$s</string>
+    <string name="rooms_interval_until">结束 %1$s</string>
+    <string name="rooms_find_action">查找空闲</string>
+    <string name="rooms_interval_dirty">选择日期和时间后，查询该时段空闲的讨论间。</string>
+    <string name="rooms_interval_loading">正在核对各讨论间的日历…</string>
+    <string name="rooms_interval_summary">%1$d 间在整个时段空闲，%2$d 间未确认。</string>
+    <string name="rooms_interval_invalid">请选择尚未开始的时段，结束时间需晚于开始时间。</string>
+    <string name="rooms_interval_available">该时段空闲</string>
+    <string name="rooms_interval_occupied">已占用</string>
+    <string name="rooms_interval_closed">未开放</string>
+    <string name="rooms_interval_unknown">未确认</string>
+    <string name="rooms_interval_future_closed">该日期尚未开放预约，仅供查看日历。</string>
+</resources>

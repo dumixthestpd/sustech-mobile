@@ -2,6 +2,7 @@ package edu.sustech.mobile.ws
 
 import edu.sustech.mobile.core.ApiException
 import edu.sustech.mobile.core.Credentials
+import edu.sustech.mobile.core.Cache
 import edu.sustech.mobile.sso.CasLogin
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -22,6 +23,9 @@ data class WsProgram(
     /** Needed to open this programme's official detail page. */
     val code: String,
     val tokenKey: String,
+    val year: String = "",
+    val englishName: String = "",
+    val agency: String = "",
 )
 
 data class WsProgramPage(
@@ -45,6 +49,24 @@ data class WsProgramPage(
  * login form.
  */
 class WsApi(private val http: OkHttpClient) {
+
+    /** Local search must include every page, not only the first 24 projects. */
+    fun catalog(): List<WsProgram> = Cache.get("ws.programs.catalog", Cache.TTL_LIST) {
+        val rows = mutableListOf<WsProgram>()
+        val seen = mutableSetOf<String>()
+        var page = 1
+        while (true) {
+            val reply = programs(page, 100)
+            for (row in reply.programs) {
+                if (row.id.isBlank() || !seen.add(row.id)) throw ApiException("ws: incomplete or repeated catalog page")
+                rows.add(row)
+            }
+            if (rows.size >= reply.total) break
+            if (reply.programs.isEmpty()) throw ApiException("ws: catalog ended before its reported total")
+            page++
+        }
+        rows.toList()
+    }
 
     @Volatile
     private var token: String? = null
@@ -105,6 +127,9 @@ class WsApi(private val http: OkHttpClient) {
             appliable = o.optInt("IsAppliable", 0) > 0,
             code = o.optString("Code"),
             tokenKey = o.optString("TokenKey"),
+            year = text("YearCode"),
+            englishName = text("NameEn"),
+            agency = text("ProjectAgencyName"),
         )
     }
 

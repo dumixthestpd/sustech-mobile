@@ -61,6 +61,11 @@ The same runner has a dashboard suite, without the share-helper apps:
 adb shell am instrument -w -e suite dashboard edu.sustech.mobile.test/edu.sustech.mobile.ShareFlowCheck
 ```
 
+Use `-e suite search` with that runner for the WS and future-room search controls. It uses a
+synthetic catalog and room calendars, checking combined filters, reset, unknown calendars and
+future availability that deliberately differs from current occupancy. It never submits an
+application or reservation. Review and remove external `files/search-check` screenshots afterwards.
+
 It exercises the native day/week grid with overlapping synthetic classes and exams, a bounded
 20-announcement summary, and deadline-to-content navigation. It does not sign in or submit data.
 Inspect and remove screenshots from external `files/dashboard-check` after review. This fixture

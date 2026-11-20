@@ -3,6 +3,14 @@ package edu.sustech.mobile.ui.room
 import android.view.View
 import android.widget.EditText
 import android.widget.TextView
+import android.widget.CheckBox
+import android.widget.Spinner
+import android.widget.ArrayAdapter
+import android.widget.AdapterView
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import android.os.Bundle
+import androidx.lifecycle.lifecycleScope
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.GridLayoutManager
 import com.google.android.material.card.MaterialCardView
@@ -11,13 +19,22 @@ import com.google.android.material.chip.ChipGroup
 import edu.sustech.mobile.R
 import edu.sustech.mobile.core.ApiException
 import edu.sustech.mobile.core.App
+import edu.sustech.mobile.core.Cache
 import edu.sustech.mobile.core.runIo
 import edu.sustech.mobile.library.room.RoomApi
 import edu.sustech.mobile.library.room.RoomInfo
 import edu.sustech.mobile.library.room.RoomMember
+import edu.sustech.mobile.library.room.RoomSlot
+import edu.sustech.mobile.library.room.RoomInterval
+import edu.sustech.mobile.library.room.RoomAvailability
 import edu.sustech.mobile.ui.ListFragment
 import edu.sustech.mobile.ui.ServicePortalActivity
 import java.util.Date
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.*
 
 /**
  * The IC library's discussion rooms: each room, the floor it is on, its capacity and
@@ -47,12 +64,40 @@ class RoomFragment : ListFragment<RoomInfo>(R.layout.fragment_rooms), BookDialog
 
     /** How many reservations this account is holding. */
     private var booked = 0
+    private val zone = ZoneId.of("Asia/Shanghai")
+    private var future = false
+    private var targetDay = LocalDate.now(zone).plusDays(1)
+    private var from = 14 * 60
+    private var until = 15 * 60
+    private var floor = ""
+    private var textQuery = ""
+    private var hasSearched = false
+    private var calendars = emptyMap<Int, List<RoomSlot>?>()
+    private var searchJob: Job? = null
+    private var searchGeneration = 0
+    private var searching = false
+
+    override fun onCreate(state: Bundle?) {
+        super.onCreate(state)
+        future = state?.getBoolean("future") ?: false
+        targetDay = state?.getString("targetDay")?.let(LocalDate::parse) ?: targetDay
+        from = state?.getInt("from", from) ?: from; until = state?.getInt("until", until) ?: until
+        floor = state?.getString("floor").orEmpty(); textQuery = state?.getString("query").orEmpty()
+        hasSearched = state?.getBoolean("searched") ?: false
+    }
+
+    override fun onSaveInstanceState(state: Bundle) {
+        super.onSaveInstanceState(state)
+        state.putBoolean("future", future); state.putString("targetDay", targetDay.toString())
+        state.putInt("from", from); state.putInt("until", until)
+        state.putString("floor", floor); state.putString("query", textQuery); state.putBoolean("searched", hasSearched)
+    }
 
     override fun rowLayout() = R.layout.item_room
 
     override fun cachePrefix() = "rooms.all."
 
-    override fun emptyText() = getString(R.string.rooms_no_match)
+    override fun emptyText() = getString(if (future && !hasSearched) R.string.rooms_interval_dirty else R.string.rooms_no_match)
 
     override fun onReady(view: View) {
         // Rooms are a board, not a feed: two columns make the current state
@@ -65,6 +110,8 @@ class RoomFragment : ListFragment<RoomInfo>(R.layout.fragment_rooms), BookDialog
         mine = view.findViewById(R.id.rooms_mine)
         search = view.findViewById(R.id.rooms_search)
         filters = view.findViewById(R.id.rooms_filters)
+        setupTimeControls(view)
+        search?.setText(textQuery)
         note?.text = getString(R.string.rooms_loading)
         mine?.visibility = View.GONE
         // The service publishes its own booking rules; the page shows them on entry,
@@ -80,15 +127,15 @@ class RoomFragment : ListFragment<RoomInfo>(R.layout.fragment_rooms), BookDialog
             object : android.text.TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
                 override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
-                override fun afterTextChanged(s: android.text.Editable?) = apply()
+                override fun afterTextChanged(s: android.text.Editable?) { textQuery = s?.toString().orEmpty(); apply() }
             },
         )
     }
 
     override suspend fun fetch(): List<RoomInfo> {
-        val rooms = App.rooms.allRooms()
+        val rooms = Cache.get("rooms.all.search", Cache.TTL_LIVE) { App.rooms.allRooms() }
         // The count is a separate call; if it fails, the list is still worth showing.
-        booked = runCatching { App.rooms.count() }.getOrDefault(0)
+        booked = runCatching { Cache.get("rooms.count", Cache.TTL_LIVE) { App.rooms.count() } }.getOrDefault(0)
         return rooms
     }
 
@@ -96,35 +143,43 @@ class RoomFragment : ListFragment<RoomInfo>(R.layout.fragment_rooms), BookDialog
         all = rows
         buildFilters(rows)
         apply()
+        if (future && hasSearched) findRooms()
     }
 
     /** The search text and the chosen chip, applied to the loaded list. */
     private fun apply() {
         if (!isAdded) return
-        val query = search?.text?.toString()?.trim().orEmpty()
+        val query = textQuery.trim()
         val shown = all.filter { room ->
             val matchesText = query.isEmpty() ||
                 room.name.contains(query, ignoreCase = true) ||
                 room.lab.contains(query, ignoreCase = true) ||
                 room.people.contains(query, ignoreCase = true)
             val matchesFilter = when (selected) {
-                FILTER_FREE -> room.free
-                FILTER_TAKEN -> !room.free
+                FILTER_FREE -> if (future) state(room) == RoomAvailability.AVAILABLE else room.free
+                FILTER_TAKEN -> if (future) state(room) in listOf(RoomAvailability.OCCUPIED, RoomAvailability.CLOSED) else !room.free
                 FILTER_ALL -> true
                 else -> room.lab == selected
             }
-            matchesText && matchesFilter
+            matchesText && matchesFilter && (floor.isEmpty() || room.lab == floor) && (!future || !room.lending)
         }
         adapter.submit(shown)
-        showEmpty(shown.isEmpty(), emptyText())
+        showEmpty(shown.isEmpty(), if (searching) getString(R.string.empty_loading) else emptyText())
 
         val free = all.count { it.free }
-        note?.text = getString(R.string.rooms_note, free, all.size, booked)
+        note?.text = when {
+            !future -> getString(R.string.rooms_note, free, all.size, booked)
+            searching -> getString(R.string.rooms_interval_loading)
+            !hasSearched -> getString(R.string.rooms_interval_dirty)
+            else -> getString(R.string.rooms_interval_summary,
+                all.count { !it.lending && state(it) == RoomAvailability.AVAILABLE },
+                all.count { !it.lending && state(it) == RoomAvailability.UNKNOWN })
+        }
         mine?.visibility = View.VISIBLE
         mine?.text = getString(R.string.rooms_mine_link, booked)
     }
 
-    /** Free/taken plus one chip per floor, rebuilt only when the floors change. */
+    /** Status chips and an independent floor selector, so their filters combine. */
     private fun buildFilters(rooms: List<RoomInfo>) {
         val group = filters ?: return
         val found = rooms.map { it.lab }.distinct()
@@ -134,8 +189,20 @@ class RoomFragment : ListFragment<RoomInfo>(R.layout.fragment_rooms), BookDialog
         chip(group, getString(R.string.rooms_filter_all), FILTER_ALL)
         chip(group, getString(R.string.rooms_filter_free), FILTER_FREE)
         chip(group, getString(R.string.rooms_filter_taken), FILTER_TAKEN)
-        found.forEach { chip(group, it, it) }
-        group.check(group.getChildAt(0).id)
+        group.check((0 until group.childCount).map { group.getChildAt(it) }.firstOrNull { it.tag == selected }?.id ?: group.getChildAt(0).id)
+        val options = listOf("") + found
+        view?.findViewById<Spinner>(R.id.rooms_floor)?.apply {
+            onItemSelectedListener = null
+            adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item,
+                options.map { it.ifEmpty { getString(R.string.rooms_floor_all) } })
+            setSelection(options.indexOf(floor).coerceAtLeast(0))
+            onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+                override fun onItemSelected(parent: AdapterView<*>?, child: View?, position: Int, id: Long) {
+                    floor = options[position]; this@RoomFragment.apply()
+                }
+            }
+        }
     }
 
     private fun chip(group: ChipGroup, label: String, value: String) {
@@ -151,6 +218,85 @@ class RoomFragment : ListFragment<RoomInfo>(R.layout.fragment_rooms), BookDialog
             }
         }
         group.addView(chip)
+    }
+
+    private fun setupTimeControls(view: View) {
+        val controls = view.findViewById<View>(R.id.rooms_time_controls)
+        controls.visibility = if (future) View.VISIBLE else View.GONE
+        view.findViewById<CheckBox>(R.id.rooms_future).apply {
+            isChecked = future
+            setOnCheckedChangeListener { _, checked ->
+                future = checked; controls.visibility = if (checked) View.VISIBLE else View.GONE
+                invalidateInterval(); this@RoomFragment.apply()
+            }
+        }
+        view.findViewById<View>(R.id.rooms_day).setOnClickListener {
+            DatePickerDialog(requireContext(), { _, y, m, d ->
+                targetDay = LocalDate.of(y, m + 1, d); invalidateInterval(); updateTimeLabels(view); apply()
+            }, targetDay.year, targetDay.monthValue - 1, targetDay.dayOfMonth).apply {
+                datePicker.minDate = LocalDate.now(zone).atStartOfDay(zone).toInstant().toEpochMilli()
+            }.show()
+        }
+        fun clock(id: Int, start: Boolean) {
+            view.findViewById<View>(id).setOnClickListener {
+                val minute = if (start) from else until
+                TimePickerDialog(requireContext(), { _, hour, min ->
+                    if (start) from = hour * 60 + min else until = hour * 60 + min
+                    invalidateInterval(); updateTimeLabels(view); apply()
+                }, minute / 60, minute % 60, true).show()
+            }
+        }
+        clock(R.id.rooms_from, true); clock(R.id.rooms_until, false)
+        view.findViewById<View>(R.id.rooms_find).setOnClickListener { findRooms() }
+        updateTimeLabels(view)
+    }
+
+    private fun updateTimeLabels(view: View) {
+        view.findViewById<TextView>(R.id.rooms_day).text = targetDay.format(DateTimeFormatter.ofPattern("yyyy-MM-dd EEE", resources.configuration.locales[0]))
+        view.findViewById<TextView>(R.id.rooms_from).text = getString(R.string.rooms_interval_from, clockText(from))
+        view.findViewById<TextView>(R.id.rooms_until).text = getString(R.string.rooms_interval_until, clockText(until))
+    }
+
+    private fun clockText(minute: Int) = LocalTime.of(minute / 60, minute % 60).toString()
+    private fun targetDate() = Date.from(targetDay.atStartOfDay(zone).toInstant())
+    private fun state(room: RoomInfo) = if (from >= until) RoomAvailability.UNKNOWN else RoomInterval.state(calendars[room.devId], from, until)
+
+    private fun invalidateInterval() {
+        searchGeneration++; searchJob?.cancel(); searching = false
+        hasSearched = false; calendars = emptyMap()
+    }
+
+    private fun findRooms() {
+        if (!future || !isAdded) return
+        if (from >= until || !targetDay.atTime(from / 60, from % 60).atZone(zone).toInstant().isAfter(java.time.Instant.now())) {
+            note?.setText(R.string.rooms_interval_invalid)
+            return
+        }
+        val generation = ++searchGeneration
+        searchJob?.cancel()
+        val day = targetDate()
+        val rooms = all.filterNot { it.lending }
+        calendars = emptyMap(); hasSearched = true; searching = true
+        selected = FILTER_FREE
+        filters?.let { group -> (0 until group.childCount).map { group.getChildAt(it) }.firstOrNull { it.tag == FILTER_FREE }?.let { group.check(it.id) } }
+        apply()
+        searchJob = viewLifecycleOwner.lifecycleScope.launch {
+            val result = mutableMapOf<Int, List<RoomSlot>?>()
+            for ((labId, floorRooms) in rooms.groupBy { it.labId }) {
+                val slots = try { withContext(Dispatchers.IO) { App.rooms.labCalendar(labId, day) } }
+                    catch (cancelled: CancellationException) { throw cancelled }
+                    catch (_: Exception) { emptyMap() }
+                if (generation != searchGeneration || !isAdded) return@launch
+                floorRooms.forEach { result[it.devId] = slots[it.devId] }
+                calendars = result.toMap(); apply()
+            }
+            searching = false; apply()
+        }
+    }
+
+    override fun refresh() {
+        Cache.invalidate("rooms.calendar.")
+        super.refresh()
     }
 
     /**
@@ -221,14 +367,16 @@ class RoomFragment : ListFragment<RoomInfo>(R.layout.fragment_rooms), BookDialog
     }
 
     override fun bindRow(view: View, item: RoomInfo, position: Int) {
+        val availability = if (future) state(item) else null
+        val available = if (future) availability == RoomAvailability.AVAILABLE else item.free
         val card = view as? MaterialCardView
         val free = ContextCompat.getColor(
             requireContext(),
-            if (item.free) R.color.booking_slot_available_bg else R.color.booking_slot_unavailable_bg,
+            if (available) R.color.booking_slot_available_bg else R.color.booking_slot_unavailable_bg,
         )
         val stroke = ContextCompat.getColor(
             requireContext(),
-            if (item.free) R.color.booking_slot_available_stroke else R.color.booking_slot_unavailable_stroke,
+            if (available) R.color.booking_slot_available_stroke else R.color.booking_slot_unavailable_stroke,
         )
         card?.setCardBackgroundColor(free)
         card?.strokeColor = stroke
@@ -245,19 +393,23 @@ class RoomFragment : ListFragment<RoomInfo>(R.layout.fragment_rooms), BookDialog
             },
         ).filter { it.isNotBlank() }.joinToString(" · ")
         val status = view.findViewById<TextView>(R.id.room_status)
-        status.text = getString(
-            if (item.free) R.string.rooms_free_now else R.string.rooms_taken_now,
-        )
+        status.text = getString(when (availability) {
+            RoomAvailability.AVAILABLE -> R.string.rooms_interval_available
+            RoomAvailability.OCCUPIED -> R.string.rooms_interval_occupied
+            RoomAvailability.CLOSED -> R.string.rooms_interval_closed
+            RoomAvailability.UNKNOWN -> R.string.rooms_interval_unknown
+            null -> if (item.free) R.string.rooms_free_now else R.string.rooms_taken_now
+        })
         status.setTextColor(
             ContextCompat.getColor(
                 requireContext(),
-                if (item.free) R.color.ok else R.color.ink_muted,
+                if (available) R.color.ok else R.color.ink_muted,
             ),
         )
         val schedule = view.findViewById<TextView>(R.id.room_schedule)
         schedule.visibility = if (item.lending) View.GONE else View.VISIBLE
         schedule.setOnClickListener {
-            RoomSlotsDialog.newInstance(item).show(childFragmentManager, "room-slots")
+            RoomSlotsDialog.newInstance(item, if (future) targetDate() else null).show(childFragmentManager, "room-slots")
         }
         view.setOnClickListener {
             // Equipment lending is not a room and takes a different form — never the
@@ -270,7 +422,10 @@ class RoomFragment : ListFragment<RoomInfo>(R.layout.fragment_rooms), BookDialog
             // that is how the confirmed slot gets back here to be sent. On the
             // parent manager the dialog's parentFragment is null and the confirm
             // silently does nothing.
-            BookDialog.newInstance(item).show(childFragmentManager, "book")
+            if (future && (availability != RoomAvailability.AVAILABLE || targetDay > LocalDate.now(zone).plusDays(RoomApi.MAX_DAYS_AHEAD.toLong()) || until - from > RoomApi.MAX_MINUTES)) {
+                RoomSlotsDialog.newInstance(item, targetDate()).show(childFragmentManager, "room-slots")
+            } else BookDialog.newInstance(item, if (future) targetDate() else null,
+                if (future) clockText(from) else null, if (future) until - from else null).show(childFragmentManager, "book")
         }
     }
 

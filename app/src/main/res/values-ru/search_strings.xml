@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ws_search_hint">Поиск проектов, вузов и регионов</string>
+    <string name="ws_search_count">Показано %1$d из %2$d проектов</string>
+    <string name="ws_year_all">Все годы</string>
+    <string name="ws_region_all">Все регионы</string>
+    <string name="ws_type_all">Все типы</string>
+    <string name="ws_eligible_only">Доступны для подачи</string>
+    <string name="filters_clear">Сбросить фильтры</string>
+    <string name="rooms_find_interval">Выбрать время</string>
+    <string name="rooms_target_day">Дата поиска</string>
+    <string name="rooms_floor_all">Все этажи и корпуса</string>
+    <string name="rooms_interval_from">С %1$s</string>
+    <string name="rooms_interval_until">До %1$s</string>
+    <string name="rooms_find_action">Найти свободные</string>
+    <string name="rooms_interval_dirty">Выберите дату и время, затем найдите свободные комнаты.</string>
+    <string name="rooms_interval_loading">Проверка календарей комнат…</string>
+    <string name="rooms_interval_summary">Свободны на весь период: %1$d; не подтверждены: %2$d.</string>
+    <string name="rooms_interval_invalid">Выберите будущий период с окончанием позже начала.</string>
+    <string name="rooms_interval_available">Свободно на весь период</string>
+    <string name="rooms_interval_occupied">Занято</string>
+    <string name="rooms_interval_closed">Закрыто</string>
+    <string name="rooms_interval_unknown">Не подтверждено</string>
+    <string name="rooms_interval_future_closed">Только календарь: бронирование на эту дату ещё не открыто.</string>
+</resources>

@@ -1,7 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent" android:orientation="vertical">
+
+    <EditText android:id="@+id/ws_search" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginHorizontal="12dp" android:hint="@string/ws_search_hint" android:inputType="text"
+        android:maxLines="1" android:importantForAutofill="no" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingHorizontal="8dp">
+        <Spinner android:id="@+id/ws_year" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:contentDescription="@string/ws_year_all" />
+        <Spinner android:id="@+id/ws_region" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:contentDescription="@string/ws_region_all" />
+        <Spinner android:id="@+id/ws_type" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:contentDescription="@string/ws_type_all" />
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:paddingHorizontal="12dp">
+        <CheckBox android:id="@+id/ws_eligible" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:text="@string/ws_eligible_only" />
+        <Button android:id="@+id/ws_clear" style="?android:attr/borderlessButtonStyle" android:layout_width="wrap_content" android:layout_height="48dp" android:text="@string/filters_clear" android:textColor="@color/brand" />
+    </LinearLayout>
+    <TextView android:id="@+id/ws_results" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingHorizontal="16dp" android:paddingBottom="6dp" android:textSize="12sp" />
+    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
 
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipe"
@@ -26,4 +41,5 @@
         android:text="@string/ws_no_programs"
         android:textColor="@color/ink_muted"
         android:textSize="14sp" />
-</FrameLayout>
+    </FrameLayout>
+</LinearLayout>

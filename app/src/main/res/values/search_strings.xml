@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ws_search_hint">Search projects, universities or regions</string>
+    <string name="ws_search_count">%1$d of %2$d projects</string>
+    <string name="ws_year_all">All years</string>
+    <string name="ws_region_all">All regions</string>
+    <string name="ws_type_all">All types</string>
+    <string name="ws_eligible_only">Available to apply</string>
+    <string name="filters_clear">Reset filters</string>
+    <string name="rooms_find_interval">Choose a time</string>
+    <string name="rooms_target_day">Requested date</string>
+    <string name="rooms_floor_all">All locations</string>
+    <string name="rooms_interval_from">From %1$s</string>
+    <string name="rooms_interval_until">To %1$s</string>
+    <string name="rooms_find_action">Find free rooms</string>
+    <string name="rooms_interval_dirty">Choose a date and time, then find free rooms.</string>
+    <string name="rooms_interval_loading">Checking room calendars…</string>
+    <string name="rooms_interval_summary">%1$d rooms are free for the entire interval; %2$d remain unconfirmed.</string>
+    <string name="rooms_interval_invalid">Choose a future interval whose end is later than its start.</string>
+    <string name="rooms_interval_available">Free for this interval</string>
+    <string name="rooms_interval_occupied">Occupied</string>
+    <string name="rooms_interval_closed">Closed</string>
+    <string name="rooms_interval_unknown">Unconfirmed</string>
+    <string name="rooms_interval_future_closed">Calendar only: reservations are not open for this date.</string>
+</resources>

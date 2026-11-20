@@ -122,7 +122,7 @@ class BookDialog : DialogFragment() {
         if (initialDayIndex >= 0) daySpinner.setSelection(initialDayIndex)
 
         // Default to the next half hour from now.
-        val now = Calendar.getInstance()
+        val now = Calendar.getInstance(java.util.TimeZone.getTimeZone("Asia/Shanghai"))
         val initialStart = requireArguments().getString(ARG_INITIAL_START).orEmpty()
         val initialClock = initialStart.split(":")
         if (initialClock.size == 2 && initialClock[0].toIntOrNull() != null && initialClock[1].toIntOrNull() != null) {
@@ -145,13 +145,15 @@ class BookDialog : DialogFragment() {
             ).show()
         }
 
-        lengths = LENGTHS.filter { it <= RoomApi.MAX_MINUTES }
+        val initialMinutes = requireArguments().getInt("initialMinutes", 0)
+        lengths = (LENGTHS + initialMinutes).filter { it >= maxOf(1, room.minMinutes) && it <= RoomApi.MAX_MINUTES }.distinct().sorted()
         lengthSpinner = view.findViewById(R.id.book_length)
         lengthSpinner.adapter = ArrayAdapter(
             requireContext(),
             android.R.layout.simple_spinner_dropdown_item,
             lengths.map { getString(R.string.rooms_minutes, it) },
         )
+        if (initialMinutes in lengths) lengthSpinner.setSelection(lengths.indexOf(initialMinutes))
 
         // Which days are bookable is the service's answer, asked per day — today
         // included, which is why nothing here assumes a 1..2 day window.
@@ -417,7 +419,7 @@ class BookDialog : DialogFragment() {
             if (found != null && found.isNotEmpty() &&
                 found.none { !begin.before(it.begin) && !end.after(it.end) }
             ) {
-                val calendar = Calendar.getInstance().apply { time = found.first().begin }
+                val calendar = Calendar.getInstance(java.util.TimeZone.getTimeZone("Asia/Shanghai")).apply { time = found.first().begin }
                 startHour = calendar.get(Calendar.HOUR_OF_DAY)
                 startMinute = calendar.get(Calendar.MINUTE)
                 showStart()
@@ -482,7 +484,7 @@ class BookDialog : DialogFragment() {
 
     /** [day] with the chosen hour and minute. */
     private fun at(day: Date, hour: Int, minute: Int): Date {
-        val calendar = Calendar.getInstance()
+        val calendar = Calendar.getInstance(java.util.TimeZone.getTimeZone("Asia/Shanghai"))
         calendar.time = day
         calendar.set(Calendar.HOUR_OF_DAY, hour)
         calendar.set(Calendar.MINUTE, minute)
@@ -522,13 +524,14 @@ class BookDialog : DialogFragment() {
 
         private const val PAD = 8
 
-        private val DAY = SimpleDateFormat("yyyy-MM-dd EEE", Locale.US)
-        private val SLOT = SimpleDateFormat("HH:mm", Locale.US)
+        private val DAY = SimpleDateFormat("yyyy-MM-dd EEE", Locale.US).apply { timeZone = java.util.TimeZone.getTimeZone("Asia/Shanghai") }
+        private val SLOT = SimpleDateFormat("HH:mm", Locale.US).apply { timeZone = java.util.TimeZone.getTimeZone("Asia/Shanghai") }
 
         fun newInstance(
             room: RoomInfo,
             initialDay: Date? = null,
             initialStart: String? = null,
+            initialMinutes: Int? = null,
         ): BookDialog = BookDialog().apply {
             arguments = Bundle().apply {
                 putInt(ARG_DEV, room.devId)
@@ -539,6 +542,7 @@ class BookDialog : DialogFragment() {
                 putInt(ARG_MIN, room.minMinutes)
                 if (initialDay != null) putLong(ARG_INITIAL_DAY, initialDay.time)
                 if (!initialStart.isNullOrBlank()) putString(ARG_INITIAL_START, initialStart)
+                if (initialMinutes != null) putInt("initialMinutes", initialMinutes)
             }
         }
     }

@@ -33,13 +33,13 @@ class RoomRulesTest {
         val days = RoomApi.bookableDays()
         assertEquals((RoomApi.MAX_DAYS_AHEAD + 1).toLong(), days.size.toLong())
 
-        val midnight = Calendar.getInstance().apply {
+        val midnight = Calendar.getInstance(java.util.TimeZone.getTimeZone("Asia/Shanghai")).apply {
             set(Calendar.HOUR_OF_DAY, 0)
             set(Calendar.MINUTE, 0)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
         }.time
-        val last = Calendar.getInstance().apply {
+        val last = Calendar.getInstance(java.util.TimeZone.getTimeZone("Asia/Shanghai")).apply {
             time = midnight
             add(Calendar.DAY_OF_MONTH, RoomApi.MAX_DAYS_AHEAD)
         }.time
@@ -51,7 +51,7 @@ class RoomRulesTest {
 
     @Test
     fun `a clock time belongs to the day it was asked about`() {
-        val day = Calendar.getInstance().apply {
+        val day = Calendar.getInstance(java.util.TimeZone.getTimeZone("Asia/Shanghai")).apply {
             set(Calendar.HOUR_OF_DAY, 0)
             set(Calendar.MINUTE, 0)
             set(Calendar.SECOND, 0)
@@ -60,7 +60,7 @@ class RoomRulesTest {
         val parsed = RoomApi.scopeStamp("08:30", day)
         requireNotNull(parsed)
 
-        val calendar = Calendar.getInstance().apply { time = parsed }
+        val calendar = Calendar.getInstance(java.util.TimeZone.getTimeZone("Asia/Shanghai")).apply { time = parsed }
         assertEquals(8L, calendar.get(Calendar.HOUR_OF_DAY).toLong())
         assertEquals(30L, calendar.get(Calendar.MINUTE).toLong())
         // 08:30 minus midnight is 8.5 hours, never a day out.

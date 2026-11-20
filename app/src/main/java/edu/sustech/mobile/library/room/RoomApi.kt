@@ -5,6 +5,7 @@ import edu.sustech.mobile.R
 import edu.sustech.mobile.core.ApiException
 import edu.sustech.mobile.core.App
 import edu.sustech.mobile.core.Credentials
+import edu.sustech.mobile.core.Cache
 import edu.sustech.mobile.sso.CasLogin
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
@@ -115,6 +116,24 @@ data class RoomReservation(
  * student id and resolved to account numbers through the service's own member lookup.
  */
 class RoomApi(private val http: OkHttpClient) {
+    private var lastCalendarRequest = 0L
+
+    /** Serialize calendar reads: rapid room-by-room requests are rejected by this service. */
+    @Synchronized
+    private fun calendarPage(labId: Int, day: Date, devIds: String, page: Int, pageSize: Int): JSONObject {
+        fun read(): JSONObject {
+            val wait = 2_000L - (System.nanoTime() / 1_000_000 - lastCalendarRequest)
+            if (wait > 0) Thread.sleep(wait)
+            lastCalendarRequest = System.nanoTime() / 1_000_000
+            return call("/reserve", "sysKind" to RESEARCH_ROOMS.toString(), "resvDates" to SCOPE_DAY.format(day),
+                "page" to page.toString(), "pageSize" to pageSize.toString(), "labIds" to labId.toString(),
+                "kindId" to "", "devIds" to devIds)
+        }
+        return try { read() } catch (error: ApiException) {
+            if (error.message?.contains("请求频繁") != true) throw error
+            read()
+        }
+    }
 
     @Volatile
     private var signedIn = false
@@ -314,7 +333,28 @@ class RoomApi(private val http: OkHttpClient) {
      * selected room in `devIds`; inventory and time-scope endpoints are not
      * substitutes because neither carries this room's future reservations.
      */
-    fun roomSchedule(devId: Int, day: Date, labId: Int = 0): List<RoomSlot> {
+    fun labCalendar(labId: Int, day: Date): Map<Int, List<RoomSlot>> =
+        Cache.get("rooms.calendar.$labId.${SCOPE_DAY.format(day)}", Cache.TTL_LIVE) {
+            require(labId > 0)
+            val result = mutableMapOf<Int, List<RoomSlot>>()
+            var page = 1
+            while (true) {
+                val rows = calendarPage(labId, day, "", page, 100).optJSONArray("data")
+                    ?: throw ApiException("room: floor calendar returned no room list")
+                for (index in 0 until rows.length()) {
+                    val room = rows.optJSONObject(index) ?: throw ApiException("room: invalid calendar row")
+                    val id = room.optInt("devId")
+                    if (id <= 0 || result.containsKey(id)) throw ApiException("room: repeated calendar page")
+                    result[id] = calendarSlots(room, day, 1)
+                }
+                if (rows.length() < 100) break
+                page++
+            }
+            result.toMap()
+        }
+
+    fun roomSchedule(devId: Int, day: Date, labId: Int = 0, slotMinutes: Int = 30): List<RoomSlot> {
+        require(slotMinutes in 1..1440)
         if (labId <= 0) {
             throw ApiException("room: selected room is missing its floor id")
         }
@@ -325,18 +365,12 @@ class RoomApi(private val http: OkHttpClient) {
             return (0 until rows.length()).mapNotNull { rows.optJSONObject(it) }
                 .firstOrNull { it.optInt("devId") == devId }
         }
-        val officialParams = arrayOf(
-            "sysKind" to RESEARCH_ROOMS.toString(),
-            "resvDates" to SCOPE_DAY.format(day),
-            "page" to "1",
-            "pageSize" to "10",
-            "labIds" to labId.toString(),
-            "kindId" to "",
-            "devIds" to devId.toString(),
-        )
-        val room = roomFrom(call("/reserve", *officialParams))
+        val room = roomFrom(calendarPage(labId, day, devId.toString(), 1, 10))
             ?: throw ApiException("room: the calendar returned no data for this room")
+        return calendarSlots(room, day, slotMinutes)
+    }
 
+    private fun calendarSlots(room: JSONObject, day: Date, slotMinutes: Int): List<RoomSlot> {
         val windows = room.optJSONArray("openTimes")?.let { open ->
             (0 until open.length()).mapNotNull { index ->
                 val item = open.optJSONObject(index) ?: return@mapNotNull null
@@ -370,7 +404,7 @@ class RoomApi(private val http: OkHttpClient) {
             }
         }.orEmpty()
 
-        val step = 30 * 60 * 1000L
+        val step = slotMinutes * 60 * 1000L
         val first = windows.minOf { it.first.time }
         val last = windows.maxOf { it.second.time }
         val slots = mutableListOf<RoomSlot>()
@@ -411,7 +445,7 @@ class RoomApi(private val http: OkHttpClient) {
             else -> null
         }
         if (millis != null && millis > 1_000_000_000_000L) return Date(millis)
-        return clockOnDay(value?.toString().orEmpty(), day)
+        return scopeStamp(value?.toString().orEmpty(), day)
     }
 
     private fun clockOnDay(value: String, day: Date): Date? {
@@ -420,7 +454,8 @@ class RoomApi(private val http: OkHttpClient) {
         val parts = text.split(":")
         val hour = parts.getOrNull(0)?.toIntOrNull() ?: return null
         val minute = parts.getOrNull(1)?.toIntOrNull() ?: return null
-        return Calendar.getInstance().apply {
+        if (hour !in 0..24 || minute !in 0..59 || hour == 24 && minute != 0) return null
+        return Calendar.getInstance(java.util.TimeZone.getTimeZone("Asia/Shanghai")).apply {
             time = day
             set(Calendar.HOUR_OF_DAY, hour)
             set(Calendar.MINUTE, minute)
@@ -714,13 +749,13 @@ class RoomApi(private val http: OkHttpClient) {
          * [timeScope], so this list does not decide.
          */
         fun bookableDays(): List<Date> {
-            val calendar = Calendar.getInstance()
+            val calendar = Calendar.getInstance(java.util.TimeZone.getTimeZone("Asia/Shanghai"))
             calendar.set(Calendar.HOUR_OF_DAY, 0)
             calendar.set(Calendar.MINUTE, 0)
             calendar.set(Calendar.SECOND, 0)
             calendar.set(Calendar.MILLISECOND, 0)
             return (0..MAX_DAYS_AHEAD).map { ahead ->
-                val day = Calendar.getInstance()
+                val day = Calendar.getInstance(java.util.TimeZone.getTimeZone("Asia/Shanghai"))
                 day.time = calendar.time
                 day.add(Calendar.DAY_OF_MONTH, ahead)
                 day.time
@@ -728,9 +763,9 @@ class RoomApi(private val http: OkHttpClient) {
         }
 
         /** The service's own date parameter for the day's scope: `beginDate=YYYYMMDD`. */
-        private val SCOPE_DAY = SimpleDateFormat("yyyyMMdd", Locale.US)
+        private val SCOPE_DAY get() = SimpleDateFormat("yyyyMMdd", Locale.US).apply { timeZone = java.util.TimeZone.getTimeZone("Asia/Shanghai") }
 
-        private val CLOCK = SimpleDateFormat("HH:mm", Locale.US)
+        private val CLOCK get() = SimpleDateFormat("HH:mm", Locale.US).apply { timeZone = java.util.TimeZone.getTimeZone("Asia/Shanghai") }
 
         /**
          * A `beginTime`/`endTime` from the scope reply. The service may send a full
@@ -742,13 +777,15 @@ class RoomApi(private val http: OkHttpClient) {
             val clean = text.replace('T', ' ').substringBefore('+')
             for (format in DATE_FORMATS) {
                 try {
-                    return SimpleDateFormat(format, Locale.US).parse(clean)
+                    return SimpleDateFormat(format, Locale.US).apply {
+                        timeZone = java.util.TimeZone.getTimeZone("Asia/Shanghai"); isLenient = false
+                    }.parse(clean)
                 } catch (e: ParseException) {
                     // Not this one; the clock-time fallback below covers the rest.
                 }
             }
             val clock = Regex("(\\d{1,2}):(\\d{2})").find(text) ?: return null
-            val calendar = Calendar.getInstance()
+            val calendar = Calendar.getInstance(java.util.TimeZone.getTimeZone("Asia/Shanghai"))
             calendar.time = day
             calendar.set(Calendar.HOUR_OF_DAY, clock.groupValues[1].toInt())
             calendar.set(Calendar.MINUTE, clock.groupValues[2].toInt())
