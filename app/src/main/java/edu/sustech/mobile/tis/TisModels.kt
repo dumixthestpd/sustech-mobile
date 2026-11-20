@@ -36,7 +36,7 @@ object PeriodTimes {
 
     fun of(period: Int): String = table[period] ?: ""
 
-    private val slots: List<Triple<Int, Int, Int>> = table.entries.sortedBy { it.key }.map { (period, text) ->
+    private val slots: List<Triple<Int, Int, Int>> get() = table.entries.sortedBy { it.key }.map { (period, text) ->
         Triple(period, toMinutes(text.substringBefore('-')), toMinutes(text.substringAfter('-')))
     }
 
@@ -383,7 +383,7 @@ data class ExamRecord(
         fun from(raw: JSONObject): ExamRecord {
             val from = raw.optString("KSJC", "").toIntOrNull() ?: 0
             val to = raw.optString("JSJC", "").toIntOrNull() ?: from
-            val clock = raw.optString("KSJTSJ", "").ifEmpty { PeriodTimes.range(from, to) }
+            val clock = raw.optString("KSJTSJ", "")
             return ExamRecord(
                 course = raw.optString("KCMC", ""),
                 code = raw.optString("KCDM", ""),

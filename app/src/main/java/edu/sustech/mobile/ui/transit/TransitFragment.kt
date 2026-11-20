@@ -69,14 +69,12 @@ class TransitFragment : TabbedServiceFragment(R.layout.fragment_tabs) {
     /**
      * Called by a stop row: open this place's buses.
      *
-     * The direction starts empty so the Buses tab asks — that is the whole
-     * point of merging the berths away. A place with only one direction has
-     * nothing to ask, so it is chosen for the reader.
+     * Start with the first direction and keep the other choices visible.
      */
     fun open(landmark: BusApi.Landmark, metres: Int?) {
         TransitSelection.landmark = landmark
         TransitSelection.metresAway = metres
-        TransitSelection.directionId = landmark.directions.singleOrNull()?.directionId.orEmpty()
+        TransitSelection.directionId = landmark.directions.firstOrNull()?.directionId.orEmpty()
         selectTab(BUSES)
     }
 
@@ -160,7 +158,7 @@ class TransitStopsFragment : ListFragment<TransitStopsFragment.Row>(R.layout.fra
             item.landmark.directions.size.takeIf { it > 0 }?.toString() ?: "·"
         view.findViewById<TextView>(R.id.transit_stop_name).text = item.landmark.name
         view.findViewById<TextView>(R.id.transit_stop_sub).text =
-            TransitText.serviceLines(requireContext(), item.landmark.labels)
+            item.landmark.directions.joinToString(" / ") { TransitText.direction(requireContext(), it.short) }
         view.findViewById<TextView>(R.id.transit_stop_away).text =
             if (item.metres >= 0) TransitText.distance(requireContext(), item.metres) else ""
         view.setOnClickListener {
@@ -211,7 +209,7 @@ class TransitBusesFragment : ListFragment<BusApi.Arrival>(R.layout.fragment_tran
                     TransitSelection.landmark = landmark
                     TransitSelection.metresAway = metres.takeIf { it >= 0 }
                     TransitSelection.directionId =
-                        landmark.directions.singleOrNull()?.directionId.orEmpty()
+                        landmark.directions.firstOrNull()?.directionId.orEmpty()
                     buildDirections(view)
                     load(force = true)
                 }
@@ -228,22 +226,69 @@ class TransitBusesFragment : ListFragment<BusApi.Arrival>(R.layout.fragment_tran
         val group = view.findViewById<ChipGroup>(R.id.transit_directions) ?: return
         val landmark = TransitSelection.landmark ?: return
         group.removeAllViews()
+        val nearby = view.findViewById<ChipGroup>(R.id.transit_nearby)
+        viewLifecycleOwner.runIo(block = {
+            val here = LocationProbe.lastKnown(requireContext())
+            val fallback = landmark.berths.firstOrNull()
+            val places = if (here != null) App.bus.nearestLandmarks(here.latitude, here.longitude, 2)
+            else if (fallback != null) App.bus.nearestLandmarks(fallback.latitude, fallback.longitude, 2)
+            else emptyList()
+            places to (here != null)
+        }, onOk = { (places, located) ->
+            if (TransitSelection.landmark != landmark) return@runIo
+            nearby.removeAllViews()
+            places.forEach { (place, distance) -> nearby.addView(Chip(requireContext()).apply {
+                text = place.name + (if (located) " · " + TransitText.distance(requireContext(), distance) else "")
+                isCheckable = true; isChecked = place == landmark
+                id = View.generateViewId()
+                setOnClickListener {
+                    TransitSelection.landmark = place; TransitSelection.metresAway = distance
+                    TransitSelection.directionId = place.directions.firstOrNull()?.directionId.orEmpty()
+                    buildDirections(view); reloadSelection()
+                }
+            }) }
+        })
         val directions = landmark.directions
-        // One direction is not a question, and no direction is not a chooser.
-        group.visibility = if (directions.size > 1) View.VISIBLE else View.GONE
-        if (directions.size <= 1) return
+        // Keep the direction visible even when this stop has only one.
+        group.visibility = if (directions.isNotEmpty()) View.VISIBLE else View.GONE
         for (serve in directions) {
             val chip = Chip(requireContext())
             chip.text = TransitText.direction(requireContext(), serve.short)
+            chip.tag = serve.directionId
             chip.isCheckable = true
             chip.isChecked = serve.directionId == TransitSelection.directionId
             chip.id = View.generateViewId()
             chip.setOnClickListener {
                 TransitSelection.directionId = serve.directionId
-                load(force = true)
+                reloadSelection()
             }
             group.addView(chip)
         }
+        viewLifecycleOwner.runIo(block = {
+            val stops = App.bus.stops().associateBy { it.id }
+            val routes = App.bus.routes().flatMap { it.directions }.associateBy { it.id }
+            directions.associate { serve ->
+                val berth = landmark.berthFor(serve.directionId)
+                val path = routes[serve.directionId]?.stopIds.orEmpty()
+                val index = path.indexOf(berth?.id)
+                serve.directionId to if (index >= 0) path.getOrNull(index + 1)?.let { stops[it]?.display } else null
+            }
+        }, onOk = { nextStops ->
+            if (TransitSelection.landmark != landmark) return@runIo
+            for (index in 0 until group.childCount) {
+                val chip = group.getChildAt(index) as? Chip ?: continue
+                val serve = directions.firstOrNull { it.directionId == chip.tag } ?: continue
+                chip.text = TransitText.direction(requireContext(), serve.short) +
+                    (nextStops[serve.directionId]?.let { " · " + getString(R.string.transit_direction_next, it) } ?: "")
+            }
+        })
+    }
+
+    private fun reloadSelection() {
+        adapter.submit(emptyList())
+        showEmpty(true, getString(R.string.empty_loading))
+        shell()?.showPlace(TransitSelection.metresAway)
+        load(force = true)
     }
 
     override fun onResume() {
@@ -280,15 +325,14 @@ class TransitBusesFragment : ListFragment<BusApi.Arrival>(R.layout.fragment_tran
         view.findViewById<TextView>(R.id.transit_line_name).text = item.routeName
         view.findViewById<TextView>(R.id.transit_eta).text = TransitText.eta(requireContext(), item)
 
-        // Where this direction ends — "to Xinyuan Terminal" answers the
-        // "which way does it go" question better than any direction word.
-        // The first stop after this one grounds it further.
+        // A ring route's shared terminal cannot distinguish opposite directions.
         val goingTo = item.upcoming.firstOrNull()
         view.findViewById<TextView>(R.id.transit_direction).text =
             listOfNotNull(
-                item.terminal.takeIf { it.isNotEmpty() }
-                    ?.let { getString(R.string.transit_to, it) },
-                goingTo?.let { getString(R.string.transit_via, it) },
+                TransitSelection.landmark?.directions?.firstOrNull { it.directionId == item.directionId }
+                    ?.short?.let { TransitText.direction(requireContext(), it) }
+                    ?: TransitText.direction(requireContext(), item.direction).takeIf { it.isNotEmpty() },
+                goingTo?.let { getString(R.string.transit_direction_next, it) },
             ).joinToString(" ")
 
         // The approach picture: full bar = at the stop. Timetable rows have

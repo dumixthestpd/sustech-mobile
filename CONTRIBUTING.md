@@ -55,6 +55,17 @@ It never logs in or uploads. It writes screenshots under the app's external
 `files/share-check` directory: inspect them, then delete them after review. The instrumentation APK
 is a test companion and must never be attached to a public release.
 
+The same runner has a dashboard suite, without the share-helper apps:
+
+```bash
+adb shell am instrument -w -e suite dashboard edu.sustech.mobile.test/edu.sustech.mobile.ShareFlowCheck
+```
+
+It exercises the native day/week grid with overlapping synthetic classes and exams, a bounded
+20-announcement summary, and deadline-to-content navigation. It does not sign in or submit data.
+Inspect and remove screenshots from external `files/dashboard-check` after review. This fixture
+check does not prove that a signed-in account has published exams; verify live TIS separately.
+
 **Before publishing a release, install it and exercise the screens you changed on a device or on
 Windows Subsystem for Android.** Unit tests and a green `assembleDebug` do not prove the app runs:
 v0.3.22 shipped with the entire Loans tab dead — every fetch failed — because that code had never

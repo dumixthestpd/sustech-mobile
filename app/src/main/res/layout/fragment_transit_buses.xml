@@ -6,9 +6,19 @@
   once, as chips — and the list below is only ever one direction's buses.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
+
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/transit_nearby"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="10dp"
+        app:singleSelection="true"
+        app:selectionRequired="true"
+        android:paddingEnd="10dp" />
 
     <com.google.android.material.chip.ChipGroup
         android:id="@+id/transit_directions"
@@ -20,8 +30,7 @@
         android:visibility="gone"
         app:selectionRequired="true"
         app:singleLine="false"
-        app:singleSelection="true"
-        xmlns:app="http://schemas.android.com/apk/res-auto" />
+        app:singleSelection="true" />
 
     <FrameLayout
         android:layout_width="match_parent"

@@ -63,6 +63,8 @@ class BbApi(private val http: OkHttpClient) {
         val title: String,
         val due: String,
         val at: Instant?,
+        val courseId: String = "",
+        val contentId: String = "",
     )
 
     /** All enrolled courses, cached like the TIS lists. */
@@ -133,7 +135,7 @@ class BbApi(private val http: OkHttpClient) {
                         val title = column.optString("name")
                         val raw = column.optJSONObject("grading")?.optString("due").orEmpty()
                         if (title.isEmpty() || raw.isEmpty()) null
-                        else Deadline(course.name, title, formatDue(raw), parseDue(raw))
+                        else Deadline(course.name, title, formatDue(raw), parseDue(raw), course.id, column.optString("contentId"))
                     }
                 } catch (_: ApiException) {
                     emptyList()

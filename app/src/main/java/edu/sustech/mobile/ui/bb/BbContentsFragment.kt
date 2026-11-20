@@ -77,15 +77,21 @@ class BbContentsFragment : ListFragment<BbItem>(R.layout.fragment_bb_contents) {
                 }
                 header.visibility = View.VISIBLE
                 header.text = getString(R.string.bb_notice_count, notices.size)
-                notices.take(MAX_NOTICES).forEach { notice ->
-                    val row = layoutInflater.inflate(R.layout.item_tis_course, container, false)
-                    row.findViewById<TextView>(R.id.course_code).text = notice.date
-                    row.findViewById<TextView>(R.id.course_name).text = notice.title
-                    row.findViewById<TextView>(R.id.course_meta).text =
-                        getString(R.string.bb_kind_notice)
-                    row.setOnClickListener { showNotice(notice) }
-                    container.addView(row)
+                val latest = TextView(requireContext()).apply {
+                    text = "${notices.first().title}\n${notices.first().date}"
+                    maxLines = 2
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                    setPadding(16, 8, 16, 12)
+                    setBackgroundColor(android.graphics.Color.rgb(230, 241, 233))
                 }
+                val openNotices = View.OnClickListener {
+                    AlertDialog.Builder(requireContext()).setTitle(getString(R.string.bb_notice_count, notices.size))
+                        .setItems(notices.map { "${it.date}  ${it.title}" }.toTypedArray()) { _, index -> showNotice(notices[index]) }
+                        .setNegativeButton(android.R.string.cancel, null).show()
+                }
+                latest.setOnClickListener(openNotices)
+                header.setOnClickListener(openNotices)
+                container.addView(latest)
             },
         )
     }

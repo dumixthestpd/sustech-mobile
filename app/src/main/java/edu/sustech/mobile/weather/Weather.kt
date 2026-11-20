@@ -20,7 +20,7 @@ class WeatherClient(private val http: OkHttpClient) {
 
     data class Weather(val tempC: Int?, val feelsLike: Int?, val rainExpected: Boolean)
 
-    data class AirQuality(val aqi: Int?, val category: String)
+    data class AirQuality(val aqi: Int?, val category: String, val observedAt: String = "", val pm25: Double? = null)
 
     fun weather(): Weather {
         val body = get(Hosts.CAMPUS_WEATHER)
@@ -37,8 +37,10 @@ class WeatherClient(private val http: OkHttpClient) {
             "?latitude=${Hosts.CAMPUS_LAT}&longitude=${Hosts.CAMPUS_LON}" +
             "&current=us_aqi,pm2_5,pm10,ozone&timezone=Asia/Shanghai"
         val current = JSONObject(get(url)).optJSONObject("current") ?: JSONObject()
-        val aqi = if (current.has("us_aqi")) current.optInt("us_aqi") else null
-        return AirQuality(aqi = aqi, category = categoryOf(aqi))
+        val stamp = current.optString("time")
+        val aqi = AirReading.valid((current.opt("us_aqi") as? Number)?.toDouble(), stamp)
+        return AirQuality(aqi, categoryOf(aqi), stamp,
+            (current.opt("pm2_5") as? Number)?.toDouble()?.takeIf { it.isFinite() && it >= 0 })
     }
 
     /** US AQI bands. The Python client stubs this out; the app renders it. */

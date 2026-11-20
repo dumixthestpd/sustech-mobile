@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased — 0.3.31-dev
+
+- Show bus directions and their immediate next stops before any arrivals load. Switch between
+  directions or the two nearest places directly from the bus screen; discard superseded responses.
+- Open a Blackboard deadline's actual content item, retaining its course/content identity. Keep
+  announcements in a compact two-line summary with a separate list and detail view.
+- Replace the timetable list with today/week grids, shared clock times, overlapping-event lanes,
+  and TIS exams. Keep exams with unpublished clock times below the grid.
+- Identify air-quality readings as modeled US AQI with their data time; reject invalid or stale
+  readings. This does not replace the provider with a local observation station.
+- Personalized home and multiple configurable reminder alarms remain standalone browser demos;
+  no native notification scheduler is included in this development build.
+
 ## 0.3.30 — 2026-11-20
 
 - **Blackboard materials.** Browse course content and notices, preview PDFs, images and Word text,

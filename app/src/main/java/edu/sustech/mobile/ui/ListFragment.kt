@@ -56,6 +56,7 @@ class SimpleAdapter<T>(
  * this, so behavior (error copy, refresh, empty state) never diverges.
  */
 abstract class ListFragment<T>(@LayoutRes layoutRes: Int) : Fragment(layoutRes), Refreshable {
+    private var loadVersion = 0
 
     protected lateinit var list: RecyclerView
     protected lateinit var empty: View
@@ -97,6 +98,7 @@ abstract class ListFragment<T>(@LayoutRes layoutRes: Int) : Fragment(layoutRes),
     protected open fun cachePrefix(): String = ""
 
     protected fun load(force: Boolean = false) {
+        val version = ++loadVersion
         if (force) Cache.invalidate(cachePrefix())
         swipe.isRefreshing = true
         runIo(
@@ -105,14 +107,14 @@ abstract class ListFragment<T>(@LayoutRes layoutRes: Int) : Fragment(layoutRes),
                 // The fetch can outlive the fragment (fast 401 vs a slow
                 // detach): touching views or calling getString() on a
                 // detached fragment is a hard crash, so stop here.
-                if (!isAdded) return@runIo
+                if (!isAdded || version != loadVersion) return@runIo
                 swipe.isRefreshing = false
                 adapter.submit(rows)
                 showEmpty(rows.isEmpty(), emptyText())
                 onLoaded(rows)
             },
             onErr = { error ->
-                if (!isAdded) return@runIo
+                if (!isAdded || version != loadVersion) return@runIo
                 swipe.isRefreshing = false
                 adapter.submit(emptyList())
                 showEmpty(true, errorText(error))

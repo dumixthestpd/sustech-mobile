@@ -28,13 +28,16 @@ import edu.sustech.mobile.ui.pms.UploadActivity;
 /** Device-only, synthetic files. Never logs in, uploads, or submits coursework. */
 public class ShareFlowCheck extends Instrumentation {
     private File output;
+    private boolean dashboard;
 
     @Override public void onCreate(Bundle arguments) {
         super.onCreate(arguments);
+        dashboard = arguments != null && "dashboard".equals(arguments.getString("suite"));
         start();
     }
 
     @Override public void onStart() {
+        if (dashboard) { new DashboardCheck(this).run(); return; }
         Bundle result = new Bundle();
         try {
             output = getTargetContext().getExternalFilesDir("share-check");

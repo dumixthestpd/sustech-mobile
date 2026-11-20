@@ -241,7 +241,7 @@ object WidgetData {
         val lines = buildList {
             add(listOf(temp, feels).filter { it.isNotEmpty() }.joinToString(" · "))
             add(rain)
-            air?.aqi?.let { add("AQI $it ${context.localizedAirQuality(air.category)}") }
+            air?.aqi?.let { add(context.getString(R.string.air_model, it, air.observedAt.replace('T', ' '))) }
         }
         return WidgetSnapshot(titleOf(context, WidgetKind.WEATHER), lines)
     }

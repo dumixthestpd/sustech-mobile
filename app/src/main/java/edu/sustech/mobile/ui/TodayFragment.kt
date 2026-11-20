@@ -58,8 +58,8 @@ class TodayFragment : Fragment(R.layout.fragment_today), Refreshable {
         val aqi = view?.findViewById<TextView>(R.id.today_aqi_value)
         val exam = view?.findViewById<TextView>(R.id.today_exam_value)
 
-        val today = Calendar.getInstance()
-        val todayDate = LocalDate.now()
+        val today = Calendar.getInstance(java.util.TimeZone.getTimeZone("Asia/Shanghai"))
+        val todayDate = LocalDate.now(java.time.ZoneId.of("Asia/Shanghai"))
         swipe?.isRefreshing = true
         weekday?.text = requireContext().localizedWeekday(isoWeekday(today))
         week?.setText(R.string.today_week_unknown)
@@ -69,22 +69,27 @@ class TodayFragment : Fragment(R.layout.fragment_today), Refreshable {
 
         // Public data first — it works with no session at all.
         runIo(
-            block = { App.weather.weather() to runCatching { App.weather.airQuality() }.getOrNull() },
-            onOk = { (w, air) ->
+            block = { App.weather.weather() },
+            onOk = { w ->
                 weather?.text = listOfNotNull(
                     w.tempC?.let { "$it°C" },
                     w.feelsLike?.let { getString(R.string.weather_feels_like, it) },
                     getString(if (w.rainExpected) R.string.weather_rain_expected else R.string.weather_no_rain),
                 ).joinToString(" · ")
-                aqi?.text = air?.aqi?.let { "$it (${requireContext().localizedAirQuality(air.category)})" } ?: "—"
             },
             onErr = { weather?.setText(R.string.today_none) },
         )
+
+        aqi?.setText(R.string.empty_loading)
+        viewLifecycleOwner.runIo(block = { App.weather.airQuality() }, onOk = { air ->
+            aqi?.text = air.aqi?.let { getString(R.string.air_model, it, air.observedAt.replace('T', ' ')) } ?: getString(R.string.air_unavailable)
+        }, onErr = { aqi?.setText(R.string.air_unavailable) })
 
         runIo(
             block = {
                 val semester = App.tis.currentSemester()
                 val currentWeek = App.tis.currentWeek()
+                runCatching { App.tis.loadSlotTimes(semester, currentWeek) }
                 val entries = App.tis.semesterSchedule(semester)
                 Timetable(semester, currentWeek, entries, AcademicCalendar.termAt(App.context, todayDate))
             },
@@ -92,7 +97,6 @@ class TodayFragment : Fragment(R.layout.fragment_today), Refreshable {
                 swipe?.isRefreshing = false
                 // TIS owns the period times; ask once and the card shows the
                 // clock hours the rooms actually use.
-                runCatching { App.tis.loadSlotTimes(timetable.semester, timetable.week) }
                 week?.text = if (timetable.week == null) getString(R.string.today_week_unknown)
                 else getString(R.string.today_week, timetable.week)
                 weekday?.text = weekLine(timetable, today, todayDate)
@@ -102,7 +106,8 @@ class TodayFragment : Fragment(R.layout.fragment_today), Refreshable {
                 runIo(
                     block = { App.tis.exams() },
                     onOk = { exams ->
-                        val next = exams.firstOrNull()
+                        val next = exams.filter { record -> runCatching { !LocalDate.parse(record.date.take(10)).isBefore(todayDate) }.getOrDefault(false) }
+                            .minWithOrNull(compareBy({ it.date }, { it.timeText }))
                         exam?.text = next?.let { "${it.date} · ${it.course} · ${it.room}" }
                             ?: getString(R.string.today_none)
                     },

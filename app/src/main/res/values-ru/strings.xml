@@ -514,4 +514,12 @@
     <string name="bb_attempts_none">Ещё не отправлено.</string>
     <string name="bb_attempts_some">Отправлено %1$d раз(а).</string>
     <string name="bb_attempts_unknown">Проверка прошлых попыток…</string>
+    <string name="agenda_today">Сегодня</string>
+    <string name="agenda_week">Неделя</string>
+    <string name="agenda_exam">Экзамен</string>
+    <string name="agenda_exam_unknown">Время экзаменов не опубликовано</string>
+    <string name="agenda_exam_error">Расписание экзаменов недоступно; занятия показаны</string>
+    <string name="air_model">US AQI %1$d · модель, не местная станция · %2$s</string>
+    <string name="air_unavailable">Данные о воздухе недоступны или устарели</string>
+    <string name="transit_direction_next">Следующая остановка: %1$s</string>
 </resources>

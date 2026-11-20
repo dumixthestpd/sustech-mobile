@@ -569,4 +569,12 @@
     <string name="bb_attempts_none">Not submitted yet.</string>
     <string name="bb_attempts_some">Submitted %1$d time(s).</string>
     <string name="bb_attempts_unknown">Checking previous attempts…</string>
+    <string name="agenda_today">Today</string>
+    <string name="agenda_week">Week</string>
+    <string name="agenda_exam">Exam</string>
+    <string name="agenda_exam_unknown">Exam times are not published</string>
+    <string name="agenda_exam_error">Exam schedule unavailable; classes are still shown</string>
+    <string name="air_model">US AQI %1$d · model estimate, not a local station reading · %2$s</string>
+    <string name="air_unavailable">Air quality unavailable or outdated</string>
+    <string name="transit_direction_next">Next stop: %1$s</string>
 </resources>

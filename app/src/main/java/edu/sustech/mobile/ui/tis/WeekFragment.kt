@@ -1,82 +1,78 @@
 package edu.sustech.mobile.ui.tis
-
-import android.view.View
-import android.widget.TextView
+import android.os.Bundle
+import android.view.*
+import android.widget.*
+import androidx.fragment.app.Fragment
 import edu.sustech.mobile.R
 import edu.sustech.mobile.calendar.AcademicCalendar
-import edu.sustech.mobile.core.App
-import edu.sustech.mobile.core.ApiException
-import edu.sustech.mobile.tis.ClassEntry
-import edu.sustech.mobile.ui.ListFragment
-import edu.sustech.mobile.ui.localizedWeekday
+import edu.sustech.mobile.core.*
+import edu.sustech.mobile.tis.*
+import edu.sustech.mobile.ui.Refreshable
 import java.time.LocalDate
+import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 
-/**
- * This week — every meeting of the current teaching week, in order.
- *
- * The week number comes from TIS itself (`querydangqianzc`), so a term that has
- * not started yet reports honestly rather than guessing from the date.
- *
- * The rows come from the **whole-term** timetable rather than the single-week
- * endpoint: that one answers with the week's rows whether or not the course runs
- * in it (a "1-15单周" lab is listed in every week), while the whole-term payload
- * carries the `ZC` week bitmap every row is filtered by. Same for the clock
- * times, which come from TIS's own period grid.
- */
-class WeekFragment : ListFragment<ClassEntry>(R.layout.fragment_tis_week) {
-
-    private var headerText = ""
-
-    override fun cachePrefix() = "tis.week"
-
-    override fun rowLayout() = R.layout.item_tis_class
-
-    override fun emptyText() = getString(R.string.tis_week_empty)
-
-    override fun errorText(error: Throwable): String =
-        if (error is ApiException && error.signInRequired) getString(R.string.tis_not_signed_in)
-        else super.errorText(error)
-
-    override suspend fun fetch(): List<ClassEntry> {
-        val semester = App.tis.currentSemester()
-        val week = App.tis.currentWeek()
-        // The real teaching grid, so the times on screen are the times the rooms
-        // use (the app used to carry an exam-hall table).
-        runCatching { App.tis.loadSlotTimes(semester, week) }
-        headerText = listOfNotNull(
-            week?.let { getString(R.string.today_week, it) },
-            semester.labelEn.ifEmpty { semester.label },
-        ).joinToString(" · ")
-
-        val current = week ?: 1
-        val term = AcademicCalendar.termAt(App.context, LocalDate.now())
-        return App.tis.semesterSchedule(semester)
-            .filter { it.meets(current) }
-            .distinctBy { "${it.name}|${it.weekday}|${it.periodFrom}|${it.periodTo}" }
-            // A holiday flushes a whole day, so a row with no real meeting left
-            // in this week is not something to plan around. Rows a holiday moved
-            // stay, in the week they moved to. Without a calendar for the date
-            // the pattern is all there is, and nothing is dropped.
-            .filter { entry ->
-                term == null || term.meetings(entry.effectiveWeeks, entry.weekday)
-                    .any { term.weekOf(it) == current }
-            }
-            .sortedWith(compareBy({ it.weekday }, { it.periodFrom }))
+class WeekFragment : Fragment(), Refreshable {
+    private val zone = ZoneId.of("Asia/Shanghai")
+    private var selected = LocalDate.now(zone)
+    private var dayOnly = false
+    private var entries = emptyList<ClassEntry>()
+    private var exams = emptyList<ExamRecord>()
+    private var week: Int? = null
+    private var examsFailed = false
+    private lateinit var title: TextView
+    private lateinit var body: LinearLayout
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View {
+        selected = state?.getString("date")?.let { LocalDate.parse(it) } ?: selected
+        dayOnly = state?.getBoolean("day") ?: dayOnly
+        val root = LinearLayout(requireContext()).apply { orientation = LinearLayout.VERTICAL }
+        val controls = LinearLayout(requireContext())
+        fun button(label: String, action: () -> Unit) { controls.addView(Button(requireContext()).apply { text = label; setOnClickListener { action() } }, LinearLayout.LayoutParams(0, -2, 1f)) }
+        button("‹") { selected = selected.minusDays(if (dayOnly) 1 else 7); render() }
+        button(getString(R.string.agenda_today)) { selected = LocalDate.now(zone); dayOnly = true; render() }
+        button(getString(R.string.agenda_week)) { dayOnly = false; render() }
+        button("›") { selected = selected.plusDays(if (dayOnly) 1 else 7); render() }
+        root.addView(controls)
+        title = TextView(requireContext()).apply { setPadding(16, 8, 16, 8) }; root.addView(title)
+        body = LinearLayout(requireContext()).apply { orientation = LinearLayout.VERTICAL }
+        root.addView(ScrollView(requireContext()).apply { addView(body) }, LinearLayout.LayoutParams(-1, 0, 1f))
+        return root
     }
-
-    override fun onLoaded(rows: List<ClassEntry>) {
-        view?.findViewById<TextView>(R.id.week_header)?.text = headerText
+    override fun onViewCreated(view: View, state: Bundle?) { refresh() }
+    override fun onSaveInstanceState(state: Bundle) { super.onSaveInstanceState(state); state.putString("date", selected.toString()); state.putBoolean("day", dayOnly) }
+    override fun refresh() {
+        title.setText(R.string.empty_loading)
+        viewLifecycleOwner.runIo(block = {
+            val semester = App.tis.currentSemester(); week = App.tis.currentWeek()
+            runCatching { App.tis.loadSlotTimes(semester, week) }
+            val classes = App.tis.semesterSchedule(semester)
+            val result = runCatching { App.tis.exams() }
+            Triple(classes, result.getOrDefault(emptyList()), result.isFailure)
+        }, onOk = { (classes, tests, failed) -> entries = classes; exams = tests; examsFailed = failed; render() }, onErr = { title.text = it.friendly(requireContext()) })
     }
-
-    override fun bindRow(view: View, item: ClassEntry, position: Int) {
-        view.findViewById<TextView>(R.id.class_day).text = requireContext().localizedWeekday(item.weekday)
-        view.findViewById<TextView>(R.id.class_time).text = item.timeText
-        view.findViewById<TextView>(R.id.class_name).text = item.name
-        view.findViewById<TextView>(R.id.class_meta).text = listOf(
-            item.teacher,
-            item.room,
-            item.classGroup,
-            getString(R.string.tis_weeks_range, item.weekRangeText),
-        ).filter { it.isNotEmpty() }.joinToString(" · ")
+    private fun render() {
+        if (!isAdded) return
+        val today = LocalDate.now(zone)
+        val monday = selected.minusDays((selected.dayOfWeek.value - 1).toLong())
+        val days = if (dayOnly) listOf(selected) else (0L..6L).map { monday.plusDays(it) }
+        val term = AcademicCalendar.termAt(App.context, today)
+        val currentMonday = today.minusDays((today.dayOfWeek.value - 1).toLong())
+        val events = mutableListOf<AgendaEvent>()
+        for (entry in entries) {
+            val dates = if (term != null) term.meetings(entry.effectiveWeeks.ifEmpty { (1..term.totalTeachingWeeks).toList() }, entry.weekday)
+            else days.filter { date -> date.dayOfWeek.value == entry.weekday && week?.let { entry.meets(it + ChronoUnit.WEEKS.between(currentMonday, monday).toInt()) } == true }
+            val range = Agenda.clockRange(entry.timeText) ?: continue
+            dates.filter { it in days }.forEach { date -> events.add(AgendaEvent(date, range.first, range.second, entry.name, entry.room, detail = entry.timeText + "\n" + entry.teacher)) }
+        }
+        events += exams.mapNotNull { Agenda.exam(it) }.filter { it.date in days }
+        title.text = if (dayOnly) selected.toString() else "${days.first()} — ${days.last()}"
+        body.removeAllViews()
+        val windowWidth = view?.width?.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
+        body.addView(HorizontalScrollView(requireContext()).apply { addView(TimetableGrid(requireContext()).apply { show(days, events.distinct(), dayOnly, windowWidth) }) })
+        val unknown = exams.filter { it.date.take(10) in days.map(LocalDate::toString) && Agenda.exam(it) == null }
+        if (unknown.isNotEmpty() || examsFailed) body.addView(TextView(requireContext()).apply {
+            setPadding(16, 12, 16, 12)
+            text = if (examsFailed) getString(R.string.agenda_exam_error) else getString(R.string.agenda_exam_unknown) + "\n" + unknown.joinToString("\n") { it.course + "  " + it.room }
+        })
     }
 }

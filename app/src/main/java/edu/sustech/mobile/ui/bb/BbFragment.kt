@@ -100,5 +100,13 @@ class BbDeadlinesFragment : ListFragment<BbApi.Deadline>(R.layout.fragment_list)
         view.findViewById<TextView>(R.id.course_code).text = item.due.take(16).replace("T", " ")
         view.findViewById<TextView>(R.id.course_name).text = item.title
         view.findViewById<TextView>(R.id.course_meta).text = item.courseName
+        view.setOnClickListener {
+            if (item.courseId.isEmpty()) return@setOnClickListener
+            val target = if (item.contentId.isNotEmpty()) {
+                BbItemFragment.newInstance(item.courseId, item.courseName, item.contentId)
+            } else BbContentsFragment.newInstance(item.courseId, item.courseName)
+            parentFragmentManager.beginTransaction().replace(R.id.service_container, target)
+                .addToBackStack("bb_deadline").commit()
+        }
     }
 }

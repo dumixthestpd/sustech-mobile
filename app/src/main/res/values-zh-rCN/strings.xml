@@ -532,4 +532,12 @@
     <string name="bb_attempts_none">尚未提交。</string>
     <string name="bb_attempts_some">已提交 %1$d 次。</string>
     <string name="bb_attempts_unknown">正在查询已有提交…</string>
+    <string name="agenda_today">今天</string>
+    <string name="agenda_week">本周</string>
+    <string name="agenda_exam">考试</string>
+    <string name="agenda_exam_unknown">考试具体时间尚未公布</string>
+    <string name="agenda_exam_error">考试安排暂不可用，课表仍正常显示</string>
+    <string name="air_model">美标 AQI %1$d · 模型估计，非本地站点实测 · %2$s</string>
+    <string name="air_unavailable">空气质量数据暂不可用或已过期</string>
+    <string name="transit_direction_next">下一站 %1$s</string>
 </resources>
