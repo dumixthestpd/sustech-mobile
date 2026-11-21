@@ -1,0 +1,16 @@
+<resources>
+    <string name="ui_home_title">我的今天</string>
+    <string name="ui_home_caption">课程、截止任务与校园服务</string>
+    <string name="ui_recent_deadline">最近截止</string>
+    <string name="ui_no_future_deadlines">暂无后续截止任务</string>
+    <string name="ui_open_deadlines">查看截止任务</string>
+    <string name="ui_deadline_unavailable">截止任务暂不可用</string>
+    <string name="ui_hours_left">%1$d 小时后截止</string>
+    <string name="ui_minutes_left">%1$d 分钟后截止</string>
+    <string name="ui_days_left">%1$d 天后截止</string>
+    <string name="ui_shortcuts">常用服务</string>
+    <string name="ui_courses_today">课程安排</string>
+    <string name="ui_ws_caption">按年份、地区与申请条件筛选</string>
+    <string name="ui_rooms_caption">按日期和时间查找空闲讨论间</string>
+    <string name="ui_all_services">校园服务</string>
+</resources>

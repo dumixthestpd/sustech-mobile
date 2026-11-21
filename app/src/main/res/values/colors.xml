@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="brand">#0B6E4F</color>
-    <color name="brand_dark">#084F39</color>
-    <color name="brand_light">#E3F2EC</color>
-    <color name="ink">#1B1B1B</color>
-    <color name="ink_muted">#6B6B6B</color>
+    <color name="brand">#076950</color>
+    <color name="brand_dark">#103F34</color>
+    <color name="brand_light">#E6F1E9</color>
+    <color name="ink">#202E29</color>
+    <color name="ink_muted">#69746E</color>
     <color name="surface">#FFFFFF</color>
-    <color name="background">#F5F6F7</color>
-    <color name="divider">#E0E0E0</color>
+    <color name="background">#F5F5F0</color>
+    <color name="divider">#DFE4DC</color>
+    <color name="hero_muted">#D2E7DC</color>
     <color name="ok">#2E7D32</color>
     <color name="warn">#E65100</color>
     <color name="bad">#C62828</color>

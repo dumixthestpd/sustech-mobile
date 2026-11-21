@@ -1,0 +1,16 @@
+<resources>
+    <string name="ui_home_title">My day</string>
+    <string name="ui_home_caption">Classes, deadlines and campus services</string>
+    <string name="ui_recent_deadline">Next deadline</string>
+    <string name="ui_no_future_deadlines">No upcoming deadlines</string>
+    <string name="ui_open_deadlines">View deadlines</string>
+    <string name="ui_deadline_unavailable">Deadlines unavailable</string>
+    <string name="ui_hours_left">Due in %1$d hours</string>
+    <string name="ui_minutes_left">Due in %1$d minutes</string>
+    <string name="ui_days_left">Due in %1$d days</string>
+    <string name="ui_shortcuts">Quick access</string>
+    <string name="ui_courses_today">Classes</string>
+    <string name="ui_ws_caption">Find projects by year, region and application status</string>
+    <string name="ui_rooms_caption">Find a room for a chosen date and time</string>
+    <string name="ui_all_services">Campus services</string>
+</resources>

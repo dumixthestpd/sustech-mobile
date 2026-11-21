@@ -42,12 +42,12 @@
     <string name="network_off_campus">Интернет есть, но печать недоступна. Подключитесь к сети кампуса или VPN</string>
     <string name="network_none">Сервисы университета недоступны. Проверьте подключение</string>
     <string name="error_network">Ошибка сети: %1$s</string>
-    <string name="services_available">Реализовано</string>
+    <string name="services_available">Доступно</string>
     <string name="services_checking">Проверка…</string>
     <string name="services_reachable">Сервис доступен</string>
     <string name="services_unavailable">Недоступно</string>
-    <string name="services_not_implemented">Пока не реализовано</string>
-    <string name="services_planned_note">Реализованные сервисы открываются в приложении или на официальном сайте SUSTech. Отзывы о курсах пока разрабатываются.</string>
+    <string name="services_not_implemented">В разработке</string>
+    <string name="services_planned_note">Сервисы открываются в приложении или на соответствующем официальном сайте.</string>
     <string name="service_pms">Печать</string>
     <string name="service_pms_summary">Очередь печати, принтеры, сканы, история</string>
     <string name="service_tis">Курсы и оценки</string>

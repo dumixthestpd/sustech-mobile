@@ -42,12 +42,12 @@
     <string name="network_off_campus">已联网，但打印服务不可用；请连接校园网或 VPN</string>
     <string name="network_none">无法连接学校服务，请检查网络</string>
     <string name="error_network">网络错误：%1$s</string>
-    <string name="services_available">已实现</string>
+    <string name="services_available">可用</string>
     <string name="services_checking">正在检查…</string>
     <string name="services_reachable">服务可连接</string>
     <string name="services_unavailable">不可用</string>
-    <string name="services_not_implemented">尚未实现</string>
-    <string name="services_planned_note">已实现的服务可在应用内使用或打开南科大官方页面；课程评价（牛娃社区）仍在开发中。</string>
+    <string name="services_not_implemented">开发中</string>
+    <string name="services_planned_note">服务可在应用内使用或打开对应的官方页面。</string>
     <string name="service_pms">打印</string>
     <string name="service_pms_summary">云打印队列、打印点、扫描、使用记录</string>
     <string name="service_tis">课程与成绩</string>

@@ -9,8 +9,9 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="@color/brand"
-        app:titleTextColor="@color/white" />
+        android:background="@color/surface"
+        app:titleTextColor="@color/ink"
+        app:navigationIconTint="@color/brand" />
 
     <FrameLayout
         android:id="@+id/service_container"

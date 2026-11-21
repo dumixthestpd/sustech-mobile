@@ -66,10 +66,18 @@ synthetic catalog and room calendars, checking combined filters, reset, unknown 
 future availability that deliberately differs from current occupancy. It never submits an
 application or reservation. Review and remove external `files/search-check` screenshots afterwards.
 
-It exercises the native day/week grid with overlapping synthetic classes and exams, a bounded
-20-announcement summary, and deadline-to-content navigation. It does not sign in or submit data.
+The dashboard suite exercises the native day/week grid with overlapping synthetic classes and exams,
+a bounded 20-announcement summary, deadline-to-content navigation, and the home deadline intents
+for a specific content item or the full deadline list. It does not sign in or submit data.
 Inspect and remove screenshots from external `files/dashboard-check` after review. This fixture
 check does not prove that a signed-in account has published exams; verify live TIS separately.
+
+For changes to the native presentation, also inspect Today, Services, WS and future-room search
+in a phone-width window (390dp) and a wide window. Verify that selector labels remain readable,
+that occupied/unconfirmed room badges differ from available rooms, and that the service catalog
+still scrolls to every registered module. Check actual BB deadline navigation after restarting
+the app to clear the instrumentation's synthetic in-memory cache. Remove temporary screenshots
+after visual review; keep the build log and signed APK for identification.
 
 **Before publishing a release, install it and exercise the screens you changed on a device or on
 Windows Subsystem for Android.** Unit tests and a green `assembleDebug` do not prove the app runs:

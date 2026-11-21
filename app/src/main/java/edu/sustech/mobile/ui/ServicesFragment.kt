@@ -5,7 +5,7 @@ import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.fragment.app.Fragment
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import edu.sustech.mobile.R
 import edu.sustech.mobile.core.App
@@ -30,7 +30,7 @@ class ServicesFragment : Fragment(R.layout.fragment_services), Refreshable {
         adapter = SimpleAdapter(R.layout.item_service) { row, module, _ -> bind(row, module) }
 
         view.findViewById<RecyclerView>(R.id.list).apply {
-            layoutManager = LinearLayoutManager(requireContext())
+            layoutManager = GridLayoutManager(requireContext(), if (resources.configuration.screenWidthDp >= 600) 3 else 2)
             adapter = this@ServicesFragment.adapter
         }
         adapter.submit(Services.all)
@@ -42,7 +42,10 @@ class ServicesFragment : Fragment(R.layout.fragment_services), Refreshable {
     }
 
     private fun bind(row: View, module: ServiceModule) {
-        row.findViewById<ImageView>(R.id.service_icon).setImageResource(module.icon)
+        row.findViewById<ImageView>(R.id.service_icon).apply {
+            setImageResource(module.icon)
+            imageTintList = android.content.res.ColorStateList.valueOf(requireContext().getColor(R.color.brand))
+        }
         row.findViewById<TextView>(R.id.service_title).text = getString(module.title)
         row.findViewById<TextView>(R.id.service_summary).text = getString(module.summary)
         row.findViewById<TextView>(R.id.service_status).apply {

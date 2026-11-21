@@ -53,12 +53,12 @@
     <string name="error_network">Network error: %1$s</string>
 
     <!-- Services catalog -->
-    <string name="services_available">Implemented</string>
+    <string name="services_available">Available</string>
     <string name="services_checking">Checking…</string>
     <string name="services_reachable">Service reachable</string>
     <string name="services_unavailable">Unavailable</string>
-    <string name="services_not_implemented">Not implemented yet</string>
-    <string name="services_planned_note">Implemented services open in the app or an official SUSTech portal. Course reviews are still in development.</string>
+    <string name="services_not_implemented">Coming soon</string>
+    <string name="services_planned_note">Services open in the app or their official portal.</string>
     <string name="service_pms">Printing</string>
     <string name="service_pms_summary">Cloud print queue, stations, scans, usage</string>
     <string name="service_tis">Courses &amp; grades</string>

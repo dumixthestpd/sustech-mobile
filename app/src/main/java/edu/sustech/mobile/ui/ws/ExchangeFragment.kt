@@ -91,8 +91,10 @@ class ExchangeFragment : ListFragment<WsProgram>(R.layout.fragment_exchange_prog
         val options = listOf("") + values.filter { it.isNotBlank() }.distinct()
         view.findViewById<Spinner>(id).apply {
             onItemSelectedListener = null
-            adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item,
-                options.map { it.ifEmpty { getString(title) } })
+            adapter = ArrayAdapter(requireContext(), R.layout.paper_spinner_item,
+                options.map { it.ifEmpty { getString(title) } }).apply {
+                setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            }
             val selected = options.indexOf(current).coerceAtLeast(0)
             setSelection(selected)
             set(options[selected])
@@ -114,6 +116,12 @@ class ExchangeFragment : ListFragment<WsProgram>(R.layout.fragment_exchange_prog
     }
 
     override fun bindRow(view: View, item: WsProgram, position: Int) {
+        view.findViewById<TextView>(R.id.ws_program_year).apply {
+            text = item.year; visibility = if (item.year.isBlank()) View.GONE else View.VISIBLE
+        }
+        view.findViewById<TextView>(R.id.ws_program_type).apply {
+            text = item.type; visibility = if (item.type.isBlank()) View.GONE else View.VISIBLE
+        }
         view.findViewById<TextView>(R.id.ws_program_name).text = item.name
 
         val where = listOf(item.region, item.school, item.type)

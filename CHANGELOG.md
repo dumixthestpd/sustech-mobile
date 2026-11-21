@@ -2,6 +2,10 @@
 
 ## Unreleased — 0.3.31-dev
 
+- Adopt the browser concept's paper background, deep green deadline card, rounded outline cards,
+  mint service icons and quieter navigation in the native app. Add a real upcoming BB deadline
+  summary and direct task navigation to Today, plus eight service shortcuts. Redesign service
+  browsing as a grid and group WS/room filters into compact panels with separate result cards.
 - Search the complete WS exchange catalog by project/university/region; combine year, region,
   project type and application eligibility filters, reset them, and retain choices when navigating.
 - Find discussion rooms for a chosen future date and continuous time interval, combining floor

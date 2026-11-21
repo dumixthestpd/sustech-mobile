@@ -55,6 +55,16 @@ class DashboardCheck(private val instrument: Instrumentation) {
             Cache.get("bb.item.1.2", 600000) { BbApi.ItemDetail("Assignment detail", BbItem.Kind.DOCUMENT, "Correct assignment destination 1/2", emptyList()) }
             runOnMainSync { activity.supportFragmentManager.beginTransaction().replace(R.id.service_container, BbDeadlinesFragment()).commitNow() }
             await("Open this assignment"); click("Open this assignment"); await("Correct assignment destination 1/2"); shot("deadline-target.png")
+            val direct = startActivitySync(edu.sustech.mobile.ui.ServiceActivity.intent(targetContext,
+                edu.sustech.mobile.service.Services.blackboard).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                .putExtra("bb_course", "1").putExtra("bb_content", "2").putExtra("bb_course_name", "Fixture course"))
+            await("Correct assignment destination 1/2")
+            runOnMainSync { direct.finish() }
+            val deadlines = startActivitySync(edu.sustech.mobile.ui.ServiceActivity.intent(targetContext,
+                edu.sustech.mobile.service.Services.blackboard).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                .putExtra("bb_deadlines", true))
+            await("Open this assignment")
+            runOnMainSync { deadlines.finish() }
             result.putString("stream", "PASS: real day/week grids, overlapping class and exam, bounded 20-notice summary, BB deadline-to-item navigation. Synthetic records; no submissions.")
             finish(Activity.RESULT_OK,result)
         } catch(t:Throwable) { result.putString("stream","FAIL: $t"); runCatching { shot("failure.png") }; finish(Activity.RESULT_CANCELED,result) }

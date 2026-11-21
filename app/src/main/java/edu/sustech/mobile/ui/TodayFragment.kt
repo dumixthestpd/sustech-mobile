@@ -4,6 +4,10 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
+import android.widget.GridLayout
+import android.widget.LinearLayout
+import android.widget.ImageView
+import android.view.Gravity
 import androidx.fragment.app.Fragment
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.material.button.MaterialButton
@@ -19,19 +23,26 @@ import edu.sustech.mobile.tis.PeriodTimes
 import edu.sustech.mobile.tis.Semester
 import java.time.LocalDate
 import java.util.Calendar
+import edu.sustech.mobile.bb.BbApi
+import edu.sustech.mobile.service.Services
+import java.time.Instant
+import java.time.Duration
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 /**
  * Today: the one screen worth opening between classes.
  *
- * Week number, the single next class ("next up"), campus weather and air
- * quality, and the next exam. Only the weather is auth-free; everything else
- * needs TIS, and the screen says so instead of showing empty cards.
+ * Upcoming BB deadline, next class, service shortcuts, campus weather and air
+ * quality, and the next exam. Academic records use the existing BB/TIS clients;
+ * weather and air quality are public.
  *
  * The class line shows one meeting, not the day's timetable: the card answers
  * "what is next", and the parity of the weeks is spelled out, because a lab that
  * only runs on even weeks otherwise looks like it runs every week.
  */
 class TodayFragment : Fragment(R.layout.fragment_today), Refreshable {
+    private var activeDeadline: BbApi.Deadline? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -40,14 +51,83 @@ class TodayFragment : Fragment(R.layout.fragment_today), Refreshable {
         }
         view.findViewById<SwipeRefreshLayout>(R.id.today_swipe).setOnRefreshListener {
             Cache.invalidate("tis.")
-            load()
+            refresh()
         }
+        view.findViewById<View>(R.id.today_timetable).setOnClickListener {
+            startActivity(ServiceActivity.intent(requireContext(), Services.courses))
+        }
+        view.findViewById<View>(R.id.today_deadline_open).setOnClickListener {
+            val intent = ServiceActivity.intent(requireContext(), Services.blackboard)
+            val deadline = activeDeadline
+            if (deadline != null && deadline.courseId.isNotBlank()) {
+                intent.putExtra("bb_course", deadline.courseId).putExtra("bb_content", deadline.contentId)
+                    .putExtra("bb_course_name", deadline.courseName)
+            } else intent.putExtra("bb_deadlines", true)
+            startActivity(intent)
+        }
+        buildShortcuts(view.findViewById(R.id.today_shortcuts))
         load()
     }
 
-    override fun refresh() = load()
+    override fun refresh() { Cache.invalidate("bb.deadlines"); load() }
+
+    private fun buildShortcuts(grid: GridLayout) {
+        fun dp(n: Int) = (n * resources.displayMetrics.density).toInt()
+        listOf(Services.blackboard, Services.transit, Services.courses, Services.rooms,
+            Services.printing, Services.exchange, Services.library, Services.booking).forEachIndexed { index, module ->
+            val tile = LinearLayout(requireContext()).apply {
+                orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; minimumHeight = dp(88)
+                isClickable = true; isFocusable = true; contentDescription = getString(module.title)
+                addView(ImageView(context).apply {
+                    setImageResource(module.icon); setPadding(dp(10), dp(10), dp(10), dp(10))
+                    setBackgroundResource(R.drawable.paper_input)
+                    imageTintList = android.content.res.ColorStateList.valueOf(requireContext().getColor(R.color.brand))
+                    importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+                }, LinearLayout.LayoutParams(dp(44), dp(44)))
+                addView(TextView(context).apply {
+                    text = getString(module.title); textSize = 11f; gravity = Gravity.CENTER
+                    maxLines = 2; setTextColor(requireContext().getColor(R.color.ink)); setPadding(0, dp(5), 0, 0)
+                }, LinearLayout.LayoutParams(-1, -2))
+                setOnClickListener { startActivity(ServiceActivity.intent(requireContext(), module)) }
+            }
+            grid.addView(tile, GridLayout.LayoutParams(GridLayout.spec(index / 4), GridLayout.spec(index % 4, 1f)).apply { width = 0 })
+        }
+    }
+
+    private fun loadDeadline(view: View) {
+        activeDeadline = null
+        val title = view.findViewById<TextView>(R.id.today_deadline_name)
+        val clock = view.findViewById<TextView>(R.id.today_deadline_clock)
+        val meta = view.findViewById<TextView>(R.id.today_deadline_meta)
+        clock.setText(R.string.ui_recent_deadline)
+        meta.text = ""
+        title.setText(R.string.empty_loading)
+        viewLifecycleOwner.runIo(block = { App.bb.deadlines() }, onOk = { rows ->
+            val now = Instant.now()
+            val next = rows.filter { it.at == null || !it.at.isBefore(now) }.minByOrNull { it.at ?: Instant.MAX }
+            activeDeadline = next
+            if (next == null) {
+                clock.setText(R.string.ui_recent_deadline); title.setText(R.string.ui_no_future_deadlines); meta.text = ""
+            } else {
+                title.text = next.title
+                meta.text = listOf(next.courseName, next.due).filter { it.isNotBlank() }.joinToString("\n")
+                val seconds = next.at?.let { Duration.between(now, it).seconds.coerceAtLeast(0) }
+                clock.text = when {
+                    seconds == null -> getString(R.string.ui_recent_deadline)
+                    seconds >= 172800 -> getString(R.string.ui_days_left, seconds / 86400)
+                    seconds >= 3600 -> getString(R.string.ui_hours_left, seconds / 3600)
+                    else -> getString(R.string.ui_minutes_left, (seconds + 59) / 60)
+                }
+            }
+        }, onErr = { clock.setText(R.string.ui_recent_deadline); title.setText(R.string.ui_deadline_unavailable); meta.text = "" })
+    }
 
     private fun load() {
+        view?.let {
+            it.findViewById<TextView>(R.id.today_date).text = LocalDate.now(ZoneId.of("Asia/Shanghai"))
+                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd EEEE", resources.configuration.locales[0]))
+            loadDeadline(it)
+        }
         val swipe = view?.findViewById<SwipeRefreshLayout>(R.id.today_swipe)
         val week = view?.findViewById<TextView>(R.id.today_week)
         val weekday = view?.findViewById<TextView>(R.id.today_weekday)

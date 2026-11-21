@@ -56,6 +56,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_main, menu)
+        for (i in 0 until menu.size()) menu.getItem(i).icon?.setTint(getColor(R.color.brand))
         return true
     }
 

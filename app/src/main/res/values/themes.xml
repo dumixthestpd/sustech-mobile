@@ -9,16 +9,56 @@
         <item name="colorAccent">@color/brand</item>
         <item name="colorSecondary">@color/brand</item>
         <item name="android:windowBackground">@color/background</item>
-        <item name="android:statusBarColor" tools:targetApi="21">@color/brand_dark</item>
+        <item name="android:statusBarColor" tools:targetApi="21">@color/surface</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:navigationBarColor">@color/surface</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:colorBackground">@color/background</item>
+        <item name="android:textColorPrimary">@color/ink</item>
+        <item name="android:textColorSecondary">@color/ink_muted</item>
+        <item name="materialButtonStyle">@style/PaperButton</item>
+        <item name="chipStyle">@style/PaperChip</item>
     </style>
 
     <style name="CardBase" parent="Widget.MaterialComponents.CardView">
-        <item name="cardCornerRadius">10dp</item>
-        <item name="cardElevation">1dp</item>
+        <item name="cardCornerRadius">18dp</item>
+        <item name="cardElevation">0dp</item>
+        <item name="strokeColor">@color/divider</item>
+        <item name="strokeWidth">1dp</item>
         <item name="cardBackgroundColor">@color/surface</item>
         <item name="android:layout_marginStart">12dp</item>
         <item name="android:layout_marginEnd">12dp</item>
-        <item name="android:layout_marginTop">8dp</item>
+        <item name="android:layout_marginTop">12dp</item>
+    </style>
+
+    <style name="PaperButton" parent="Widget.MaterialComponents.Button">
+        <item name="cornerRadius">12dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:elevation">0dp</item>
+    </style>
+    <style name="PaperChip" parent="Widget.MaterialComponents.Chip.Choice">
+        <item name="chipBackgroundColor">@color/paper_choice_surface</item>
+        <item name="android:textColor">@color/paper_choice_text</item>
+        <item name="chipStrokeColor">@color/divider</item>
+        <item name="chipStrokeWidth">1dp</item>
+        <item name="chipCornerRadius">12dp</item>
+        <item name="checkedIconVisible">false</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+    <style name="PaperSearch">
+        <item name="android:background">@drawable/paper_input</item>
+        <item name="android:paddingHorizontal">14dp</item>
+        <item name="android:paddingVertical">12dp</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/ink</item>
+        <item name="android:textColorHint">@color/ink_muted</item>
+        <item name="android:singleLine">true</item>
+    </style>
+    <style name="PaperSelector">
+        <item name="android:background">@drawable/paper_selector</item>
+        <item name="android:layout_margin">3dp</item>
+        <item name="android:popupBackground">@color/surface</item>
     </style>
 
     <style name="FieldLabel">

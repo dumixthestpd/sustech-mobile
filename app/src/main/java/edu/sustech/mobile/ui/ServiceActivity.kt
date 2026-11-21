@@ -47,8 +47,16 @@ class ServiceActivity : AppCompatActivity() {
         }
 
         if (savedInstanceState == null) {
+            val course = intent.getStringExtra("bb_course")
+            val content = intent.getStringExtra("bb_content")
+            val root = if (module.id == Services.blackboard.id && !course.isNullOrBlank()) {
+                if (!content.isNullOrBlank()) edu.sustech.mobile.ui.bb.BbItemFragment.newInstance(course, intent.getStringExtra("bb_course_name").orEmpty(), content)
+                else edu.sustech.mobile.ui.bb.BbContentsFragment.newInstance(course, intent.getStringExtra("bb_course_name").orEmpty())
+            } else if (module.id == Services.blackboard.id && intent.getBooleanExtra("bb_deadlines", false)) {
+                edu.sustech.mobile.ui.bb.BbDeadlinesFragment()
+            } else module.root.invoke()
             supportFragmentManager.beginTransaction()
-                .replace(R.id.service_container, module.root.invoke())
+                .replace(R.id.service_container, root)
                 .commit()
         }
     }

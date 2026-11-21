@@ -32,6 +32,8 @@ class MyRoomsFragment : ListFragment<RoomReservation>(R.layout.fragment_rooms) {
         // search/filter controls or the rules shortcut.
         view.findViewById<View>(R.id.rooms_search).visibility = View.GONE
         view.findViewById<View>(R.id.rooms_filter_scroll).visibility = View.GONE
+        view.findViewById<View>(R.id.rooms_time_tools).visibility = View.GONE
+        view.findViewById<View>(R.id.rooms_page_caption).visibility = View.GONE
         view.findViewById<View>(R.id.rooms_info).visibility = View.GONE
         view.findViewById<View>(R.id.rooms_mine).visibility = View.GONE
     }

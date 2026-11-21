@@ -1,0 +1,16 @@
+<resources>
+    <string name="ui_home_title">Мой день</string>
+    <string name="ui_home_caption">Занятия, сроки и сервисы кампуса</string>
+    <string name="ui_recent_deadline">Ближайший срок</string>
+    <string name="ui_no_future_deadlines">Предстоящих сроков нет</string>
+    <string name="ui_open_deadlines">Открыть сроки</string>
+    <string name="ui_deadline_unavailable">Сроки недоступны</string>
+    <string name="ui_hours_left">Срок через %1$d ч</string>
+    <string name="ui_minutes_left">Срок через %1$d мин</string>
+    <string name="ui_days_left">Срок через %1$d дн</string>
+    <string name="ui_shortcuts">Быстрый доступ</string>
+    <string name="ui_courses_today">Занятия</string>
+    <string name="ui_ws_caption">Поиск по году, региону и статусу подачи</string>
+    <string name="ui_rooms_caption">Поиск свободных комнат по дате и времени</string>
+    <string name="ui_all_services">Сервисы кампуса</string>
+</resources>

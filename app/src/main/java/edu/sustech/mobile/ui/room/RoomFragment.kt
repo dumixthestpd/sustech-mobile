@@ -193,8 +193,10 @@ class RoomFragment : ListFragment<RoomInfo>(R.layout.fragment_rooms), BookDialog
         val options = listOf("") + found
         view?.findViewById<Spinner>(R.id.rooms_floor)?.apply {
             onItemSelectedListener = null
-            adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item,
-                options.map { it.ifEmpty { getString(R.string.rooms_floor_all) } })
+            adapter = ArrayAdapter(requireContext(), R.layout.paper_spinner_item,
+                options.map { it.ifEmpty { getString(R.string.rooms_floor_all) } }).apply {
+                setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            }
             setSelection(options.indexOf(floor).coerceAtLeast(0))
             onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
                 override fun onNothingSelected(parent: AdapterView<*>?) = Unit
@@ -370,15 +372,11 @@ class RoomFragment : ListFragment<RoomInfo>(R.layout.fragment_rooms), BookDialog
         val availability = if (future) state(item) else null
         val available = if (future) availability == RoomAvailability.AVAILABLE else item.free
         val card = view as? MaterialCardView
-        val free = ContextCompat.getColor(
-            requireContext(),
-            if (available) R.color.booking_slot_available_bg else R.color.booking_slot_unavailable_bg,
-        )
         val stroke = ContextCompat.getColor(
             requireContext(),
             if (available) R.color.booking_slot_available_stroke else R.color.booking_slot_unavailable_stroke,
         )
-        card?.setCardBackgroundColor(free)
+        card?.setCardBackgroundColor(requireContext().getColor(R.color.surface))
         card?.strokeColor = stroke
         card?.strokeWidth = resources.getDimensionPixelSize(R.dimen.room_card_stroke)
         view.findViewById<TextView>(R.id.room_name).text = item.name
@@ -393,6 +391,12 @@ class RoomFragment : ListFragment<RoomInfo>(R.layout.fragment_rooms), BookDialog
             },
         ).filter { it.isNotBlank() }.joinToString(" · ")
         val status = view.findViewById<TextView>(R.id.room_status)
+        val occupied = availability == RoomAvailability.OCCUPIED || (!future && !item.free)
+        status.setBackgroundResource(when {
+            available -> R.drawable.paper_tag
+            occupied -> R.drawable.paper_tag_busy
+            else -> R.drawable.paper_tag_neutral
+        })
         status.text = getString(when (availability) {
             RoomAvailability.AVAILABLE -> R.string.rooms_interval_available
             RoomAvailability.OCCUPIED -> R.string.rooms_interval_occupied
@@ -403,7 +407,7 @@ class RoomFragment : ListFragment<RoomInfo>(R.layout.fragment_rooms), BookDialog
         status.setTextColor(
             ContextCompat.getColor(
                 requireContext(),
-                if (available) R.color.ok else R.color.ink_muted,
+                if (available) R.color.brand else if (occupied) R.color.warn else R.color.ink_muted,
             ),
         )
         val schedule = view.findViewById<TextView>(R.id.room_schedule)
