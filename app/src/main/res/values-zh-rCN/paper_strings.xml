@@ -1,6 +1,4 @@
 <resources>
-    <string name="ui_home_title">我的今天</string>
-    <string name="ui_home_caption">课程、截止任务与校园服务</string>
     <string name="ui_recent_deadline">最近截止</string>
     <string name="ui_no_future_deadlines">暂无后续截止任务</string>
     <string name="ui_open_deadlines">查看截止任务</string>

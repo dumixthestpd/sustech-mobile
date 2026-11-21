@@ -6,7 +6,7 @@
  <string name="home_layout_saved">Changes save automatically and apply when you return home.</string>
  <string name="home_layout_preview">Layout preview</string>
  <string name="home_layout_landing">When the app opens</string>
- <string name="home_landing_home">My home</string>
+ <string name="home_landing_home">Home</string>
  <string name="home_layout_hero">First card</string>
  <string name="home_layout_follow_order">Use the order below</string>
  <string name="home_layout_schedule">Timetable display</string>
@@ -25,4 +25,6 @@
  <string name="home_preset_campus">My campus</string>
  <string name="home_bus_choose">Choose stop</string>
  <string name="home_bus_location_hint">Choose a stop to see arrivals and directions.</string>
+ <string name="home_drag_hint">Drag the handle to reorder. Use the switch to show or hide an item.</string>
+ <string name="home_drag_handle">Drag to move %1$s</string>
 </resources>

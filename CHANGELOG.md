@@ -2,6 +2,9 @@
 
 ## Unreleased — 0.3.31-dev
 
+- Move all layout entry points into Account. Remove the tall home heading and caption.
+  Replace per-row move buttons, presets and the independent first-card selector with native drag
+  ordering for cards and shortcuts; preserve existing effective order and automatic saving.
 - Show only confirmed unsubmitted/draft upcoming BB assignments on Home, with swipe and button
   paging. Add course-scoped submitted work, published grades, attempt scores and teacher feedback;
   keep unreadable status, ungraded scores, exemptions and other users separate.

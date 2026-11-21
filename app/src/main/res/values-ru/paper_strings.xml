@@ -1,6 +1,4 @@
 <resources>
-    <string name="ui_home_title">Мой день</string>
-    <string name="ui_home_caption">Занятия, сроки и сервисы кампуса</string>
     <string name="ui_recent_deadline">Ближайший срок</string>
     <string name="ui_no_future_deadlines">Предстоящих сроков нет</string>
     <string name="ui_open_deadlines">Открыть сроки</string>

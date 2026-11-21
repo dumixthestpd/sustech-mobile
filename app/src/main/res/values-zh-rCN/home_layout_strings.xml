@@ -6,7 +6,7 @@
  <string name="home_layout_saved">修改自动保存，返回首页后生效。</string>
  <string name="home_layout_preview">布局预览</string>
  <string name="home_layout_landing">打开应用时</string>
- <string name="home_landing_home">我的首页</string>
+ <string name="home_landing_home">首页</string>
  <string name="home_layout_hero">首张卡片</string>
  <string name="home_layout_follow_order">按下方顺序显示</string>
  <string name="home_layout_schedule">课表显示方式</string>
@@ -25,4 +25,6 @@
  <string name="home_preset_campus">我的校园</string>
  <string name="home_bus_choose">选择站点</string>
  <string name="home_bus_location_hint">选择站点后查看来车与方向。</string>
+ <string name="home_drag_hint">拖动右侧手柄调整顺序，开关控制是否显示。</string>
+ <string name="home_drag_handle">拖动调整%1$s的位置</string>
 </resources>

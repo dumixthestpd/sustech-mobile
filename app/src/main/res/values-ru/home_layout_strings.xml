@@ -25,4 +25,6 @@
  <string name="home_preset_campus">Мой кампус</string>
  <string name="home_bus_choose">Выбрать остановку</string>
  <string name="home_bus_location_hint">Выберите остановку для просмотра прибытия и направлений.</string>
+ <string name="home_drag_hint">Перетаскивайте за значок справа. Переключатель показывает или скрывает элемент.</string>
+ <string name="home_drag_handle">Перетащить %1$s</string>
 </resources>

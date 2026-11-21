@@ -116,25 +116,6 @@ class AccountFragment : Fragment(R.layout.fragment_account), Refreshable {
         val root = view ?: return
         val value = HomePreferences.read(requireContext())
         root.findViewById<TextView>(R.id.account_layout_summary).text = getString(R.string.home_layout_counts, value.visible.size, value.services.size)
-        val keys = listOf("") + HomeLayout.MODULES
-        root.findViewById<android.widget.Spinner>(R.id.account_layout_hero).apply {
-            onItemSelectedListener = null
-            adapter = android.widget.ArrayAdapter(requireContext(), R.layout.paper_spinner_item,
-                keys.map { if (it.isEmpty()) getString(R.string.home_layout_follow_order) else getString(homeModuleTitle(it)) }).apply {
-                setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-            }
-            setSelection(keys.indexOf(value.hero).coerceAtLeast(0))
-            onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-                override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
-                override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
-                    val current = HomePreferences.read(requireContext()); val hero = keys[position]
-                    if (current.hero != hero) {
-                        HomePreferences.write(requireContext(), current.copy(hero = hero, visible = if (hero.isBlank()) current.visible else current.visible + hero))
-                        renderLayoutSettings()
-                    }
-                }
-            }
-        }
         root.findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.account_emphasis).apply {
             setOnCheckedChangeListener(null); isChecked = value.emphasis
             setOnCheckedChangeListener { _, checked -> HomePreferences.write(requireContext(), HomePreferences.read(requireContext()).copy(emphasis = checked)) }

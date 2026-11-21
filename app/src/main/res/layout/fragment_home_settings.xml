@@ -1,33 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/background" android:fillViewport="true">
- <FrameLayout android:layout_width="match_parent" android:layout_height="wrap_content">
-  <edu.sustech.mobile.ui.PaperColumn android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="center_horizontal" android:orientation="vertical" android:padding="16dp">
-   <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/home_layout_title" android:textSize="26sp" android:textColor="@color/ink" />
-   <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/home_layout_saved" android:textSize="12sp" android:textColor="@color/ink_muted" />
-   <com.google.android.material.chip.ChipGroup android:id="@+id/home_settings_tabs" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" app:singleSelection="true" app:selectionRequired="true">
-    <com.google.android.material.chip.Chip android:id="@+id/home_settings_home_tab" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/home_layout_title" android:checkable="true" android:checked="true" />
-    <com.google.android.material.chip.Chip android:id="@+id/home_settings_services_tab" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ui_shortcuts" android:checkable="true" />
-   </com.google.android.material.chip.ChipGroup>
-   <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:background="@drawable/paper_panel" android:padding="14dp" android:layout_marginTop="8dp">
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/home_layout_preview" android:textSize="12sp" android:textColor="@color/ink_muted" />
-    <LinearLayout android:id="@+id/home_layout_preview" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginTop="8dp" />
-   </LinearLayout>
-   <LinearLayout android:id="@+id/home_settings_home_panel" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
-    <com.google.android.material.chip.ChipGroup android:id="@+id/home_presets" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" />
-    <TextView style="@style/FieldLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/home_layout_landing" android:layout_marginTop="10dp" />
-    <Spinner android:id="@+id/home_landing" style="@style/PaperSelector" android:layout_width="match_parent" android:layout_height="48dp" />
-    <TextView style="@style/FieldLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/home_layout_hero" android:layout_marginTop="10dp" />
-    <Spinner android:id="@+id/home_hero" style="@style/PaperSelector" android:layout_width="match_parent" android:layout_height="48dp" />
-    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/home_emphasis" android:layout_width="match_parent" android:layout_height="56dp" android:text="@string/home_emphasize_first" />
-    <TextView style="@style/FieldLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/home_daily_only" />
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/home_layout_modules" android:textStyle="bold" android:textSize="16sp" android:textColor="@color/ink" android:layout_marginTop="18dp" android:layout_marginBottom="8dp" />
-    <LinearLayout android:id="@+id/home_module_rows" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:background="@drawable/paper_panel" android:paddingHorizontal="8dp" />
-   </LinearLayout>
-   <LinearLayout android:id="@+id/home_settings_services_panel" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone" android:layout_marginTop="14dp">
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/home_layout_service_hint" android:textSize="12sp" android:textColor="@color/ink_muted" android:layout_marginBottom="10dp" />
-    <LinearLayout android:id="@+id/home_service_rows" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:background="@drawable/paper_panel" android:paddingHorizontal="8dp" />
-   </LinearLayout>
-   <Button android:id="@+id/home_layout_reset" style="@style/Widget.MaterialComponents.Button.TextButton" android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="16dp" android:text="@string/home_layout_reset" />
-  </edu.sustech.mobile.ui.PaperColumn>
- </FrameLayout>
-</ScrollView>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/background">
+ <edu.sustech.mobile.ui.PaperColumn android:layout_width="match_parent" android:layout_height="match_parent" android:layout_gravity="center_horizontal" android:orientation="vertical" android:paddingHorizontal="16dp">
+  <com.google.android.material.chip.ChipGroup android:id="@+id/home_settings_tabs" android:layout_width="match_parent" android:layout_height="wrap_content" app:singleSelection="true" app:selectionRequired="true">
+   <com.google.android.material.chip.Chip android:id="@+id/home_settings_home_tab" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/home_card_order" android:checkable="true" android:checked="true" />
+   <com.google.android.material.chip.Chip android:id="@+id/home_settings_services_tab" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ui_shortcuts" android:checkable="true" />
+  </com.google.android.material.chip.ChipGroup>
+  <LinearLayout android:id="@+id/home_settings_home_panel" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+   <TextView style="@style/FieldLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/home_layout_landing" />
+   <Spinner android:id="@+id/home_landing" style="@style/PaperSelector" android:layout_width="match_parent" android:layout_height="48dp" />
+   <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/home_emphasis" android:layout_width="match_parent" android:layout_height="48dp" android:text="@string/home_emphasize_first" />
+  </LinearLayout>
+  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/home_drag_hint" android:textSize="12sp" android:textColor="@color/ink_muted" android:paddingVertical="8dp" />
+  <androidx.recyclerview.widget.RecyclerView android:id="@+id/home_reorder_list" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:clipToPadding="false" android:paddingBottom="8dp" />
+  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/home_layout_saved" android:textSize="12sp" android:textColor="@color/ink_muted" />
+  <Button android:id="@+id/home_layout_reset" style="@style/Widget.MaterialComponents.Button.TextButton" android:layout_width="match_parent" android:layout_height="48dp" android:text="@string/home_layout_reset" />
+ </edu.sustech.mobile.ui.PaperColumn>
+</FrameLayout>

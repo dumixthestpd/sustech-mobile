@@ -61,10 +61,13 @@ The same runner has a dashboard suite, without the share-helper apps:
 adb shell am instrument -w -e suite dashboard edu.sustech.mobile.test/edu.sustech.mobile.ShareFlowCheck
 ```
 
-Use `-e suite layout` for the native home editor: selectors, card visibility/order, shortcut
-selection/order and their effect on the actual home/day view. It restores the original local
+Use `-e suite layout` for the Account home editor: actual pointer drags of cards and shortcuts,
+visibility/launch controls and their effect on the actual home/day view. It restores the original local
 preferences. Also check return-to-home application and process-restart persistence through the
 real UI; inspect phone and wide layouts, confirm reset and verify the BB/bus launch destinations.
+Home has only a compact date followed by content: no layout entry, large title or caption.
+The editor's list is the preview; there are no separate first-card/preset/up/down controls.
+Inspect and remove external `files/drag-check` captures after the suite.
 The home preview must contain the complete current day and the current-time marker. Test later
 hours and weekday navigation separately in the full Courses day/week browser.
 

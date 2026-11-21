@@ -65,9 +65,6 @@ class TodayFragment : Fragment(R.layout.fragment_today), Refreshable {
         view.findViewById<AssignmentPagerCard>(R.id.today_card_ddl).onPage = { step -> moveDeadline(step) }
         view.findViewById<View>(R.id.today_deadline_prev).setOnClickListener { moveDeadline(-1) }
         view.findViewById<View>(R.id.today_deadline_next).setOnClickListener { moveDeadline(1) }
-        view.findViewById<View>(R.id.today_layout).setOnClickListener {
-            startActivity(Intent(requireContext(), HomeSettingsActivity::class.java))
-        }
         view.findViewById<MaterialButton>(R.id.today_sign_in).setOnClickListener {
             startActivity(Intent(requireContext(), LoginActivity::class.java))
         }

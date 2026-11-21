@@ -4,11 +4,6 @@
   <FrameLayout android:layout_width="match_parent" android:layout_height="wrap_content">
    <edu.sustech.mobile.ui.PaperColumn android:id="@+id/today_cards" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="center_horizontal" android:orientation="vertical" android:paddingTop="14dp" android:paddingBottom="24dp">
     <TextView android:id="@+id/today_date" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingHorizontal="20dp" android:textColor="@color/brand" android:textSize="12sp" />
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:paddingHorizontal="20dp">
-     <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="@string/ui_home_title" android:textSize="28sp" android:textColor="@color/ink" />
-     <com.google.android.material.button.MaterialButton android:id="@+id/today_layout" style="@style/Widget.MaterialComponents.Button.TextButton" android:layout_width="wrap_content" android:layout_height="48dp" android:text="@string/home_layout_edit" />
-    </LinearLayout>
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingHorizontal="20dp" android:layout_marginTop="4dp" android:layout_marginBottom="6dp" android:text="@string/ui_home_caption" android:textSize="12sp" android:textColor="@color/ink_muted" />
     <edu.sustech.mobile.ui.AssignmentPagerCard android:id="@+id/today_card_ddl" style="@style/CardBase" android:layout_width="match_parent" android:layout_height="wrap_content" app:cardBackgroundColor="@color/surface" app:strokeWidth="1dp" app:cardCornerRadius="22dp">
      <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="20dp">
       <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/bb_deadlines" android:textColor="@color/ink_muted" android:textSize="12sp" />

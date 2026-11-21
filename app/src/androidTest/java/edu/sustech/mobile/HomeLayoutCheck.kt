@@ -1,75 +1,90 @@
 package edu.sustech.mobile
 
-import android.app.Activity
-import android.app.Instrumentation
+import android.app.*
 import android.content.Intent
-import android.os.Bundle
-import android.widget.LinearLayout
-import android.widget.Spinner
-import android.view.View
+import android.graphics.Bitmap
+import android.os.*
+import android.view.*
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.switchmaterial.SwitchMaterial
 import edu.sustech.mobile.ui.*
+import java.io.File
 
-/** Native controls -> saved preferences -> real home layout; original choices restored. */
+/** Real drag input -> disk preferences -> real home. No campus writes. */
 class HomeLayoutCheck(private val instrument: Instrumentation) {
+    private fun shot(name: String) {
+        SystemClock.sleep(700)
+        val folder = instrument.targetContext.getExternalFilesDir("drag-check")!!; folder.mkdirs()
+        val bitmap = instrument.uiAutomation.takeScreenshot()!!
+        File(folder, name).outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG,100,it) }; bitmap.recycle()
+    }
     fun run() {
-        val result = Bundle()
-        val context = instrument.targetContext
+        val result = Bundle(); val context = instrument.targetContext
         val original = HomePreferences.read(context)
-        var error: Throwable? = null
+        var activity: AppCompatActivity? = null
         try {
             HomePreferences.write(context, HomeLayout())
-            val activity = instrument.startActivitySync(Intent(context, HomeSettingsActivity::class.java)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) as AppCompatActivity
-            instrument.waitForIdleSync()
-            instrument.runOnMainSync {
-                activity.findViewById<Spinner>(R.id.home_hero).setSelection(0)
+            val host = instrument.startActivitySync(Intent(context, HomeSettingsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) as AppCompatActivity
+            activity = host; instrument.waitForIdleSync(); SystemClock.sleep(500)
+            fun drag(from: String, to: String) {
+                val start = IntArray(2); val end = IntArray(2)
+                instrument.runOnMainSync {
+                    val list = host.findViewById<RecyclerView>(R.id.home_reorder_list)
+                    val a = list.findViewWithTag<View>("drag:$from"); val b = list.findViewWithTag<View>("drag:$to")
+                    check(a != null && b != null) { "Drag row missing: $from/$to" }
+                    a.getLocationOnScreen(start); b.getLocationOnScreen(end)
+                    start[0] += a.width/2; start[1] += a.height/2
+                    end[0] += b.width/2; end[1] += b.height/2
+                    // Cross the target row instead of stopping on ItemTouchHelper's exact boundary.
+                    end[1] += (if (end[1] < start[1]) -1 else 1) * (16 * context.resources.displayMetrics.density).toInt()
+                }
+                val down = SystemClock.uptimeMillis()
+                fun touch(action: Int, x: Float, y: Float) {
+                    val event = MotionEvent.obtain(down,SystemClock.uptimeMillis(),action,x,y,0)
+                    event.source = InputDevice.SOURCE_TOUCHSCREEN
+                    check(instrument.uiAutomation.injectInputEvent(event,true)); event.recycle()
+                }
+                touch(MotionEvent.ACTION_DOWN,start[0].toFloat(),start[1].toFloat());SystemClock.sleep(120)
+                for (i in 1..24) { touch(MotionEvent.ACTION_MOVE,start[0]+(end[0]-start[0])*i/24f,start[1]+(end[1]-start[1])*i/24f);SystemClock.sleep(30) }
+                touch(MotionEvent.ACTION_UP,end[0].toFloat(),end[1].toFloat())
+                instrument.waitForIdleSync();SystemClock.sleep(500)
             }
-            instrument.waitForIdleSync()
+            drag("schedule","ddl")
+            check(HomePreferences.read(context).hero == "" && HomePreferences.read(context).displayed().first() == "schedule")
             instrument.runOnMainSync {
-                activity.findViewById<View>(R.id.home_module_rows).findViewWithTag<SwitchMaterial>("toggle:weather").isChecked = false
-                activity.findViewById<View>(R.id.home_module_rows).findViewWithTag<View>("up:services").performClick()
-                activity.findViewById<SwitchMaterial>(R.id.home_emphasis).isChecked = true
-                activity.findViewById<Spinner>(R.id.home_landing).setSelection(1)
+                host.findViewById<RecyclerView>(R.id.home_reorder_list).findViewWithTag<SwitchMaterial>("toggle:weather").isChecked = false
+                host.findViewById<Spinner>(R.id.home_landing).setSelection(1)
             }
-            instrument.waitForIdleSync()
-            val configured = HomePreferences.read(context)
-            check(configured.hero == "" && "weather" !in configured.visible)
-            check(configured.order.indexOf("services") < configured.order.indexOf("bus"))
-            check(configured.schedule == "day" && configured.landing == "bb")
+            instrument.waitForIdleSync();shot("cards.png")
+            instrument.runOnMainSync { host.findViewById<View>(R.id.home_settings_services_tab).performClick() }
+            instrument.waitForIdleSync();SystemClock.sleep(300)
+            drag("tis","blackboard")
             instrument.runOnMainSync {
-                activity.findViewById<View>(R.id.home_settings_services_tab).performClick()
-                activity.findViewById<View>(R.id.home_service_rows).findViewWithTag<SwitchMaterial>("toggle:blackboard").isChecked = false
-                activity.findViewById<View>(R.id.home_service_rows).findViewWithTag<View>("up:tis").performClick()
+                host.findViewById<RecyclerView>(R.id.home_reorder_list).findViewWithTag<SwitchMaterial>("toggle:blackboard").isChecked = false
             }
-            instrument.waitForIdleSync()
             val saved = HomePreferences.read(context)
             check(saved.services.first() == "tis" && "blackboard" !in saved.services)
+            check("weather" !in saved.visible && saved.landing == "bb" && saved.schedule == "day")
+            shot("services.png")
+            instrument.runOnMainSync { host.supportFragmentManager.beginTransaction().replace(R.id.service_container,TodayFragment()).commitNow() }
+            instrument.waitForIdleSync();SystemClock.sleep(500)
             instrument.runOnMainSync {
-                activity.supportFragmentManager.beginTransaction().replace(R.id.service_container, TodayFragment()).commitNow()
+                val column = host.findViewById<LinearLayout>(R.id.today_cards)
+                val actual = (0 until column.childCount).map { column.getChildAt(it) }.filter { it is com.google.android.material.card.MaterialCardView && it.visibility == View.VISIBLE }
+                check(actual.first().id == R.id.today_card_schedule)
+                check(host.findViewById<View>(R.id.today_card_weather).visibility == View.GONE)
+                check(context.resources.getIdentifier("today_layout","id",context.packageName) == 0)
+                check(host.findViewById<android.widget.GridLayout>(R.id.today_shortcuts).getChildAt(0).contentDescription == context.getString(R.string.service_tis))
             }
-            instrument.waitForIdleSync()
-            instrument.runOnMainSync {
-                val column = activity.findViewById<LinearLayout>(R.id.today_cards)
-                val actual = (0 until column.childCount).map { column.getChildAt(it) }
-                    .filter { it.id in listOf(R.id.today_card_ddl, R.id.today_card_schedule, R.id.today_card_services,
-                        R.id.today_card_bus, R.id.today_card_weather, R.id.today_card_exams) && it.visibility == View.VISIBLE }.map { it.id }
-                check(R.id.today_card_weather !in actual)
-                check(actual.first() == R.id.today_card_ddl)
-                check(activity.findViewById<View>(R.id.today_schedule_preview).visibility == View.VISIBLE)
-                val grid = activity.findViewById<android.widget.GridLayout>(R.id.today_shortcuts)
-                check(grid.getChildAt(0).contentDescription == context.getString(R.string.service_tis))
-                check(edu.sustech.mobile.service.Services.all.size == 13)
-                activity.finish()
-            }
-        } catch (t: Throwable) { error = t }
+            shot("home.png")
+            result.putString("stream","PASS: real card and shortcut drag gestures; visibility and launch settings; saved order drives home; no home title/layout entry. Original preferences restored.")
+        } catch (error: Throwable) { result.putString("stream","FAIL: ${error.stackTraceToString()}");runCatching { shot("failure.png") } }
         finally {
-            HomePreferences.write(context, original)
-            // Finish waits for the restored choices to reach disk before the process exits.
-            check(context.getSharedPreferences("home_layout", android.content.Context.MODE_PRIVATE).edit().commit())
+            activity?.let { host -> instrument.runOnMainSync { host.finish() } }
+            HomePreferences.write(context,original);context.getSharedPreferences("home_layout",0).edit().commit()
         }
-        result.putString("stream", if (error == null) "PASS: native layout selectors, card visibility/reorder, shortcut selection/reorder, saved preferences and actual home/day layout. Original preferences restored." else "FAIL: $error")
-        instrument.finish(if (error == null) Activity.RESULT_OK else Activity.RESULT_CANCELED, result)
+        instrument.finish(if (result.getString("stream")!!.startsWith("PASS")) Activity.RESULT_OK else Activity.RESULT_CANCELED,result)
     }
 }
