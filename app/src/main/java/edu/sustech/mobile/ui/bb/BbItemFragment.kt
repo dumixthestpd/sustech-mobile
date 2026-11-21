@@ -110,15 +110,21 @@ class BbItemFragment : Fragment(R.layout.fragment_bb_item) {
         submitSection.visibility = View.VISIBLE
         submitStatus.text = getString(R.string.bb_attempts_unknown)
         runIo(
-            block = { App.bb.attemptCount(courseId, contentId) },
-            onOk = { count ->
+            block = { App.bb.assessment(courseId, contentId) },
+            onOk = { assessment ->
                 if (!isAdded) return@runIo
-                submitStatus.text = if (count > 0) {
+                val count = assessment.attempts.count { it.status in setOf("Completed", "NeedsGrading", "NeedsGradingAgain") }
+                submitStatus.text = if (assessment.state == edu.sustech.mobile.bb.SubmissionState.UNKNOWN) getString(R.string.bb_attempts_unknown) else if (count > 0) {
                     getString(R.string.bb_attempts_some, count)
                 } else {
                     getString(R.string.bb_attempts_none)
                 }
+                view?.findViewById<TextView>(R.id.bb_grade_feedback)?.apply {
+                    visibility = if (count > 0) View.VISIBLE else View.GONE
+                    text = BbAssessmentText.detail(requireContext(), assessment)
+                }
             },
+            onErr = { if (isAdded) submitStatus.setText(R.string.bb_attempts_unknown) },
         )
     }
 
@@ -178,6 +184,8 @@ class BbItemFragment : Fragment(R.layout.fragment_bb_item) {
             },
             onOk = { (code, after) ->
                 if (!isAdded) return@runIo
+                edu.sustech.mobile.core.Cache.invalidate("bb.pending")
+                edu.sustech.mobile.core.Cache.invalidate("bb.assessment.")
                 submitStatus.text = when {
                     after > 0 -> getString(R.string.bb_submit_ok, after)
                     // The POST went out but the count did not move: report the

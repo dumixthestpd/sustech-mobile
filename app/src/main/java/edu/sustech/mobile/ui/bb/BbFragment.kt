@@ -25,6 +25,7 @@ class BbFragment : TabbedServiceFragment(R.layout.fragment_tabs) {
     override fun pages(): List<ServicePage> = listOf(
         ServicePage(R.string.bb_courses) { BbCoursesFragment() },
         ServicePage(R.string.bb_deadlines) { BbDeadlinesFragment() },
+        ServicePage(R.string.bb_submitted) { BbGradesFragment() },
     )
 
     override fun onServiceViewReady(view: View) = checkSession()
@@ -83,7 +84,7 @@ class BbCoursesFragment : ListFragment<BbApi.Course>(R.layout.fragment_list) {
 /** Deadlines — every assignment column with a due date, soonest first. */
 class BbDeadlinesFragment : ListFragment<BbApi.Deadline>(R.layout.fragment_list) {
 
-    override fun cachePrefix() = "bb.deadlines"
+    override fun cachePrefix() = "bb.pending"
 
     override fun rowLayout() = R.layout.item_tis_course
 
@@ -94,7 +95,7 @@ class BbDeadlinesFragment : ListFragment<BbApi.Deadline>(R.layout.fragment_list)
             context?.getString(R.string.bb_not_signed_in) ?: error.message.orEmpty()
         else super.errorText(error)
 
-    override suspend fun fetch(): List<BbApi.Deadline> = App.bb.deadlines()
+    override suspend fun fetch(): List<BbApi.Deadline> = App.bb.pendingDeadlines().items
 
     override fun bindRow(view: View, item: BbApi.Deadline, position: Int) {
         view.findViewById<TextView>(R.id.course_code).text = item.due.take(16).replace("T", " ")

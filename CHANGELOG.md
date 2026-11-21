@@ -2,8 +2,14 @@
 
 ## Unreleased — 0.3.31-dev
 
+- Show only confirmed unsubmitted/draft upcoming BB assignments on Home, with swipe and button
+  paging. Add course-scoped submitted work, published grades, attempt scores and teacher feedback;
+  keep unreadable status, ungraded scores, exemptions and other users separate.
+- Apply green emphasis to whichever card is first, with a configurable switch. Add concrete
+  first-card, emphasis and service settings inside Account. Home previews only today, fitting its
+  complete timeline and current-time pointer; the full day/week browser stays in Courses.
 - Add native Home layout settings from Today and Account: presets, launch page, first card,
-  card visibility/order, next-class/day/week timetable modes, and shortcut selection/order.
+  card visibility/order, the daily timetable preview, and shortcut selection/order.
   Apply and persist changes locally, with an ordered schematic preview and default reset.
   Add a home bus card with a saved stop, explicit directions, next stop and existing live/planned data.
 - Adopt the browser concept's paper background, deep green deadline card, rounded outline cards,

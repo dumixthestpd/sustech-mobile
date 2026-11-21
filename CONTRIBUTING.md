@@ -62,11 +62,17 @@ adb shell am instrument -w -e suite dashboard edu.sustech.mobile.test/edu.sustec
 ```
 
 Use `-e suite layout` for the native home editor: selectors, card visibility/order, shortcut
-selection/order and their effect on the actual home/week view. It restores the original local
+selection/order and their effect on the actual home/day view. It restores the original local
 preferences. Also check return-to-home application and process-restart persistence through the
 real UI; inspect phone and wide layouts, confirm reset and verify the BB/bus launch destinations.
-Swipe inside the embedded home timetable: later hours must appear while the home header stays
-in place. Verify horizontal weekday navigation too; a static grid screenshot does not prove this.
+The home preview must contain the complete current day and the current-time marker. Test later
+hours and weekday navigation separately in the full Courses day/week browser.
+
+Since dev.5 Home shows a complete single-day preview with a current-time marker; the full
+scrollable day/week browser remains in Courses. Use `-e suite refine` for paginated own-attempt
+records (including grade zero and teacher feedback), changing the emphasized card, an injected
+horizontal assignment swipe, and the compact day/current-time view. Check live submitted work
+and feedback separately, using GETs only. A draft is not a submission; unreadable status is unknown.
 
 Use `-e suite search` with that runner for the WS and future-room search controls. It uses a
 synthetic catalog and room calendars, checking combined filters, reset, unknown calendars and
@@ -89,8 +95,8 @@ after visual review; keep the build log and signed APK for identification.
 **Before publishing a release, install it and exercise the screens you changed on a device or on
 Windows Subsystem for Android.** Unit tests and a green `assembleDebug` do not prove the app runs:
 v0.3.22 shipped with the entire Loans tab dead — every fetch failed — because that code had never
-executed on a device. `adb shell uiautomator dump` plus reading the text back is enough to check a
-screen.
+executed on a device. Read back state transitions with `uiautomator` and visually inspect captures
+for clipping, contrast and completeness before claiming a UI change works.
 
 ## Release signing
 

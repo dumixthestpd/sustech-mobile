@@ -1,0 +1,21 @@
+<resources>
+ <string name="home_emphasize_first">强调首张卡片</string>
+ <string name="home_daily_only">首页仅预览当天课表和当前时间；完整周课表在课程页面查看。</string>
+ <string name="home_card_order">卡片与顺序</string>
+ <string name="home_layout_counts">显示 %1$d 张卡片、%2$d 项常用服务</string>
+ <string name="home_current_time">当前时间 %1$s</string>
+ <string name="bb_submitted">已提交作业</string>
+ <string name="bb_submitted_empty">这门课程暂无已提交作业</string>
+ <string name="bb_reported_grade">公布成绩：%1$s / %2$s</string>
+ <string name="bb_attempt_score">本次得分：%1$s / %2$s</string>
+ <string name="bb_attempt_label">第 %1$d 次提交</string>
+ <string name="bb_awaiting_grade">待批改</string>
+ <string name="bb_grade_unpublished">暂未公布成绩</string>
+ <string name="bb_teacher_feedback">教师评价</string>
+ <string name="bb_feedback_unpublished">暂无公开评价</string>
+ <string name="bb_pending_empty">暂无已确认待提交的作业</string>
+ <string name="bb_pending_unknown">%1$d 项作业的提交状态未确认</string>
+ <string name="assignment_previous">上一个作业</string>
+ <string name="assignment_next">下一个作业</string>
+ <string name="home_assignment_page">%1$d / %2$d · 左右滑动查看</string>
+</resources>

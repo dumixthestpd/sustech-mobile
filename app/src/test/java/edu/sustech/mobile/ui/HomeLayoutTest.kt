@@ -13,7 +13,7 @@ class HomeLayoutTest {
         assertEquals(HomeLayout.MODULES.size, value.order.size)
         assertEquals(listOf("tis"), value.services)
         assertEquals("home", value.landing)
-        assertEquals("next", value.schedule)
+        assertEquals("day", value.schedule)
     }
 
     @Test fun `hidden hero and deliberately empty choices do not reappear`() {

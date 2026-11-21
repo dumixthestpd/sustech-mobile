@@ -74,15 +74,7 @@ class WeekFragment : Fragment(), Refreshable {
         val monday = selected.minusDays((selected.dayOfWeek.value - 1).toLong())
         val days = if (dayOnly) listOf(selected) else (0L..6L).map { monday.plusDays(it) }
         val term = AcademicCalendar.termAt(App.context, today)
-        val currentMonday = today.minusDays((today.dayOfWeek.value - 1).toLong())
-        val events = mutableListOf<AgendaEvent>()
-        for (entry in entries) {
-            val dates = if (term != null) term.meetings(entry.effectiveWeeks.ifEmpty { (1..term.totalTeachingWeeks).toList() }, entry.weekday)
-            else days.filter { date -> date.dayOfWeek.value == entry.weekday && week?.let { entry.meets(it + ChronoUnit.WEEKS.between(currentMonday, monday).toInt()) } == true }
-            val range = Agenda.clockRange(entry.timeText) ?: continue
-            dates.filter { it in days }.forEach { date -> events.add(AgendaEvent(date, range.first, range.second, entry.name, entry.room, detail = entry.timeText + "\n" + entry.teacher)) }
-        }
-        events += exams.mapNotNull { Agenda.exam(it) }.filter { it.date in days }
+        val events = Agenda.events(entries, exams, week, days, term, today)
         title.text = if (dayOnly) selected.toString() else "${days.first()} — ${days.last()}"
         body.removeAllViews()
         val windowWidth = view?.width?.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels

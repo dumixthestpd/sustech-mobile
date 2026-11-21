@@ -52,6 +52,7 @@ class DashboardCheck(private val instrument: Instrumentation) {
                 check(activity.findViewById<android.view.View>(R.id.bb_notice_list).height < activity.window.decorView.height / 3)
             }
             Cache.get("bb.deadlines", 600000) { listOf(BbApi.Deadline("Fixture course", "Open this assignment", "11-22 12:00", null, "1", "2")) }
+            Cache.get("bb.pending", 600000) { BbApi.Pending(listOf(BbApi.Deadline("Fixture course", "Open this assignment", "11-22 12:00", null, "1", "2")), 0) }
             Cache.get("bb.item.1.2", 600000) { BbApi.ItemDetail("Assignment detail", BbItem.Kind.DOCUMENT, "Correct assignment destination 1/2", emptyList()) }
             runOnMainSync { activity.supportFragmentManager.beginTransaction().replace(R.id.service_container, BbDeadlinesFragment()).commitNow() }
             await("Open this assignment"); click("Open this assignment"); await("Correct assignment destination 1/2"); shot("deadline-target.png")

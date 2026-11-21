@@ -16,6 +16,6 @@ class HomeSettingsActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         findViewById<MaterialToolbar>(R.id.toolbar).setNavigationOnClickListener { finish() }
         if (state == null) supportFragmentManager.beginTransaction()
-            .replace(R.id.service_container, HomeSettingsFragment()).commit()
+            .replace(R.id.service_container, HomeSettingsFragment().apply { arguments = Bundle().apply { putBoolean("services", intent.getBooleanExtra("services", false)) } }).commit()
     }
 }

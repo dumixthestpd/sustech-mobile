@@ -65,6 +65,7 @@ class BbApi(private val http: OkHttpClient) {
         val at: Instant?,
         val courseId: String = "",
         val contentId: String = "",
+        val columnId: String = "",
     )
 
     /** All enrolled courses, cached like the TIS lists. */
@@ -126,16 +127,11 @@ class BbApi(private val http: OkHttpClient) {
         withRelogin(allowRelogin) {
             val all = courses(allowRelogin).flatMap { course ->
                 try {
-                    val columns = getJson(
-                        "/learn/api/public/v1/courses/${course.id}/gradebook/columns" +
-                            "?_fields=id,name,contentId,grading",
-                    ).optJSONArray("results") ?: return@flatMap emptyList()
-                    (0 until columns.length()).mapNotNull { i ->
-                        val column = columns.optJSONObject(i) ?: return@mapNotNull null
+                    assessmentColumns(course.id).mapNotNull { column ->
                         val title = column.optString("name")
                         val raw = column.optJSONObject("grading")?.optString("due").orEmpty()
                         if (title.isEmpty() || raw.isEmpty()) null
-                        else Deadline(course.name, title, formatDue(raw), parseDue(raw), course.id, column.optString("contentId"))
+                        else Deadline(course.name, title, formatDue(raw), parseDue(raw), course.id, column.optString("contentId"), column.optString("id"))
                     }
                 } catch (_: ApiException) {
                     emptyList()
@@ -157,11 +153,59 @@ class BbApi(private val http: OkHttpClient) {
 
     /** BB sends ISO-8601 UTC (`2026-10-15T23:59:00.000Z`) → local `10-16 07:59`. */
     private fun formatDue(raw: String): String = parseDue(raw)
-        ?.atZone(ZoneId.systemDefault())
+        ?.atZone(ZoneId.of("Asia/Shanghai"))
         ?.format(DateTimeFormatter.ofPattern("MM-dd HH:mm"))
         ?: raw.take(16).replace("T", " ")
 
     /** True when a live session answers — the Account tab's session probe. */
+    private val assessmentReader by lazy { BbAssessmentReader(::getJson) }
+    private fun assessmentColumns(course: String) = Cache.get("bb.columns.${BbWire.coreId(course)}", Cache.TTL_LIST) { assessmentReader.columns(course) }
+    private fun currentUser() = Cache.get("bb.user", Cache.TTL_LIST) {
+        getJson("/learn/api/public/v1/users/me").optString("id").also { if (it.isBlank()) throw ApiException("Blackboard user unavailable") }
+    }
+    private fun gradeCells(course: String, me: String): List<JSONObject>? = runCatching {
+        Cache.get("bb.grades.${BbWire.coreId(course)}", Cache.TTL_LIVE) {
+            assessmentReader.pages("/learn/api/public/v1/courses/${BbWire.bracket(course)}/gradebook/users/$me?limit=200").also { rows ->
+                if (rows.any { it.optString("userId") != me || it.optString("columnId").isBlank() }) throw ApiException("Blackboard grade ownership unavailable")
+            }
+        }
+    }.getOrNull()
+
+    fun assessment(course: String, content: String, columnId: String = ""): BbAssessment =
+        Cache.get("bb.assessment.${BbWire.coreId(course)}.${BbWire.coreId(content.ifBlank { columnId })}", Cache.TTL_LIVE) {
+            withRelogin {
+                val column = assessmentColumns(course).firstOrNull {
+                    if (columnId.isNotBlank()) it.optString("id") == columnId else BbWire.coreId(it.optString("contentId")) == BbWire.coreId(content)
+                } ?: throw ApiException("Blackboard assignment column unavailable")
+                val me = currentUser()
+                assessmentReader.assessment(course, column, me, gradeCells(course, me))
+            }
+        }
+
+    data class Pending(val items: List<Deadline>, val unknown: Int)
+    fun pendingDeadlines(): Pending = Cache.get("bb.pending", Cache.TTL_LIVE) {
+        var unknown = 0
+        val pending = deadlines().filter { it.at == null || !it.at.isBefore(Instant.now()) }.filter { row ->
+            var state = runCatching { assessment(row.courseId, row.contentId, row.columnId).state }.getOrDefault(SubmissionState.UNKNOWN)
+            if (state == SubmissionState.UNSUBMITTED || state == SubmissionState.DRAFT) {
+                state = runCatching {
+                    val item = withRelogin { getJson("/learn/api/public/v1/courses/${BbWire.bracket(row.courseId)}/contents/${BbWire.bracket(row.contentId)}") }
+                    if (row.contentId.isBlank() || item.optJSONObject("contentHandler")?.optBoolean("groupContent") == true ||
+                        Regex("请勿在此处提交|仅做通知提醒|notification only|do not submit here", RegexOption.IGNORE_CASE).containsMatchIn(row.title)) SubmissionState.UNKNOWN else state
+                }.getOrDefault(SubmissionState.UNKNOWN)
+            }
+            if (state == SubmissionState.UNKNOWN) unknown++
+            state == SubmissionState.UNSUBMITTED || state == SubmissionState.DRAFT
+        }
+        Pending(pending, unknown)
+    }
+
+    fun submittedAssessments(course: String): List<BbAssessment> = withRelogin {
+        assessmentColumns(course).filter { it.optJSONObject("grading")?.optString("type") == "Attempts" }
+            .map { column -> assessment(course, column.optString("contentId"), column.optString("id")) }
+            .filter { it.state == SubmissionState.SUBMITTED }
+    }
+
     fun isSignedIn(): Boolean = runCatching {
         getJson("/learn/api/public/v1/users/me?_fields=id").has("id")
     }.getOrElse { error ->
@@ -362,28 +406,10 @@ class BbApi(private val http: OkHttpClient) {
     /** How many attempts this account already has on [contentId]'s column. */
     fun attemptCount(courseId: String, contentId: String, allowRelogin: Boolean = true): Int =
         withRelogin(allowRelogin) {
-            val me = getJson("/learn/api/public/v1/users/me?_fields=id").optString("id")
-            val want = BbWire.coreId(contentId)
-            val columns = getJson(
-                "/learn/api/public/v1/courses/${BbWire.bracket(courseId)}" +
-                    "/gradebook/columns?_fields=id,contentId&limit=200",
-            ).optJSONArray("results") ?: return@withRelogin 0
-            var columnId: String? = null
-            for (i in 0 until columns.length()) {
-                val column = columns.optJSONObject(i) ?: continue
-                if (BbWire.coreId(column.optString("contentId")) == want) {
-                    columnId = column.optString("id")
-                    break
-                }
-            }
-            val column = columnId ?: return@withRelogin 0
-            val attempts = runCatching {
-                getJson(
-                    "/learn/api/public/v1/courses/${BbWire.bracket(courseId)}" +
-                        "/gradebook/columns/$column/attempts?limit=50",
-                ).optJSONArray("results")
-            }.getOrNull() ?: return@withRelogin 0
-            (0 until attempts.length()).count { attempts.optJSONObject(it)?.optString("userId") == me }
+            Cache.invalidate("bb.assessment.")
+            val result = assessment(courseId, contentId)
+            if (result.state == SubmissionState.UNKNOWN) throw ApiException("Blackboard submission state unavailable")
+            result.attempts.count { it.status in setOf("Completed", "NeedsGrading", "NeedsGradingAgain") }
         }
 
     /**

@@ -30,7 +30,7 @@ class HomeSettingsFragment : Fragment(R.layout.fragment_home_settings) {
 
     override fun onViewCreated(view: View, state: Bundle?) {
         value = HomePreferences.read(requireContext())
-        servicesTab = state?.getBoolean("services") ?: false
+        servicesTab = state?.getBoolean("services") ?: arguments?.getBoolean("services") ?: false
         view.findViewById<ChipGroup>(R.id.home_settings_tabs).apply {
             check(if (servicesTab) R.id.home_settings_services_tab else R.id.home_settings_home_tab)
             setOnCheckedStateChangeListener { _, checked ->
@@ -84,8 +84,10 @@ class HomeSettingsFragment : Fragment(R.layout.fragment_home_settings) {
             heroes.map { if (it.isEmpty()) getString(R.string.home_layout_follow_order) else getString(homeModuleTitle(it)) }) {
             save(value.copy(hero = it, visible = if (it.isEmpty()) value.visible else value.visible + it))
         }
-        selector(root, R.id.home_schedule, listOf("next", "day", "week"), value.schedule,
-            listOf(R.string.home_schedule_next, R.string.agenda_today, R.string.agenda_week).map(::getString)) { save(value.copy(schedule = it), false) }
+        root.findViewById<SwitchMaterial>(R.id.home_emphasis).apply {
+            setOnCheckedChangeListener(null); isChecked = value.emphasis
+            setOnCheckedChangeListener { _, checked -> save(value.copy(emphasis = checked), false) }
+        }
         val modules = root.findViewById<LinearLayout>(R.id.home_module_rows)
         modules.removeAllViews()
         value.order.forEachIndexed { index, id ->
@@ -162,8 +164,8 @@ class HomeSettingsFragment : Fragment(R.layout.fragment_home_settings) {
         } else labels.forEachIndexed { index, name ->
             preview.addView(TextView(requireContext()).apply {
                 text = name; textSize = if (index == 0) 16f else 12f
-                setPadding(dp(12), dp(8), dp(12), dp(8)); setBackgroundResource(if (index == 0) R.drawable.paper_preview_hero else R.drawable.paper_input)
-                setTextColor(requireContext().getColor(if (index == 0) R.color.white else R.color.ink))
+                setPadding(dp(12), dp(8), dp(12), dp(8)); setBackgroundResource(if (index == 0 && value.emphasis) R.drawable.paper_preview_hero else R.drawable.paper_input)
+                setTextColor(requireContext().getColor(if (index == 0 && value.emphasis) R.color.white else R.color.ink))
             }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(4) })
         }
         if (labels.isEmpty()) preview.addView(TextView(requireContext()).apply { setText(R.string.home_layout_empty) })

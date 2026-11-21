@@ -42,6 +42,9 @@ class AccountFragment : Fragment(R.layout.fragment_account), Refreshable {
         view.findViewById<View>(R.id.account_home_layout).setOnClickListener {
             startActivity(Intent(requireContext(), HomeSettingsActivity::class.java))
         }
+        view.findViewById<View>(R.id.account_layout_services).setOnClickListener {
+            startActivity(Intent(requireContext(), HomeSettingsActivity::class.java).putExtra("services", true))
+        }
 
         // Dev-only: the server override exists for testing against a local
         // mock. Hidden entirely unless such an override is in effect, so the
@@ -61,6 +64,7 @@ class AccountFragment : Fragment(R.layout.fragment_account), Refreshable {
         }
 
         view.findViewById<MaterialButton>(R.id.btn_forget).setOnClickListener {
+            edu.sustech.mobile.core.Cache.clear()
             Credentials.clear()
             App.cookies.clear()
             CookieManager.getInstance().removeAllCookies(null)
@@ -105,6 +109,37 @@ class AccountFragment : Fragment(R.layout.fragment_account), Refreshable {
         getString(R.string.language_chinese),
         getString(R.string.language_russian),
     )
+
+    override fun onResume() { super.onResume(); renderLayoutSettings() }
+
+    private fun renderLayoutSettings() {
+        val root = view ?: return
+        val value = HomePreferences.read(requireContext())
+        root.findViewById<TextView>(R.id.account_layout_summary).text = getString(R.string.home_layout_counts, value.visible.size, value.services.size)
+        val keys = listOf("") + HomeLayout.MODULES
+        root.findViewById<android.widget.Spinner>(R.id.account_layout_hero).apply {
+            onItemSelectedListener = null
+            adapter = android.widget.ArrayAdapter(requireContext(), R.layout.paper_spinner_item,
+                keys.map { if (it.isEmpty()) getString(R.string.home_layout_follow_order) else getString(homeModuleTitle(it)) }).apply {
+                setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            }
+            setSelection(keys.indexOf(value.hero).coerceAtLeast(0))
+            onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+                override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
+                override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                    val current = HomePreferences.read(requireContext()); val hero = keys[position]
+                    if (current.hero != hero) {
+                        HomePreferences.write(requireContext(), current.copy(hero = hero, visible = if (hero.isBlank()) current.visible else current.visible + hero))
+                        renderLayoutSettings()
+                    }
+                }
+            }
+        }
+        root.findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.account_emphasis).apply {
+            setOnCheckedChangeListener(null); isChecked = value.emphasis
+            setOnCheckedChangeListener { _, checked -> HomePreferences.write(requireContext(), HomePreferences.read(requireContext()).copy(emphasis = checked)) }
+        }
+    }
 
     private fun selectedLanguageIndex(): Int = when (
         AppCompatDelegate.getApplicationLocales().get(0)?.language

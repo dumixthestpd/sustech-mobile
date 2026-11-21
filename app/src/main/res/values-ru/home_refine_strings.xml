@@ -1,0 +1,21 @@
+<resources>
+ <string name="home_emphasize_first">Выделять первую карточку</string>
+ <string name="home_daily_only">На главной — расписание на сегодня и текущее время. Неделя доступна в разделе курсов.</string>
+ <string name="home_card_order">Карточки и порядок</string>
+ <string name="home_layout_counts">Карточек: %1$d, сервисов: %2$d</string>
+ <string name="home_current_time">Текущее время %1$s</string>
+ <string name="bb_submitted">Сданные работы</string>
+ <string name="bb_submitted_empty">Для этого курса нет сданных работ</string>
+ <string name="bb_reported_grade">Опубликованная оценка: %1$s / %2$s</string>
+ <string name="bb_attempt_score">Оценка попытки: %1$s / %2$s</string>
+ <string name="bb_attempt_label">Попытка %1$d</string>
+ <string name="bb_awaiting_grade">Ожидает проверки</string>
+ <string name="bb_grade_unpublished">Оценка не опубликована</string>
+ <string name="bb_teacher_feedback">Комментарий преподавателя</string>
+ <string name="bb_feedback_unpublished">Комментарий не опубликован</string>
+ <string name="bb_pending_empty">Нет подтверждённых несданных работ</string>
+ <string name="bb_pending_unknown">Не удалось проверить работ: %1$d</string>
+ <string name="assignment_previous">Предыдущее задание</string>
+ <string name="assignment_next">Следующее задание</string>
+ <string name="home_assignment_page">%1$d / %2$d · листайте в стороны</string>
+</resources>

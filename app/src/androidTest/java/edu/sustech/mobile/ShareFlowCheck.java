@@ -31,16 +31,19 @@ public class ShareFlowCheck extends Instrumentation {
     private boolean dashboard;
     private boolean search;
     private boolean homeLayout;
+    private boolean homeRefine;
 
     @Override public void onCreate(Bundle arguments) {
         super.onCreate(arguments);
         dashboard = arguments != null && "dashboard".equals(arguments.getString("suite"));
         search = arguments != null && "search".equals(arguments.getString("suite"));
         homeLayout = arguments != null && "layout".equals(arguments.getString("suite"));
+        homeRefine = arguments != null && "refine".equals(arguments.getString("suite"));
         start();
     }
 
     @Override public void onStart() {
+        if (homeRefine) { new HomeRefineCheck(this).run(); return; }
         if (homeLayout) { new HomeLayoutCheck(this).run(); return; }
         if (dashboard) { new DashboardCheck(this).run(); return; }
         if (search) { new SearchCheck(this).run(); return; }

@@ -16,7 +16,7 @@ import edu.sustech.mobile.transit.TransitText
 import edu.sustech.mobile.ui.transit.TransitSelection
 
 /** A summary over the existing bus contract; no invented nearest stop without a location. */
-class HomeBusCard(private val fragment: Fragment, private val root: View) {
+class HomeBusCard(private val fragment: Fragment, private val root: View, private val onContent: () -> Unit = {}) {
     private val context get() = root.context
     private var places = emptyList<BusApi.Landmark>()
     private var selected: BusApi.Landmark? = null
@@ -85,6 +85,7 @@ class HomeBusCard(private val fragment: Fragment, private val root: View) {
                 setOnClickListener { choose(landmark, serve.directionId, pinned) }
             })
         }
+        onContent()
         val request = ++generation
         arrival.setText(R.string.empty_loading); source.text = ""
         val berth = landmark.berthFor(direction)

@@ -18,8 +18,8 @@
     <Spinner android:id="@+id/home_landing" style="@style/PaperSelector" android:layout_width="match_parent" android:layout_height="48dp" />
     <TextView style="@style/FieldLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/home_layout_hero" android:layout_marginTop="10dp" />
     <Spinner android:id="@+id/home_hero" style="@style/PaperSelector" android:layout_width="match_parent" android:layout_height="48dp" />
-    <TextView style="@style/FieldLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/home_layout_schedule" android:layout_marginTop="10dp" />
-    <Spinner android:id="@+id/home_schedule" style="@style/PaperSelector" android:layout_width="match_parent" android:layout_height="48dp" />
+    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/home_emphasis" android:layout_width="match_parent" android:layout_height="56dp" android:text="@string/home_emphasize_first" />
+    <TextView style="@style/FieldLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/home_daily_only" />
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/home_layout_modules" android:textStyle="bold" android:textSize="16sp" android:textColor="@color/ink" android:layout_marginTop="18dp" android:layout_marginBottom="8dp" />
     <LinearLayout android:id="@+id/home_module_rows" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:background="@drawable/paper_panel" android:paddingHorizontal="8dp" />
    </LinearLayout>

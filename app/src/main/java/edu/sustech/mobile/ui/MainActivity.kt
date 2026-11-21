@@ -72,6 +72,7 @@ class MainActivity : AppCompatActivity() {
             true
         }
         R.id.action_forget -> {
+            edu.sustech.mobile.core.Cache.clear()
             // Forget the account AND every session: with credentials stored,
             // clearing cookies alone would just sign back in on the next launch.
             Credentials.clear()

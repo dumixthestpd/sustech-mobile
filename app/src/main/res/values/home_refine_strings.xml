@@ -1,0 +1,21 @@
+<resources>
+ <string name="home_emphasize_first">Emphasize the first card</string>
+ <string name="home_daily_only">Home shows today’s timetable and the current time. Open Courses for the full week.</string>
+ <string name="home_card_order">Cards and order</string>
+ <string name="home_layout_counts">Show %1$d cards and %2$d shortcuts</string>
+ <string name="home_current_time">Current time %1$s</string>
+ <string name="bb_submitted">Submitted work</string>
+ <string name="bb_submitted_empty">No submitted work for this course</string>
+ <string name="bb_reported_grade">Published grade: %1$s / %2$s</string>
+ <string name="bb_attempt_score">Attempt score: %1$s / %2$s</string>
+ <string name="bb_attempt_label">Attempt %1$d</string>
+ <string name="bb_awaiting_grade">Awaiting grading</string>
+ <string name="bb_grade_unpublished">Grade not published</string>
+ <string name="bb_teacher_feedback">Teacher feedback</string>
+ <string name="bb_feedback_unpublished">No published feedback</string>
+ <string name="bb_pending_empty">No confirmed pending assignments</string>
+ <string name="bb_pending_unknown">%1$d assignments could not be checked</string>
+ <string name="assignment_previous">Previous assignment</string>
+ <string name="assignment_next">Next assignment</string>
+ <string name="home_assignment_page">%1$d / %2$d · swipe to browse</string>
+</resources>

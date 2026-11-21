@@ -1,9 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Stable nav ids so the UI harness has something durable to tap. -->
-    <item name="nav_today" type="id" />
-    <item name="nav_services" type="id" />
-    <item name="nav_pms" type="id" />
-    <item name="nav_tis" type="id" />
-    <item name="nav_account" type="id" />
+ <item name="nav_today" type="id" /><item name="nav_services" type="id" />
+ <item name="nav_pms" type="id" /><item name="nav_tis" type="id" /><item name="nav_account" type="id" />
+ <item name="bb_grade_course" type="id" /><item name="bb_grade_status" type="id" />
+ <item name="bb_grade_list" type="id" /><item name="home_now_pointer" type="id" />
 </resources>

@@ -30,14 +30,14 @@ class HomeLayoutCheck(private val instrument: Instrumentation) {
             instrument.runOnMainSync {
                 activity.findViewById<View>(R.id.home_module_rows).findViewWithTag<SwitchMaterial>("toggle:weather").isChecked = false
                 activity.findViewById<View>(R.id.home_module_rows).findViewWithTag<View>("up:services").performClick()
-                activity.findViewById<Spinner>(R.id.home_schedule).setSelection(2)
+                activity.findViewById<SwitchMaterial>(R.id.home_emphasis).isChecked = true
                 activity.findViewById<Spinner>(R.id.home_landing).setSelection(1)
             }
             instrument.waitForIdleSync()
             val configured = HomePreferences.read(context)
             check(configured.hero == "" && "weather" !in configured.visible)
             check(configured.order.indexOf("services") < configured.order.indexOf("bus"))
-            check(configured.schedule == "week" && configured.landing == "bb")
+            check(configured.schedule == "day" && configured.landing == "bb")
             instrument.runOnMainSync {
                 activity.findViewById<View>(R.id.home_settings_services_tab).performClick()
                 activity.findViewById<View>(R.id.home_service_rows).findViewWithTag<SwitchMaterial>("toggle:blackboard").isChecked = false
@@ -69,7 +69,7 @@ class HomeLayoutCheck(private val instrument: Instrumentation) {
             // Finish waits for the restored choices to reach disk before the process exits.
             check(context.getSharedPreferences("home_layout", android.content.Context.MODE_PRIVATE).edit().commit())
         }
-        result.putString("stream", if (error == null) "PASS: native layout selectors, card visibility/reorder, shortcut selection/reorder, saved preferences and actual home/week layout. Original preferences restored." else "FAIL: $error")
+        result.putString("stream", if (error == null) "PASS: native layout selectors, card visibility/reorder, shortcut selection/reorder, saved preferences and actual home/day layout. Original preferences restored." else "FAIL: $error")
         instrument.finish(if (error == null) Activity.RESULT_OK else Activity.RESULT_CANCELED, result)
     }
 }

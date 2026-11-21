@@ -9,7 +9,8 @@ data class HomeLayout(
     val visible: Set<String> = setOf("ddl", "schedule", "services", "weather", "exams"),
     val services: List<String> = DEFAULT_SERVICES,
     val landing: String = "home",
-    val schedule: String = "next",
+    val schedule: String = "day",
+    val emphasis: Boolean = true,
 ) {
     fun displayed(): List<String> = (listOf(hero) + order).filter { it in visible && it in MODULES }.distinct()
 
@@ -22,7 +23,7 @@ data class HomeLayout(
             visible = value.visible.intersect(MODULES.toSet()),
             services = value.services.filter { it in knownServices }.distinct(),
             landing = value.landing.takeIf { it in listOf("home", "bb", "bus") } ?: "home",
-            schedule = value.schedule.takeIf { it in listOf("next", "day", "week") } ?: "next",
+            schedule = "day",
         )
     }
 }
@@ -37,7 +38,8 @@ object HomePreferences {
             visible = p.getString("visible", HomeLayout().visible.joinToString(",")).orEmpty().split(',').toSet(),
             services = p.getString("services", HomeLayout.DEFAULT_SERVICES.joinToString(",")).orEmpty().split(','),
             landing = p.getString("landing", "home").orEmpty(),
-            schedule = p.getString("schedule", "next").orEmpty(),
+            schedule = "day",
+            emphasis = p.getBoolean("emphasis", true),
         )
         return HomeLayout.normalize(value, edu.sustech.mobile.service.Services.all.map { it.id })
     }
@@ -45,11 +47,11 @@ object HomePreferences {
         val v = HomeLayout.normalize(value, edu.sustech.mobile.service.Services.all.map { it.id })
         prefs(context).edit().putString("hero", v.hero).putString("order", v.order.joinToString(","))
             .putString("visible", v.visible.joinToString(",")).putString("services", v.services.joinToString(","))
-            .putString("landing", v.landing).putString("schedule", v.schedule).apply()
+            .putString("landing", v.landing).putString("schedule", v.schedule).putBoolean("emphasis", v.emphasis).apply()
     }
     fun reset(context: Context) {
         val editor = prefs(context).edit()
-        listOf("hero", "order", "visible", "services", "landing", "schedule").forEach { editor.remove(it) }
+        listOf("hero", "order", "visible", "services", "landing", "schedule", "emphasis").forEach { editor.remove(it) }
         editor.apply()
     }
     fun busSelection(context: Context): Pair<String, String> = prefs(context).let {

@@ -42,12 +42,15 @@ import kotlinx.coroutines.launch
  * quality, and the next exam. Academic records use the existing BB/TIS clients;
  * weather and air quality are public.
  *
- * The class line shows one meeting, not the day's timetable: the card answers
- * "what is next", and the parity of the weeks is spelled out, because a lab that
- * only runs on even weeks otherwise looks like it runs every week.
+ * Home embeds today's complete compact timetable and current-time marker.
+ * The full day/week browser remains in Courses.
  */
 class TodayFragment : Fragment(R.layout.fragment_today), Refreshable {
     private var activeDeadline: BbApi.Deadline? = null
+    private var deadlineRows = emptyList<BbApi.Deadline>()
+    private var deadlineIndex = 0
+    private var deadlineUnknown = 0
+    private var deadlineGeneration = 0
     private var cards = emptyMap<String, View>()
     private var busCard: HomeBusCard? = null
     private var applied: HomeLayout? = null
@@ -58,7 +61,10 @@ class TodayFragment : Fragment(R.layout.fragment_today), Refreshable {
         cards = mapOf("ddl" to R.id.today_card_ddl, "schedule" to R.id.today_card_schedule,
             "bus" to R.id.today_card_bus, "services" to R.id.today_card_services,
             "weather" to R.id.today_card_weather, "exams" to R.id.today_card_exams).mapValues { view.findViewById(it.value) }
-        busCard = HomeBusCard(this, cards.getValue("bus"))
+        busCard = HomeBusCard(this, cards.getValue("bus")) { styleCards() }
+        view.findViewById<AssignmentPagerCard>(R.id.today_card_ddl).onPage = { step -> moveDeadline(step) }
+        view.findViewById<View>(R.id.today_deadline_prev).setOnClickListener { moveDeadline(-1) }
+        view.findViewById<View>(R.id.today_deadline_next).setOnClickListener { moveDeadline(1) }
         view.findViewById<View>(R.id.today_layout).setOnClickListener {
             startActivity(Intent(requireContext(), HomeSettingsActivity::class.java))
         }
@@ -88,6 +94,7 @@ class TodayFragment : Fragment(R.layout.fragment_today), Refreshable {
     override fun onResume() {
         super.onResume()
         applyHomeLayout()
+        view?.let { loadDeadline(it) }
         busTicker?.cancel()
         busTicker = viewLifecycleOwner.lifecycleScope.launch {
             while (isActive) {
@@ -108,7 +115,9 @@ class TodayFragment : Fragment(R.layout.fragment_today), Refreshable {
     }
 
     override fun refresh() {
-        Cache.invalidate("bb.deadlines"); load()
+        Cache.invalidate("bb.pending"); Cache.invalidate("bb.assessment."); Cache.invalidate("bb.deadlines"); load()
+        (childFragmentManager.findFragmentById(R.id.today_schedule_preview) as? Refreshable)?.refresh()
+        view?.let { loadDeadline(it) }
         if ("bus" in HomePreferences.read(requireContext()).visible) busCard?.refresh()
     }
 
@@ -123,17 +132,19 @@ class TodayFragment : Fragment(R.layout.fragment_today), Refreshable {
             cards[id]?.let { card -> card.visibility = if (id in layout.visible) View.VISIBLE else View.GONE; column.addView(card) }
         }
         buildShortcuts(root.findViewById(R.id.today_shortcuts))
-        val next = layout.schedule == "next"
-        root.findViewById<View>(R.id.today_classes_list).visibility = if (next) View.VISIBLE else View.GONE
-        root.findViewById<View>(R.id.today_schedule_preview).visibility = if (next) View.GONE else View.VISIBLE
+        root.findViewById<View>(R.id.today_classes_list).visibility = View.GONE
+        root.findViewById<View>(R.id.today_schedule_preview).visibility = View.VISIBLE
         val existing = childFragmentManager.findFragmentById(R.id.today_schedule_preview)
-        val tag = "home-schedule-${layout.schedule}"
-        if (next) {
-            if (existing != null) childFragmentManager.beginTransaction().remove(existing).commit()
-        } else if (existing?.tag != tag) childFragmentManager.beginTransaction()
-            .replace(R.id.today_schedule_preview, edu.sustech.mobile.ui.tis.WeekFragment().apply {
-                arguments = Bundle().apply { putBoolean("day", layout.schedule == "day") }
-            }, tag).commit()
+        if (existing !is edu.sustech.mobile.ui.tis.HomeDayFragment) childFragmentManager.beginTransaction()
+            .replace(R.id.today_schedule_preview, edu.sustech.mobile.ui.tis.HomeDayFragment(), "home-day").commit()
+        styleCards()
+    }
+
+    private fun styleCards() {
+        if (view == null) return
+        val layout = HomePreferences.read(requireContext())
+        val first = layout.displayed().firstOrNull()
+        cards.forEach { (id, card) -> HomeCardStyler.apply(card, layout.emphasis && id == first) }
     }
 
     private fun buildShortcuts(grid: GridLayout) {
@@ -162,6 +173,7 @@ class TodayFragment : Fragment(R.layout.fragment_today), Refreshable {
     }
 
     private fun loadDeadline(view: View) {
+        val request = ++deadlineGeneration
         activeDeadline = null
         val title = view.findViewById<TextView>(R.id.today_deadline_name)
         val clock = view.findViewById<TextView>(R.id.today_deadline_clock)
@@ -169,31 +181,38 @@ class TodayFragment : Fragment(R.layout.fragment_today), Refreshable {
         clock.setText(R.string.ui_recent_deadline)
         meta.text = ""
         title.setText(R.string.empty_loading)
-        viewLifecycleOwner.runIo(block = { App.bb.deadlines() }, onOk = { rows ->
-            val now = Instant.now()
-            val next = rows.filter { it.at == null || !it.at.isBefore(now) }.minByOrNull { it.at ?: Instant.MAX }
-            activeDeadline = next
-            if (next == null) {
-                clock.setText(R.string.ui_recent_deadline); title.setText(R.string.ui_no_future_deadlines); meta.text = ""
-            } else {
-                title.text = next.title
-                meta.text = listOf(next.courseName, next.due).filter { it.isNotBlank() }.joinToString("\n")
-                val seconds = next.at?.let { Duration.between(now, it).seconds.coerceAtLeast(0) }
-                clock.text = when {
-                    seconds == null -> getString(R.string.ui_recent_deadline)
-                    seconds >= 172800 -> getString(R.string.ui_days_left, seconds / 86400)
-                    seconds >= 3600 -> getString(R.string.ui_hours_left, seconds / 3600)
-                    else -> getString(R.string.ui_minutes_left, (seconds + 59) / 60)
-                }
-            }
-        }, onErr = { clock.setText(R.string.ui_recent_deadline); title.setText(R.string.ui_deadline_unavailable); meta.text = "" })
+        viewLifecycleOwner.runIo(block = { App.bb.pendingDeadlines() }, onOk = { result ->
+            if (request != deadlineGeneration) return@runIo
+            deadlineRows = result.items; deadlineUnknown = result.unknown
+            deadlineIndex = deadlineIndex.coerceIn(0, (deadlineRows.size-1).coerceAtLeast(0)); renderDeadline()
+        }, onErr = { if (request == deadlineGeneration) { clock.setText(R.string.ui_recent_deadline); title.setText(R.string.ui_deadline_unavailable); meta.text = "" } })
+    }
+
+    private fun moveDeadline(step: Int) {
+        if (deadlineRows.isNotEmpty()) { deadlineIndex = (deadlineIndex + step + deadlineRows.size) % deadlineRows.size; renderDeadline() }
+    }
+
+    private fun renderDeadline() {
+        val root = view ?: return
+        val next = deadlineRows.getOrNull(deadlineIndex); activeDeadline = next
+        root.findViewById<TextView>(R.id.today_deadline_name).text = next?.title ?: getString(R.string.bb_pending_empty)
+        root.findViewById<TextView>(R.id.today_deadline_meta).text = listOfNotNull(next?.courseName, next?.due,
+            if (deadlineUnknown > 0) getString(R.string.bb_pending_unknown, deadlineUnknown) else null).filter { it.isNotBlank() }.joinToString("\n")
+        val seconds = next?.at?.let { Duration.between(Instant.now(), it).seconds.coerceAtLeast(0) }
+        root.findViewById<TextView>(R.id.today_deadline_clock).text = when {
+            seconds == null -> getString(R.string.ui_recent_deadline)
+            seconds >= 172800 -> getString(R.string.ui_days_left, seconds / 86400)
+            seconds >= 3600 -> getString(R.string.ui_hours_left, seconds / 3600)
+            else -> getString(R.string.ui_minutes_left, (seconds + 59) / 60)
+        }
+        root.findViewById<TextView>(R.id.today_deadline_page).text = if (deadlineRows.isEmpty()) "" else getString(R.string.home_assignment_page, deadlineIndex+1, deadlineRows.size)
+        listOf(R.id.today_deadline_prev, R.id.today_deadline_next).forEach { root.findViewById<View>(it).isEnabled = deadlineRows.size > 1 }
     }
 
     private fun load() {
         view?.let {
             it.findViewById<TextView>(R.id.today_date).text = LocalDate.now(ZoneId.of("Asia/Shanghai"))
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd EEEE", resources.configuration.locales[0]))
-            loadDeadline(it)
         }
         val swipe = view?.findViewById<SwipeRefreshLayout>(R.id.today_swipe)
         val week = view?.findViewById<TextView>(R.id.today_week)
