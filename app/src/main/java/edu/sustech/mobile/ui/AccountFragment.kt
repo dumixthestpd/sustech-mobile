@@ -39,6 +39,10 @@ class AccountFragment : Fragment(R.layout.fragment_account), Refreshable {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        view.findViewById<View>(R.id.account_home_layout).setOnClickListener {
+            startActivity(Intent(requireContext(), HomeSettingsActivity::class.java))
+        }
+
         // Dev-only: the server override exists for testing against a local
         // mock. Hidden entirely unless such an override is in effect, so the
         // shipping UI never shows a print-server address.

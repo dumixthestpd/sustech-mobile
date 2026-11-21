@@ -1,0 +1,28 @@
+<resources>
+ <string name="home_layout_title">Настройка главной</string>
+ <string name="home_layout_deadlines">Сроки Blackboard</string>
+ <string name="home_layout_weather">Погода и качество воздуха</string>
+ <string name="home_layout_edit">Настроить</string>
+ <string name="home_layout_saved">Изменения сохраняются автоматически и применяются при возврате на главную.</string>
+ <string name="home_layout_preview">Предпросмотр</string>
+ <string name="home_layout_landing">При запуске приложения</string>
+ <string name="home_landing_home">Главная</string>
+ <string name="home_layout_hero">Первая карточка</string>
+ <string name="home_layout_follow_order">Использовать порядок ниже</string>
+ <string name="home_layout_schedule">Вид расписания</string>
+ <string name="home_layout_course_card">Расписание и экзамены</string>
+ <string name="home_schedule_next">Следующее занятие</string>
+ <string name="home_layout_modules">Видимость и порядок карточек</string>
+ <string name="home_layout_service_hint">Выберите и упорядочьте сервисы главной страницы. Все сервисы доступны на вкладке «Сервисы».</string>
+ <string name="home_layout_move_up">Переместить %1$s выше</string>
+ <string name="home_layout_move_down">Переместить %1$s ниже</string>
+ <string name="home_layout_reset">Восстановить вид по умолчанию</string>
+ <string name="home_layout_reset_question">Восстановить карточки, сервисы и стартовую страницу по умолчанию?</string>
+ <string name="home_layout_empty">Карточки не выбраны</string>
+ <string name="home_shortcuts_empty">Сервисы не выбраны. Добавьте их в настройках главной.</string>
+ <string name="home_preset_ddl">Сроки</string>
+ <string name="home_preset_bus">Автобус</string>
+ <string name="home_preset_campus">Мой кампус</string>
+ <string name="home_bus_choose">Выбрать остановку</string>
+ <string name="home_bus_location_hint">Выберите остановку для просмотра прибытия и направлений.</string>
+</resources>

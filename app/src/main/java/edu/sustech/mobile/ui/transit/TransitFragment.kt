@@ -64,6 +64,7 @@ class TransitFragment : TabbedServiceFragment(R.layout.fragment_tabs) {
 
     override fun onServiceViewReady(view: View) {
         banner(getString(R.string.transit_credit), null)
+        if (activity?.intent?.getBooleanExtra("transit_buses", false) == true) selectTab(1)
     }
 
     /**

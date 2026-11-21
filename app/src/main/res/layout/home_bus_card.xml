@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android" style="@style/CardBase" android:layout_width="match_parent" android:layout_height="wrap_content">
+ <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="18dp">
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
+   <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="@string/service_transit" android:textSize="16sp" android:textStyle="bold" android:textColor="@color/ink" />
+   <Button android:id="@+id/home_bus_choose" style="@style/Widget.MaterialComponents.Button.TextButton" android:layout_width="wrap_content" android:layout_height="48dp" android:text="@string/home_bus_choose" />
+  </LinearLayout>
+  <TextView android:id="@+id/home_bus_place" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="20sp" android:textColor="@color/ink" />
+  <com.google.android.material.chip.ChipGroup android:id="@+id/home_bus_directions" android:layout_width="match_parent" android:layout_height="wrap_content" />
+  <TextView android:id="@+id/home_bus_arrival" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="@string/home_bus_location_hint" android:textSize="16sp" android:textColor="@color/brand" />
+  <TextView android:id="@+id/home_bus_source" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:textSize="11sp" android:textColor="@color/ink_muted" />
+  <Button android:id="@+id/home_bus_open" style="@style/Widget.MaterialComponents.Button.TextButton" android:layout_width="match_parent" android:layout_height="48dp" android:text="@string/service_transit" />
+ </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

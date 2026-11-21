@@ -2,11 +2,14 @@
 <androidx.swiperefreshlayout.widget.SwipeRefreshLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:id="@+id/today_swipe" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/background">
  <ScrollView android:layout_width="match_parent" android:layout_height="match_parent" android:clipToPadding="false">
   <FrameLayout android:layout_width="match_parent" android:layout_height="wrap_content">
-   <edu.sustech.mobile.ui.PaperColumn android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="center_horizontal" android:orientation="vertical" android:paddingTop="14dp" android:paddingBottom="24dp">
+   <edu.sustech.mobile.ui.PaperColumn android:id="@+id/today_cards" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="center_horizontal" android:orientation="vertical" android:paddingTop="14dp" android:paddingBottom="24dp">
     <TextView android:id="@+id/today_date" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingHorizontal="20dp" android:textColor="@color/brand" android:textSize="12sp" />
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingHorizontal="20dp" android:layout_marginTop="5dp" android:text="@string/ui_home_title" android:textSize="28sp" android:fontFamily="sans-serif-medium" android:textColor="@color/ink" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:paddingHorizontal="20dp">
+     <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="@string/ui_home_title" android:textSize="28sp" android:textColor="@color/ink" />
+     <com.google.android.material.button.MaterialButton android:id="@+id/today_layout" style="@style/Widget.MaterialComponents.Button.TextButton" android:layout_width="wrap_content" android:layout_height="48dp" android:text="@string/home_layout_edit" />
+    </LinearLayout>
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingHorizontal="20dp" android:layout_marginTop="4dp" android:layout_marginBottom="6dp" android:text="@string/ui_home_caption" android:textSize="12sp" android:textColor="@color/ink_muted" />
-    <com.google.android.material.card.MaterialCardView style="@style/CardBase" android:layout_width="match_parent" android:layout_height="wrap_content" app:cardBackgroundColor="@color/brand" app:strokeWidth="0dp" app:cardCornerRadius="22dp">
+    <com.google.android.material.card.MaterialCardView android:id="@+id/today_card_ddl" style="@style/CardBase" android:layout_width="match_parent" android:layout_height="wrap_content" app:cardBackgroundColor="@color/brand" app:strokeWidth="0dp" app:cardCornerRadius="22dp">
      <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="20dp">
       <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/bb_deadlines" android:textColor="@color/hero_muted" android:textSize="12sp" />
       <TextView android:id="@+id/today_deadline_clock" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="@string/ui_recent_deadline" android:textSize="30sp" android:fontFamily="sans-serif-medium" android:textColor="@color/white" />
@@ -15,26 +18,28 @@
       <com.google.android.material.button.MaterialButton android:id="@+id/today_deadline_open" android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="12dp" android:text="@string/ui_open_deadlines" android:gravity="start|center_vertical" android:textColor="@color/white" app:backgroundTint="#1AFFFFFF" app:strokeColor="#55FFFFFF" app:strokeWidth="1dp" app:cornerRadius="12dp" />
      </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
-    <com.google.android.material.card.MaterialCardView style="@style/CardBase" android:layout_width="match_parent" android:layout_height="wrap_content">
+    <com.google.android.material.card.MaterialCardView android:id="@+id/today_card_schedule" style="@style/CardBase" android:layout_width="match_parent" android:layout_height="wrap_content">
      <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="18dp">
       <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/ui_courses_today" android:textColor="@color/ink" android:textStyle="bold" android:textSize="16sp" />
        <TextView android:id="@+id/today_week" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/today_week_unknown" android:textColor="@color/brand" android:textSize="11sp" android:background="@drawable/paper_tag" />
       </LinearLayout>
       <TextView android:id="@+id/today_weekday" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:textColor="@color/ink_muted" android:textSize="12sp" />
+      <FrameLayout android:id="@+id/today_schedule_preview" android:layout_width="match_parent" android:layout_height="320dp" android:visibility="gone" />
       <TextView android:id="@+id/today_classes_list" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:lineSpacingExtra="6dp" android:text="@string/empty_loading" android:textColor="@color/ink" android:textSize="15sp" />
       <TextView android:id="@+id/today_hint" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="@string/today_sign_in_hint" android:textColor="@color/ink_muted" android:textSize="12sp" android:visibility="gone" />
       <com.google.android.material.button.MaterialButton android:id="@+id/today_sign_in" style="@style/Widget.MaterialComponents.Button.TextButton" android:layout_width="wrap_content" android:layout_height="48dp" android:text="@string/action_sign_in" android:visibility="gone" />
       <com.google.android.material.button.MaterialButton android:id="@+id/today_timetable" style="@style/Widget.MaterialComponents.Button.TextButton" android:layout_width="match_parent" android:layout_height="44dp" android:gravity="end|center_vertical" android:text="@string/service_tis" android:textColor="@color/brand" />
      </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
-    <com.google.android.material.card.MaterialCardView style="@style/CardBase" android:layout_width="match_parent" android:layout_height="wrap_content">
+    <com.google.android.material.card.MaterialCardView android:id="@+id/today_card_services" style="@style/CardBase" android:layout_width="match_parent" android:layout_height="wrap_content">
      <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="18dp">
       <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/ui_shortcuts" android:textSize="16sp" android:textStyle="bold" android:textColor="@color/ink" />
+      <TextView android:id="@+id/today_shortcuts_empty" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/home_shortcuts_empty" android:visibility="gone" />
       <GridLayout android:id="@+id/today_shortcuts" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:columnCount="4" />
      </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
-    <com.google.android.material.card.MaterialCardView style="@style/CardBase" android:layout_width="match_parent" android:layout_height="wrap_content">
+    <com.google.android.material.card.MaterialCardView android:id="@+id/today_card_weather" style="@style/CardBase" android:layout_width="match_parent" android:layout_height="wrap_content">
      <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="18dp">
       <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/today_weather" android:textAppearance="@style/FieldLabel" />
       <TextView android:id="@+id/today_weather_value" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="@string/empty_loading" android:textSize="18sp" android:textColor="@color/ink" />
@@ -42,12 +47,13 @@
       <TextView android:id="@+id/today_aqi_value" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/empty_loading" android:textAppearance="@style/FieldValue" />
      </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
-    <com.google.android.material.card.MaterialCardView style="@style/CardBase" android:layout_width="match_parent" android:layout_height="wrap_content">
+    <com.google.android.material.card.MaterialCardView android:id="@+id/today_card_exams" style="@style/CardBase" android:layout_width="match_parent" android:layout_height="wrap_content">
      <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="18dp">
       <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/today_next_exam" android:textAppearance="@style/FieldLabel" />
       <TextView android:id="@+id/today_exam_value" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="@string/today_none" android:textAppearance="@style/FieldValue" />
      </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
+    <include android:id="@+id/today_card_bus" layout="@layout/home_bus_card" />
    </edu.sustech.mobile.ui.PaperColumn>
   </FrameLayout>
  </ScrollView>

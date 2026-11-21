@@ -1,0 +1,28 @@
+<resources>
+ <string name="home_layout_title">Home layout</string>
+ <string name="home_layout_deadlines">BB deadlines</string>
+ <string name="home_layout_weather">Weather and air quality</string>
+ <string name="home_layout_edit">Layout</string>
+ <string name="home_layout_saved">Changes save automatically and apply when you return home.</string>
+ <string name="home_layout_preview">Layout preview</string>
+ <string name="home_layout_landing">When the app opens</string>
+ <string name="home_landing_home">My home</string>
+ <string name="home_layout_hero">First card</string>
+ <string name="home_layout_follow_order">Use the order below</string>
+ <string name="home_layout_schedule">Timetable display</string>
+ <string name="home_layout_course_card">Timetable and exams</string>
+ <string name="home_schedule_next">Next class</string>
+ <string name="home_layout_modules">Cards below: visibility and order</string>
+ <string name="home_layout_service_hint">Choose home shortcuts and arrange their order. All services remain available in Services.</string>
+ <string name="home_layout_move_up">Move %1$s up</string>
+ <string name="home_layout_move_down">Move %1$s down</string>
+ <string name="home_layout_reset">Restore default layout</string>
+ <string name="home_layout_reset_question">Restore the default home cards, shortcuts and launch page?</string>
+ <string name="home_layout_empty">No cards selected</string>
+ <string name="home_shortcuts_empty">No shortcuts selected. Add them in Home layout.</string>
+ <string name="home_preset_ddl">Deadlines first</string>
+ <string name="home_preset_bus">Commute first</string>
+ <string name="home_preset_campus">My campus</string>
+ <string name="home_bus_choose">Choose stop</string>
+ <string name="home_bus_location_hint">Choose a stop to see arrivals and directions.</string>
+</resources>

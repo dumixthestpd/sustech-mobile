@@ -29,6 +29,11 @@ import java.time.Instant
 import java.time.Duration
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 /**
  * Today: the one screen worth opening between classes.
@@ -43,9 +48,20 @@ import java.time.format.DateTimeFormatter
  */
 class TodayFragment : Fragment(R.layout.fragment_today), Refreshable {
     private var activeDeadline: BbApi.Deadline? = null
+    private var cards = emptyMap<String, View>()
+    private var busCard: HomeBusCard? = null
+    private var applied: HomeLayout? = null
+    private var busTicker: Job? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        cards = mapOf("ddl" to R.id.today_card_ddl, "schedule" to R.id.today_card_schedule,
+            "bus" to R.id.today_card_bus, "services" to R.id.today_card_services,
+            "weather" to R.id.today_card_weather, "exams" to R.id.today_card_exams).mapValues { view.findViewById(it.value) }
+        busCard = HomeBusCard(this, cards.getValue("bus"))
+        view.findViewById<View>(R.id.today_layout).setOnClickListener {
+            startActivity(Intent(requireContext(), HomeSettingsActivity::class.java))
+        }
         view.findViewById<MaterialButton>(R.id.today_sign_in).setOnClickListener {
             startActivity(Intent(requireContext(), LoginActivity::class.java))
         }
@@ -65,16 +81,67 @@ class TodayFragment : Fragment(R.layout.fragment_today), Refreshable {
             } else intent.putExtra("bb_deadlines", true)
             startActivity(intent)
         }
-        buildShortcuts(view.findViewById(R.id.today_shortcuts))
+        applyHomeLayout()
         load()
     }
 
-    override fun refresh() { Cache.invalidate("bb.deadlines"); load() }
+    override fun onResume() {
+        super.onResume()
+        applyHomeLayout()
+        busTicker?.cancel()
+        busTicker = viewLifecycleOwner.lifecycleScope.launch {
+            while (isActive) {
+                if ("bus" in HomePreferences.read(requireContext()).visible) busCard?.refresh()
+                delay(15_000)
+            }
+        }
+    }
+
+    override fun onPause() {
+        busTicker?.cancel(); busTicker = null
+        super.onPause()
+    }
+
+    override fun onDestroyView() {
+        cards = emptyMap(); busCard = null; applied = null
+        super.onDestroyView()
+    }
+
+    override fun refresh() {
+        Cache.invalidate("bb.deadlines"); load()
+        if ("bus" in HomePreferences.read(requireContext()).visible) busCard?.refresh()
+    }
+
+    private fun applyHomeLayout() {
+        val root = view ?: return
+        val layout = HomePreferences.read(requireContext())
+        if (layout == applied) return
+        applied = layout
+        val column = root.findViewById<LinearLayout>(R.id.today_cards)
+        cards.values.forEach { column.removeView(it) }
+        (layout.displayed() + layout.order).distinct().forEach { id ->
+            cards[id]?.let { card -> card.visibility = if (id in layout.visible) View.VISIBLE else View.GONE; column.addView(card) }
+        }
+        buildShortcuts(root.findViewById(R.id.today_shortcuts))
+        val next = layout.schedule == "next"
+        root.findViewById<View>(R.id.today_classes_list).visibility = if (next) View.VISIBLE else View.GONE
+        root.findViewById<View>(R.id.today_schedule_preview).visibility = if (next) View.GONE else View.VISIBLE
+        val existing = childFragmentManager.findFragmentById(R.id.today_schedule_preview)
+        val tag = "home-schedule-${layout.schedule}"
+        if (next) {
+            if (existing != null) childFragmentManager.beginTransaction().remove(existing).commit()
+        } else if (existing?.tag != tag) childFragmentManager.beginTransaction()
+            .replace(R.id.today_schedule_preview, edu.sustech.mobile.ui.tis.WeekFragment().apply {
+                arguments = Bundle().apply { putBoolean("day", layout.schedule == "day") }
+            }, tag).commit()
+    }
 
     private fun buildShortcuts(grid: GridLayout) {
         fun dp(n: Int) = (n * resources.displayMetrics.density).toInt()
-        listOf(Services.blackboard, Services.transit, Services.courses, Services.rooms,
-            Services.printing, Services.exchange, Services.library, Services.booking).forEachIndexed { index, module ->
+        grid.removeAllViews()
+        val modules = HomePreferences.read(requireContext()).services.mapNotNull { Services.byId(it) }
+        view?.findViewById<View>(R.id.today_shortcuts_empty)?.visibility = if (modules.isEmpty()) View.VISIBLE else View.GONE
+        modules.forEachIndexed { index, module ->
             val tile = LinearLayout(requireContext()).apply {
                 orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; minimumHeight = dp(88)
                 isClickable = true; isFocusable = true; contentDescription = getString(module.title)

@@ -1,0 +1,28 @@
+<resources>
+ <string name="home_layout_title">首页排版</string>
+ <string name="home_layout_deadlines">BB 截止任务</string>
+ <string name="home_layout_weather">天气与空气质量</string>
+ <string name="home_layout_edit">排版</string>
+ <string name="home_layout_saved">修改自动保存，返回首页后生效。</string>
+ <string name="home_layout_preview">布局预览</string>
+ <string name="home_layout_landing">打开应用时</string>
+ <string name="home_landing_home">我的首页</string>
+ <string name="home_layout_hero">首张卡片</string>
+ <string name="home_layout_follow_order">按下方顺序显示</string>
+ <string name="home_layout_schedule">课表显示方式</string>
+ <string name="home_layout_course_card">课表与考试</string>
+ <string name="home_schedule_next">下一节课</string>
+ <string name="home_layout_modules">下面显示什么，先后怎么排</string>
+ <string name="home_layout_service_hint">选择首页常用服务，并调整顺序。全部服务仍可从“服务”页打开。</string>
+ <string name="home_layout_move_up">上移%1$s</string>
+ <string name="home_layout_move_down">下移%1$s</string>
+ <string name="home_layout_reset">恢复默认排版</string>
+ <string name="home_layout_reset_question">将首页卡片、常用服务和启动页面恢复为默认设置？</string>
+ <string name="home_layout_empty">未选择展示卡片</string>
+ <string name="home_shortcuts_empty">暂无常用服务，可在首页排版中添加。</string>
+ <string name="home_preset_ddl">DDL 优先</string>
+ <string name="home_preset_bus">通勤优先</string>
+ <string name="home_preset_campus">我的校园</string>
+ <string name="home_bus_choose">选择站点</string>
+ <string name="home_bus_location_hint">选择站点后查看来车与方向。</string>
+</resources>

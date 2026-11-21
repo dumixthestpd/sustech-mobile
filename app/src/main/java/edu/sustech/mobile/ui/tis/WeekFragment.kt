@@ -11,6 +11,7 @@ import edu.sustech.mobile.ui.Refreshable
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
+import com.google.android.material.button.MaterialButton
 
 class WeekFragment : Fragment(), Refreshable {
     private val zone = ZoneId.of("Asia/Shanghai")
@@ -24,10 +25,17 @@ class WeekFragment : Fragment(), Refreshable {
     private lateinit var body: LinearLayout
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View {
         selected = state?.getString("date")?.let { LocalDate.parse(it) } ?: selected
-        dayOnly = state?.getBoolean("day") ?: dayOnly
+        dayOnly = state?.getBoolean("day") ?: arguments?.getBoolean("day") ?: dayOnly
         val root = LinearLayout(requireContext()).apply { orientation = LinearLayout.VERTICAL }
         val controls = LinearLayout(requireContext())
-        fun button(label: String, action: () -> Unit) { controls.addView(Button(requireContext()).apply { text = label; setOnClickListener { action() } }, LinearLayout.LayoutParams(0, -2, 1f)) }
+        fun dp(n: Int) = (n * resources.displayMetrics.density).toInt()
+        fun button(label: String, action: () -> Unit) {
+            controls.addView(MaterialButton(requireContext(), null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+                text = label; textSize = 12f; isAllCaps = false; cornerRadius = dp(12)
+                minimumWidth = 0; setPadding(dp(4), 0, dp(4), 0)
+                setOnClickListener { action() }
+            }, LinearLayout.LayoutParams(0, dp(48), 1f).apply { marginStart = dp(2); marginEnd = dp(2) })
+        }
         button("‹") { selected = selected.minusDays(if (dayOnly) 1 else 7); render() }
         button(getString(R.string.agenda_today)) { selected = LocalDate.now(zone); dayOnly = true; render() }
         button(getString(R.string.agenda_week)) { dayOnly = false; render() }
@@ -35,7 +43,17 @@ class WeekFragment : Fragment(), Refreshable {
         root.addView(controls)
         title = TextView(requireContext()).apply { setPadding(16, 8, 16, 8) }; root.addView(title)
         body = LinearLayout(requireContext()).apply { orientation = LinearLayout.VERTICAL }
-        root.addView(ScrollView(requireContext()).apply { addView(body) }, LinearLayout.LayoutParams(-1, 0, 1f))
+        val scroll = object : ScrollView(requireContext()) {
+            override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+                // When embedded on Today, the outer home scroll must not take
+                // vertical drags intended for the afternoon/evening timetable.
+                if (event.actionMasked == MotionEvent.ACTION_DOWN) parent?.requestDisallowInterceptTouchEvent(true)
+                if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL)
+                    parent?.requestDisallowInterceptTouchEvent(false)
+                return super.dispatchTouchEvent(event)
+            }
+        }.apply { addView(body) }
+        root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
         return root
     }
     override fun onViewCreated(view: View, state: Bundle?) { refresh() }

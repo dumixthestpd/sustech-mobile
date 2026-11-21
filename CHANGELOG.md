@@ -2,6 +2,10 @@
 
 ## Unreleased — 0.3.31-dev
 
+- Add native Home layout settings from Today and Account: presets, launch page, first card,
+  card visibility/order, next-class/day/week timetable modes, and shortcut selection/order.
+  Apply and persist changes locally, with an ordered schematic preview and default reset.
+  Add a home bus card with a saved stop, explicit directions, next stop and existing live/planned data.
 - Adopt the browser concept's paper background, deep green deadline card, rounded outline cards,
   mint service icons and quieter navigation in the native app. Add a real upcoming BB deadline
   summary and direct task navigation to Today, plus eight service shortcuts. Redesign service
@@ -19,7 +23,7 @@
   and TIS exams. Keep exams with unpublished clock times below the grid.
 - Identify air-quality readings as modeled US AQI with their data time; reject invalid or stale
   readings. This does not replace the provider with a local observation station.
-- Personalized home and multiple configurable reminder alarms remain standalone browser demos;
+- Multiple configurable reminder alarms remain a standalone browser demo;
   no native notification scheduler is included in this development build.
 
 ## 0.3.30 — 2026-11-20

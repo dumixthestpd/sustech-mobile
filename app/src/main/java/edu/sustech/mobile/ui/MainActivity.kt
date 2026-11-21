@@ -37,7 +37,13 @@ class MainActivity : AppCompatActivity() {
             show(fragmentFor(item.itemId))
             true
         }
-        if (savedInstanceState == null) show(fragmentFor(R.id.nav_today))
+        if (savedInstanceState == null) {
+            show(fragmentFor(R.id.nav_today))
+            when (HomePreferences.read(this).landing) {
+                "bb" -> startActivity(ServiceActivity.intent(this, edu.sustech.mobile.service.Services.blackboard).putExtra("bb_deadlines", true))
+                "bus" -> startActivity(ServiceActivity.intent(this, edu.sustech.mobile.service.Services.transit))
+            }
+        }
     }
 
     private fun fragmentFor(id: Int): Fragment = tabs.getOrPut(id) {

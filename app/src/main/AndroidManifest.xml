@@ -53,6 +53,8 @@
             android:exported="false"
             android:label="@string/app_name" />
 
+        <activity android:name=".ui.HomeSettingsActivity" android:exported="false" />
+
         <activity
             android:name=".ui.ecard.RechargeActivity"
             android:exported="false"

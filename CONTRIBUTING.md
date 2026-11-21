@@ -61,6 +61,13 @@ The same runner has a dashboard suite, without the share-helper apps:
 adb shell am instrument -w -e suite dashboard edu.sustech.mobile.test/edu.sustech.mobile.ShareFlowCheck
 ```
 
+Use `-e suite layout` for the native home editor: selectors, card visibility/order, shortcut
+selection/order and their effect on the actual home/week view. It restores the original local
+preferences. Also check return-to-home application and process-restart persistence through the
+real UI; inspect phone and wide layouts, confirm reset and verify the BB/bus launch destinations.
+Swipe inside the embedded home timetable: later hours must appear while the home header stays
+in place. Verify horizontal weekday navigation too; a static grid screenshot does not prove this.
+
 Use `-e suite search` with that runner for the WS and future-room search controls. It uses a
 synthetic catalog and room calendars, checking combined filters, reset, unknown calendars and
 future availability that deliberately differs from current occupancy. It never submits an
