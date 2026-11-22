@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — 0.3.31-dev
+## 0.3.31 — 2026-11-22
 
 - Move all layout entry points into Account. Remove the tall home heading and caption.
   Replace per-row move buttons, presets and the independent first-card selector with native drag
@@ -8,14 +8,14 @@
 - Show only confirmed unsubmitted/draft upcoming BB assignments on Home, with swipe and button
   paging. Add course-scoped submitted work, published grades, attempt scores and teacher feedback;
   keep unreadable status, ungraded scores, exemptions and other users separate.
-- Apply green emphasis to whichever card is first, with a configurable switch. Add concrete
-  first-card, emphasis and service settings inside Account. Home previews only today, fitting its
-  complete timeline and current-time pointer; the full day/week browser stays in Courses.
-- Add native Home layout settings from Today and Account: presets, launch page, first card,
-  card visibility/order, the daily timetable preview, and shortcut selection/order.
-  Apply and persist changes locally, with an ordered schematic preview and default reset.
+- Apply green emphasis to whichever enabled card is first, with a configurable switch in Account.
+  Home previews only today, fitting its complete timeline and current-time pointer;
+  the full day/week browser stays in Courses.
+- Add native Home layout settings in Account: launch page, card visibility/drag order,
+  the daily timetable preview and shortcut selection/drag order.
+  Apply and persist changes locally, with confirmation before default reset.
   Add a home bus card with a saved stop, explicit directions, next stop and existing live/planned data.
-- Adopt the browser concept's paper background, deep green deadline card, rounded outline cards,
+- Adopt the browser concept's paper background, deep green first card, rounded outline cards,
   mint service icons and quieter navigation in the native app. Add a real upcoming BB deadline
   summary and direct task navigation to Today, plus eight service shortcuts. Redesign service
   browsing as a grid and group WS/room filters into compact panels with separate result cards.
@@ -33,7 +33,7 @@
 - Identify air-quality readings as modeled US AQI with their data time; reject invalid or stale
   readings. This does not replace the provider with a local observation station.
 - Multiple configurable reminder alarms remain a standalone browser demo;
-  no native notification scheduler is included in this development build.
+  no native notification scheduler is included in this release.
 
 ## 0.3.30 — 2026-11-20
 

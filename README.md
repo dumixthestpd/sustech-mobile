@@ -8,19 +8,23 @@ A clean Android app for SUSTech campus services. Anywhere, anytime.
 - **Courses & grades** (`tis`) — this week's timetable on its real period grid, enrolled courses, grades + GPA, exams
 - **Course reviews** (牛娃社区) — search a course, code or teacher and read the community's evaluation ratings
 - **Blackboard** (`bb`) — course materials and notices, in-app PDF/image/Word-text previews,
-  file sharing to other apps, assignment deadlines and submissions
-- **Campus card** (一卡通) — balance and recent bills, with in-app recharge
+  file sharing to other apps, outstanding assignments, submitted work with grades/feedback and submissions
+- **Campus card** (一卡通) — balance and recent bills, with a recharge handoff to WeChat
 - **Library** — how many people are inside each library, where a book is (floor, shelf, availability), and **your borrowed books with due dates and renewal**
 - **Transit** — the campus shuttle: every stop as a *place*, nearest first; pick a direction and see the buses on the way, live
-- **Today** — week number, next class, campus weather, AQI, next exam
+- **Today** — outstanding assignments, today's timetable and current-time marker, campus weather,
+  modeled AQI, next exam and an optional bus summary
+- **Home layout** — Account settings for drag ordering and visibility of cards/service shortcuts,
+  optional first-card emphasis and the launch destination
+- **Discussion rooms** — availability calendars and search by floor, name and a future time interval
+- **Exchange programs** — searchable WS catalog with combined filters and access to the application platform
 - **Widgets** — one shows the next class, the next bus, campus weather or Blackboard deadlines (you pick); the other is a 2×2 grid of four campus shortcuts you configure
 - **Account** — stored school account, per-service session state, network state (campus / off campus / offline). It also tells you when a new release is out.
 
-The Services tab opens official school portals for venue booking, exchange programs, and language
-tutoring, handing them the app's CAS cookies so CAS-based pages start signed in — the exchange
-platform is the exception and still shows its own login form. Exchange opens its application
-platform first, with project information in the top-right menu. Language tutoring opens the E-Hall
-booking system directly. Faculty search uses a bilingual snapshot of the public roster, so name, title, and
+The Services tab combines native campus-service screens with official pages where needed.
+Exchange combines the native project catalog with official application pages. Language tutoring
+opens the E-Hall booking system through the existing sign-in handoff. Faculty search uses a
+bilingual snapshot of the public roster, so name, title, and
 department searches work offline; selecting a person opens their official profile. The tutoring
 system loads its schedule through dynamic requests that are not exposed by its public page, so a
 native appointment list still needs a verified request/response schema.
@@ -59,6 +63,14 @@ network access. The receiver currently accepts one PDF, Word, Excel, JPEG, PNG o
 at a time; other attachment types can still be shared to compatible apps.
 
 BB materials and incoming print sharing are included in v0.3.30 and later.
+
+## Arrange the home screen
+
+Open **Account → Home layout**. Drag the right-hand handle to reorder cards or service shortcuts;
+switch an item on or off to control whether it appears. The first visible card receives green
+emphasis when enabled. Changes save automatically. Home previews today's timetable; the complete
+day/week browser remains in Courses. Configurable deadline reminder alarms remain a separate demo
+and are not included in this release.
 
 ## Build and test
 
