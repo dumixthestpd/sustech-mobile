@@ -64,6 +64,10 @@ class AccountFragment : Fragment(R.layout.fragment_account), Refreshable {
         }
 
         view.findViewById<MaterialButton>(R.id.btn_forget).setOnClickListener {
+            if (!Credentials.configured) {
+                startActivity(Intent(requireContext(), LoginActivity::class.java))
+                return@setOnClickListener
+            }
             edu.sustech.mobile.core.Cache.clear()
             Credentials.clear()
             App.cookies.clear()
@@ -139,6 +143,15 @@ class AccountFragment : Fragment(R.layout.fragment_account), Refreshable {
         val printSession = view?.findViewById<TextView>(R.id.account_print_session)
         val tisSession = view?.findViewById<TextView>(R.id.account_tis_session)
         val network = view?.findViewById<TextView>(R.id.account_network)
+        val hasAccount = Credentials.configured
+
+        view?.findViewById<View>(R.id.account_details)?.visibility =
+            if (hasAccount) View.VISIBLE else View.GONE
+        view?.findViewById<View>(R.id.account_signed_out)?.visibility =
+            if (hasAccount) View.GONE else View.VISIBLE
+        view?.findViewById<MaterialButton>(R.id.btn_forget)?.setText(
+            if (hasAccount) R.string.account_forget else R.string.action_sign_in,
+        )
 
         account?.text = when {
             Credentials.configured -> Credentials.sid
@@ -154,6 +167,11 @@ class AccountFragment : Fragment(R.layout.fragment_account), Refreshable {
                     if (Credentials.configured) R.string.account_creds_saved else R.string.account_creds_missing
             },
         )
+
+        if (!hasAccount) {
+            checkForUpdate()
+            return
+        }
 
         runIo(
             block = { App.api.check() },

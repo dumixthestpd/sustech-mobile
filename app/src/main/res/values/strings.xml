@@ -457,6 +457,7 @@
 
     <!-- Account -->
     <string name="account_title">Account</string>
+    <string name="account_not_signed_in">You are not signed in.</string>
     <string name="account_identity">School account</string>
     <string name="account_identity_state">Saved</string>
     <string name="account_creds_saved">Saved on this phone</string>

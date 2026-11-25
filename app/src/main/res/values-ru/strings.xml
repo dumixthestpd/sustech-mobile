@@ -408,6 +408,7 @@
     <string name="upload_note">Загрузка бесплатна. Оплата списывается при получении печати.</string>
     <string name="pick_error">Не удалось прочитать выбранный файл</string>
     <string name="account_title">Аккаунт</string>
+    <string name="account_not_signed_in">Вход не выполнен.</string>
     <string name="account_identity">Университетский аккаунт</string>
     <string name="account_identity_state">Сохранён</string>
     <string name="account_creds_saved">Сохранено на этом телефоне</string>

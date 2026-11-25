@@ -40,77 +40,93 @@
                     android:textStyle="bold" />
 
                 <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:text="@string/account_identity"
-                    android:textAppearance="@style/FieldLabel" />
-
-                <TextView
-                    android:id="@+id/account_identity"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/account_unknown"
-                    android:textAppearance="@style/FieldValue" />
-
-                <TextView
-                    android:id="@+id/account_identity_state"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/account_creds_missing"
-                    android:textColor="@color/ink_muted"
-                    android:textSize="12sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:text="@string/account_session"
-                    android:textAppearance="@style/FieldLabel" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/session_courses_label"
-                    android:textColor="@color/ink_muted"
-                    android:textSize="12sp" />
-
-                <TextView
-                    android:id="@+id/account_tis_session"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/account_session_invalid"
-                    android:textAppearance="@style/FieldValue" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/session_printing_label"
-                    android:textColor="@color/ink_muted"
-                    android:textSize="12sp" />
-
-                <TextView
-                    android:id="@+id/account_print_session"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/account_session_invalid"
-                    android:textAppearance="@style/FieldValue" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:text="@string/network_label"
-                    android:textAppearance="@style/FieldLabel" />
-
-                <TextView
-                    android:id="@+id/account_network"
+                    android:id="@+id/account_signed_out"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/empty_loading"
-                    android:textAppearance="@style/FieldValue" />
+                    android:layout_marginTop="12dp"
+                    android:text="@string/account_not_signed_in"
+                    android:textAppearance="@style/FieldValue"
+                    android:visibility="gone" />
+
+                <LinearLayout
+                    android:id="@+id/account_details"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/account_identity"
+                        android:textAppearance="@style/FieldLabel" />
+
+                    <TextView
+                        android:id="@+id/account_identity"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/account_unknown"
+                        android:textAppearance="@style/FieldValue" />
+
+                    <TextView
+                        android:id="@+id/account_identity_state"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/account_creds_missing"
+                        android:textColor="@color/ink_muted"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/account_session"
+                        android:textAppearance="@style/FieldLabel" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/session_courses_label"
+                        android:textColor="@color/ink_muted"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:id="@+id/account_tis_session"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/account_session_invalid"
+                        android:textAppearance="@style/FieldValue" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/session_printing_label"
+                        android:textColor="@color/ink_muted"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:id="@+id/account_print_session"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/account_session_invalid"
+                        android:textAppearance="@style/FieldValue" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/network_label"
+                        android:textAppearance="@style/FieldLabel" />
+
+                    <TextView
+                        android:id="@+id/account_network"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/empty_loading"
+                        android:textAppearance="@style/FieldValue" />
+                </LinearLayout>
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_forget"
