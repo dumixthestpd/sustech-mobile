@@ -25,7 +25,7 @@ jobs:
           cache: gradle
       - uses: gradle/actions/setup-gradle@v6
         with:
-          gradle-version: 8.7
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest --no-daemon
       - name: Build debug APK
