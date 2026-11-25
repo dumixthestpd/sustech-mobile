@@ -1,5 +1,6 @@
 package edu.sustech.mobile.ui.ecard
 
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.os.SystemClock
 import android.view.LayoutInflater
@@ -63,6 +64,7 @@ class EcardFragment : Fragment() {
     private var errorText: String? = null
     private var hiddenSince = 0L
     private var loading = false
+    private var previousRequestedOrientation: Int? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -366,6 +368,17 @@ class EcardFragment : Fragment() {
 
     private fun applyDisplayMode(on: Boolean) {
         val act = activity ?: return
+        if (on) {
+            if (previousRequestedOrientation == null) {
+                previousRequestedOrientation = act.requestedOrientation
+            }
+            act.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LOCKED
+        } else {
+            previousRequestedOrientation?.let {
+                act.requestedOrientation = it
+                previousRequestedOrientation = null
+            }
+        }
         val lp = act.window.attributes
         lp.screenBrightness =
             if (on) 1.0f else WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
