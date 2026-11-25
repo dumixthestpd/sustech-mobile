@@ -140,9 +140,19 @@ class AccountFragment : Fragment(R.layout.fragment_account), Refreshable {
         val tisSession = view?.findViewById<TextView>(R.id.account_tis_session)
         val network = view?.findViewById<TextView>(R.id.account_network)
 
-        account?.text = if (Credentials.configured) Credentials.sid else getString(R.string.account_unknown)
+        account?.text = when {
+            Credentials.configured -> Credentials.sid
+            Credentials.validation == Credentials.Validation.REJECTED ->
+                AppConfig.lastUsername.ifEmpty { getString(R.string.account_unknown) }
+            else -> getString(R.string.account_unknown)
+        }
         accountState?.setText(
-            if (Credentials.configured) R.string.account_creds_saved else R.string.account_creds_missing,
+            when (Credentials.validation) {
+                Credentials.Validation.VERIFIED -> R.string.account_creds_verified
+                Credentials.Validation.REJECTED -> R.string.account_verification_failed
+                Credentials.Validation.UNVERIFIED ->
+                    if (Credentials.configured) R.string.account_creds_saved else R.string.account_creds_missing
+            },
         )
 
         runIo(

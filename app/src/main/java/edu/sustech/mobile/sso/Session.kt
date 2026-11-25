@@ -99,6 +99,11 @@ object Session {
             TAG,
             "sign-in $access in ${elapsed}ms ($timing)${if (detail.isEmpty()) "" else " · $detail"}",
         )
+        when (access) {
+            Access.ACCEPTED -> Credentials.markVerified()
+            Access.REFUSED -> Credentials.markRejected()
+            Access.UNREACHABLE -> Unit
+        }
         return SignInReport(access, detail)
     }
 
