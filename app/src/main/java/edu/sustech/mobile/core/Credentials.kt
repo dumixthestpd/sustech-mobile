@@ -20,6 +20,13 @@ object Credentials {
     private const val PREFS = "sustech_mobile_creds"
     private const val KEY_SID = "sid"
     private const val KEY_PASSWORD = "password"
+    private const val KEY_VALIDATION = "validation"
+
+    enum class Validation {
+        UNVERIFIED,
+        VERIFIED,
+        REJECTED,
+    }
 
     private lateinit var appContext: Context
 
@@ -37,10 +44,35 @@ object Credentials {
     /** Read-only here; the only writer is [save]. */
     val password: String get() = prefs.getString(KEY_PASSWORD, "").orEmpty()
 
+    val validation: Validation
+        get() = when (prefs.getString(KEY_VALIDATION, null)) {
+            Validation.VERIFIED.name -> Validation.VERIFIED
+            Validation.REJECTED.name -> Validation.REJECTED
+            else -> Validation.UNVERIFIED
+        }
+
     fun save(sid: String, password: String) {
         val cleanSid = sid.trim()
         if (cleanSid.isEmpty() || password.isEmpty()) return
-        prefs.edit().putString(KEY_SID, cleanSid).putString(KEY_PASSWORD, password).apply()
+        prefs.edit()
+            .putString(KEY_SID, cleanSid)
+            .putString(KEY_PASSWORD, password)
+            .putString(KEY_VALIDATION, Validation.UNVERIFIED.name)
+            .apply()
+    }
+
+    fun markVerified() {
+        if (configured) prefs.edit().putString(KEY_VALIDATION, Validation.VERIFIED.name).apply()
+    }
+
+    fun markRejected() {
+        val rejectedSid = sid
+        prefs.edit()
+            .remove(KEY_SID)
+            .remove(KEY_PASSWORD)
+            .putString(KEY_VALIDATION, Validation.REJECTED.name)
+            .apply()
+        if (rejectedSid.isNotEmpty()) AppConfig.lastUsername = rejectedSid
     }
 
     fun clear() {

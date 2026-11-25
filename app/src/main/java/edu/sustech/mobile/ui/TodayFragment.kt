@@ -15,7 +15,9 @@ import edu.sustech.mobile.R
 import edu.sustech.mobile.calendar.AcademicCalendar
 import edu.sustech.mobile.calendar.Term
 import edu.sustech.mobile.core.App
+import edu.sustech.mobile.core.ApiException
 import edu.sustech.mobile.core.Cache
+import edu.sustech.mobile.core.Credentials
 import edu.sustech.mobile.core.runIo
 import edu.sustech.mobile.tis.ClassEntry
 import edu.sustech.mobile.tis.NextClass
@@ -66,7 +68,10 @@ class TodayFragment : Fragment(R.layout.fragment_today), Refreshable {
         view.findViewById<View>(R.id.today_deadline_prev).setOnClickListener { moveDeadline(-1) }
         view.findViewById<View>(R.id.today_deadline_next).setOnClickListener { moveDeadline(1) }
         view.findViewById<MaterialButton>(R.id.today_sign_in).setOnClickListener {
-            startActivity(Intent(requireContext(), LoginActivity::class.java))
+            startActivity(
+                Intent(requireContext(), LoginActivity::class.java)
+                    .putExtra(LoginActivity.EXTRA_FORCE_LOGIN, true),
+            )
         }
         view.findViewById<SwipeRefreshLayout>(R.id.today_swipe).setOnRefreshListener {
             Cache.invalidate("tis.")
@@ -277,11 +282,18 @@ class TodayFragment : Fragment(R.layout.fragment_today), Refreshable {
                     onErr = { exam?.setText(R.string.today_none) },
                 )
             },
-            onErr = {
+            onErr = { error ->
+                if ((error as? ApiException)?.refused == true) Credentials.markRejected()
                 swipe?.isRefreshing = false
                 week?.setText(R.string.today_week_unknown)
-                classes?.setText(R.string.today_sign_in_hint)
+                val rejected = Credentials.validation == Credentials.Validation.REJECTED
+                classes?.setText(
+                    if (rejected) R.string.today_sign_in_rejected_hint else R.string.today_sign_in_hint,
+                )
                 hint?.visibility = View.VISIBLE
+                hint?.setText(
+                    if (rejected) R.string.today_sign_in_rejected_hint else R.string.today_sign_in_hint,
+                )
                 signIn?.visibility = View.VISIBLE
                 exam?.setText(R.string.today_none)
             },

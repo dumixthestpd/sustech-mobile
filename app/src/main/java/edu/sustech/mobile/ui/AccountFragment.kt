@@ -64,6 +64,10 @@ class AccountFragment : Fragment(R.layout.fragment_account), Refreshable {
         }
 
         view.findViewById<MaterialButton>(R.id.btn_forget).setOnClickListener {
+            if (!Credentials.configured) {
+                startActivity(Intent(requireContext(), LoginActivity::class.java))
+                return@setOnClickListener
+            }
             edu.sustech.mobile.core.Cache.clear()
             Credentials.clear()
             App.cookies.clear()
@@ -139,11 +143,35 @@ class AccountFragment : Fragment(R.layout.fragment_account), Refreshable {
         val printSession = view?.findViewById<TextView>(R.id.account_print_session)
         val tisSession = view?.findViewById<TextView>(R.id.account_tis_session)
         val network = view?.findViewById<TextView>(R.id.account_network)
+        val hasAccount = Credentials.configured
 
-        account?.text = if (Credentials.configured) Credentials.sid else getString(R.string.account_unknown)
-        accountState?.setText(
-            if (Credentials.configured) R.string.account_creds_saved else R.string.account_creds_missing,
+        view?.findViewById<View>(R.id.account_details)?.visibility =
+            if (hasAccount) View.VISIBLE else View.GONE
+        view?.findViewById<View>(R.id.account_signed_out)?.visibility =
+            if (hasAccount) View.GONE else View.VISIBLE
+        view?.findViewById<MaterialButton>(R.id.btn_forget)?.setText(
+            if (hasAccount) R.string.account_forget else R.string.action_sign_in,
         )
+
+        account?.text = when {
+            Credentials.configured -> Credentials.sid
+            Credentials.validation == Credentials.Validation.REJECTED ->
+                AppConfig.lastUsername.ifEmpty { getString(R.string.account_unknown) }
+            else -> getString(R.string.account_unknown)
+        }
+        accountState?.setText(
+            when (Credentials.validation) {
+                Credentials.Validation.VERIFIED -> R.string.account_creds_verified
+                Credentials.Validation.REJECTED -> R.string.account_verification_failed
+                Credentials.Validation.UNVERIFIED ->
+                    if (Credentials.configured) R.string.account_creds_saved else R.string.account_creds_missing
+            },
+        )
+
+        if (!hasAccount) {
+            checkForUpdate()
+            return
+        }
 
         runIo(
             block = { App.api.check() },

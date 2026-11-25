@@ -42,7 +42,7 @@ class LoginActivity : AppCompatActivity() {
         val button = findViewById<MaterialButton>(R.id.btn_login)
         val status = findViewById<TextView>(R.id.login_status)
 
-        inputSid.setText(Credentials.sid)
+        inputSid.setText(Credentials.sid.ifEmpty { AppConfig.lastUsername })
 
         button.setOnClickListener {
             val sid = inputSid.text?.toString()?.trim().orEmpty()
@@ -51,6 +51,7 @@ class LoginActivity : AppCompatActivity() {
                 Toast.makeText(this, R.string.login_missing_fields, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
+            AppConfig.lastUsername = sid
             Credentials.save(sid, password)
             signIn(progress, button, status)
         }
@@ -63,7 +64,7 @@ class LoginActivity : AppCompatActivity() {
         }
 
         status.text = AppConfig.lastSignInNote
-        if (Credentials.configured) {
+        if (Credentials.configured && !intent.getBooleanExtra(EXTRA_FORCE_LOGIN, false)) {
             // Nothing left to ask: the account is already saved, so open the
             // app and let the verification run alongside it. Waiting here is
             // what made "continue without credentials, then refresh" the fast
@@ -90,8 +91,10 @@ class LoginActivity : AppCompatActivity() {
                     Session.Access.ACCEPTED -> openMain()
 
                     // Only an explicit refusal means the account is wrong.
-                    Session.Access.REFUSED ->
+                    Session.Access.REFUSED -> {
+                        status.setText(R.string.login_rejected)
                         Toast.makeText(this, R.string.login_rejected, Toast.LENGTH_LONG).show()
+                    }
 
                     // Printing is campus-only, so "nothing answered" is a
                     // network fact, not a credential fact: let the user in and
@@ -115,7 +118,8 @@ class LoginActivity : AppCompatActivity() {
         finish()
     }
 
-    private companion object {
-        const val TAG = "SustechSignIn"
+    companion object {
+        private const val TAG = "SustechSignIn"
+        const val EXTRA_FORCE_LOGIN = "force_login"
     }
 }

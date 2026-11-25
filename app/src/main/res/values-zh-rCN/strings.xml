@@ -323,6 +323,7 @@
     <string name="today_aqi">空气质量指数</string>
     <string name="today_next_exam">下一场考试</string>
     <string name="today_sign_in_hint">登录后即可查看。</string>
+    <string name="today_sign_in_rejected_hint">账号验证失败，请重新登录。</string>
     <string name="weather_feels_like">体感 %1$d°C</string>
     <string name="weather_rain_expected">预计有雨</string>
     <string name="weather_no_rain">未来两小时无雨</string>
@@ -425,9 +426,12 @@
     <string name="upload_note">上传免费，取件时才会扣费。</string>
     <string name="pick_error">无法读取所选文件</string>
     <string name="account_title">账号</string>
+    <string name="account_not_signed_in">尚未登录。</string>
     <string name="account_identity">学校账号</string>
     <string name="account_identity_state">已保存</string>
     <string name="account_creds_saved">已保存在此设备</string>
+    <string name="account_creds_verified">账号已验证</string>
+    <string name="account_verification_failed">账号验证失败，请重新登录</string>
     <string name="account_creds_missing">未设置</string>
     <string name="account_forget">移除账号</string>
     <string name="account_forgotten">账号已移除</string>

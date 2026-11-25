@@ -346,6 +346,7 @@
     <string name="today_next_exam">Next exam</string>
     <string name="today_none">—</string>
     <string name="today_sign_in_hint">Sign in to fill this in.</string>
+    <string name="today_sign_in_rejected_hint">Account verification failed — sign in again.</string>
     <string name="weather_feels_like">feels %1$d°C</string>
     <string name="weather_rain_expected">rain expected</string>
     <string name="weather_no_rain">no rain in the next 2 hours</string>
@@ -456,9 +457,12 @@
 
     <!-- Account -->
     <string name="account_title">Account</string>
+    <string name="account_not_signed_in">You are not signed in.</string>
     <string name="account_identity">School account</string>
     <string name="account_identity_state">Saved</string>
     <string name="account_creds_saved">Saved on this phone</string>
+    <string name="account_creds_verified">Account verified</string>
+    <string name="account_verification_failed">Verification failed — sign in again</string>
     <string name="account_creds_missing">Not set</string>
     <string name="account_forget">Forget account</string>
     <string name="account_forgotten">Account forgotten</string>

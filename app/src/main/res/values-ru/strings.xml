@@ -305,6 +305,7 @@
     <string name="today_aqi">Качество воздуха</string>
     <string name="today_next_exam">Следующий экзамен</string>
     <string name="today_sign_in_hint">Войдите, чтобы увидеть данные.</string>
+    <string name="today_sign_in_rejected_hint">Проверка аккаунта не пройдена — войдите снова.</string>
     <string name="weather_feels_like">ощущается как %1$d°C</string>
     <string name="weather_rain_expected">ожидается дождь</string>
     <string name="weather_no_rain">в ближайшие 2 часа без дождя</string>
@@ -407,9 +408,12 @@
     <string name="upload_note">Загрузка бесплатна. Оплата списывается при получении печати.</string>
     <string name="pick_error">Не удалось прочитать выбранный файл</string>
     <string name="account_title">Аккаунт</string>
+    <string name="account_not_signed_in">Вход не выполнен.</string>
     <string name="account_identity">Университетский аккаунт</string>
     <string name="account_identity_state">Сохранён</string>
     <string name="account_creds_saved">Сохранено на этом телефоне</string>
+    <string name="account_creds_verified">Аккаунт проверен</string>
+    <string name="account_verification_failed">Проверка не пройдена — войдите снова</string>
     <string name="account_creds_missing">Не задано</string>
     <string name="account_forget">Удалить аккаунт</string>
     <string name="account_forgotten">Аккаунт удалён</string>
